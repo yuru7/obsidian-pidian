@@ -10,7 +10,7 @@ export function createSearchNotesTool(options: {
     name: "search_notes",
     label: "Search notes",
     description:
-      "Search Markdown notes in the Obsidian vault by file name and note body. Excludes .obsidian/, pidian/sessions/, and pidian/AGENTS.md.",
+      "Search Markdown notes in the Obsidian vault by file name and note body. File names are matched exactly first; if none match, a partial match is used (substring, ignoring whitespace differences). Excludes .obsidian/, pidian/sessions/, and pidian/AGENTS.md.",
     parameters: {
       type: "object",
       properties: {

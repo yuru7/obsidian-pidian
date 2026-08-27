@@ -1,6 +1,7 @@
 import { MarkdownView, TFile, TFolder, type App } from "obsidian";
 import type { ListedEntry, Note, NoteRepository, SearchHit } from "../../domain/notes/NoteRepository";
 import { computeRevision } from "../../application/revision";
+import { selectFilenameHits } from "../../application/filenameSearch";
 import { assertSafeDirectoryPath, assertSafeNotePath, isExcludedFromSearch, isRestrictedVaultPath } from "../../application/notePath";
 
 const SEARCH_LIMIT = 50;
@@ -70,33 +71,40 @@ export class ObsidianNoteRepository implements NoteRepository {
   }
 
   async search(query: string): Promise<SearchHit[]> {
-    const needle = query.trim().toLowerCase();
+    const needle = query.trim();
     if (!needle) {
       return [];
     }
-    const hits: SearchHit[] = [];
-    for (const file of this.app.vault.getMarkdownFiles()) {
+    const files = this.app.vault.getMarkdownFiles().filter((file) => !isExcludedFromSearch(file.path));
+    const filenameHits = selectFilenameHits(
+      files.map((file) => file.path),
+      needle,
+    );
+    const hits: SearchHit[] = filenameHits.slice(0, SEARCH_LIMIT).map((path) => ({
+      path,
+      matchType: "filename" as const,
+      snippet: path,
+    }));
+    if (hits.length >= SEARCH_LIMIT) {
+      return hits;
+    }
+
+    const filenameHitPaths = new Set(filenameHits);
+    const lowerNeedle = needle.toLowerCase();
+    for (const file of files) {
       if (hits.length >= SEARCH_LIMIT) {
         break;
       }
-      if (isExcludedFromSearch(file.path)) {
-        continue;
-      }
-      if (file.basename.toLowerCase().includes(needle) || file.path.toLowerCase().includes(needle)) {
-        hits.push({
-          path: file.path,
-          matchType: "filename",
-          snippet: file.path,
-        });
+      if (filenameHitPaths.has(file.path)) {
         continue;
       }
       const content = await this.app.vault.cachedRead(file);
-      const index = content.toLowerCase().indexOf(needle);
+      const index = content.toLowerCase().indexOf(lowerNeedle);
       if (index >= 0) {
         hits.push({
           path: file.path,
           matchType: "content",
-          snippet: snippetAround(content, index, query.length),
+          snippet: snippetAround(content, index, needle.length),
         });
       }
     }
