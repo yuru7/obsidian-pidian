@@ -7,6 +7,7 @@ import { PIDIAN_ICON_ID } from "./pidianIcon";
 export const VIEW_TYPE_PIDIAN = "pidian-view";
 
 export class PidianView extends ItemView {
+  navigation = false;
   private root: Root | null = null;
 
   constructor(

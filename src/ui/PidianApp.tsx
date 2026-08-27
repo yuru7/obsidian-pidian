@@ -10,7 +10,19 @@ export function PidianApp({ plugin }: { plugin: PidianPlugin }): JSX.Element {
   const [, rerender] = useReducer((value: number) => value + 1, 0);
 
   useEffect(() => {
-    return plugin.agentService?.subscribe(() => rerender());
+    const unsubAgent = plugin.agentService?.subscribe(() => rerender());
+    const workspace = plugin.app.workspace;
+    const onWorkspaceChange = () => rerender();
+    const refs = [
+      workspace.on("active-leaf-change", onWorkspaceChange),
+      workspace.on("file-open", onWorkspaceChange),
+    ];
+    return () => {
+      unsubAgent?.();
+      for (const ref of refs) {
+        workspace.offref(ref);
+      }
+    };
   }, [plugin]);
 
   if (!plugin.agentService) {

@@ -57,10 +57,10 @@ class ConfirmToolModal extends Modal {
       return;
     }
     this.settled = true;
-    this.finish(allowed);
     if (closeModal) {
       this.close();
     }
+    this.finish(allowed);
   }
 
   onClose(): void {

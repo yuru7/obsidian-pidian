@@ -112,10 +112,24 @@ export default class PidianPlugin extends Plugin {
       () => adapter.getRuntime(),
       () => this.settings.customProviders,
     );
+    const contextProvider = new ObsidianContextProvider(this.app);
+    this.registerEvent(
+      this.app.workspace.on("active-leaf-change", () => {
+        contextProvider.rememberCurrentMarkdown();
+      }),
+    );
+    this.registerEvent(
+      this.app.workspace.on("file-open", () => {
+        contextProvider.rememberCurrentMarkdown();
+      }),
+    );
+    this.app.workspace.onLayoutReady(() => {
+      contextProvider.rememberCurrentMarkdown();
+    });
     this.agentService = new AgentService(
       adapter,
       sessions,
-      new ContextService(new ObsidianContextProvider(this.app), () => this.settings.includeSelectionContext),
+      new ContextService(contextProvider, () => this.settings.includeSelectionContext),
       new InstructionProvider(() => new ObsidianInstructionReader(this.app).read()),
       (sessionId) =>
         createPidianTools({
@@ -209,8 +223,8 @@ export default class PidianPlugin extends Plugin {
       new Notice(t("noticeSidebarFailed"));
       return;
     }
-    await leaf.setViewState({ type: VIEW_TYPE_PIDIAN, active: true });
-    this.app.workspace.revealLeaf(leaf);
+    await leaf.setViewState({ type: VIEW_TYPE_PIDIAN, active: false });
+    await this.app.workspace.revealLeaf(leaf);
   }
 
   private resolvePidianLeaf(): WorkspaceLeaf | null {

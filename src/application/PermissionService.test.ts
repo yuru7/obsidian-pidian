@@ -38,4 +38,15 @@ describe("PermissionService", () => {
     });
     expect(decision).toEqual({ allowed: false, reason: "Tool execution denied by user" });
   });
+
+  it("asks the user and allows when confirmed", async () => {
+    const confirm = vi.fn(async () => true);
+    const service = new PermissionService(() => ({ read: "ask", search: "ask", create: "ask", edit: "ask" }), {
+      confirm,
+    });
+    await expect(
+      service.authorize({ category: "read", toolName: "read_note", summary: "Read a.md" }),
+    ).resolves.toEqual({ allowed: true });
+    expect(confirm).toHaveBeenCalledOnce();
+  });
 });

@@ -21,7 +21,7 @@ export class ObsidianNoteEditor implements NoteEditor {
   }
 
   async applyReplacements(path: string, replacements: Replacement[]): Promise<string> {
-    const existing = this.findOpenEditor(path);
+    const existing = await this.findOpenEditor(path);
     if (existing) {
       return applyToEditor(existing, replacements);
     }
@@ -37,8 +37,11 @@ export class ObsidianNoteEditor implements NoteEditor {
     this.leases.releaseAll();
   }
 
-  private findOpenEditor(path: string): Editor | undefined {
+  private async findOpenEditor(path: string): Promise<Editor | undefined> {
     for (const leaf of this.app.workspace.getLeavesOfType("markdown")) {
+      if (leaf.isDeferred) {
+        await leaf.loadIfDeferred();
+      }
       const view = leaf.view;
       if (view instanceof MarkdownView && view.file?.path === path) {
         return view.editor;
@@ -53,10 +56,13 @@ export class ObsidianNoteEditor implements NoteEditor {
       throw new Error(`Note not found: ${path}`);
     }
 
-    const previous = this.app.workspace.getMostRecentLeaf();
+    // activeLeaf is deprecated for general queries, but it is the focused leaf
+    // including sidebars. getMostRecentLeaf() skips the Pidian view and would
+    // steal focus from the chat while a background note is opened for Undo.
+    const previous = this.app.workspace.activeLeaf;
     const leaf = this.app.workspace.getLeaf("tab");
     await leaf.openFile(file, { active: false });
-    if (previous) {
+    if (previous && previous !== this.app.workspace.activeLeaf) {
       this.app.workspace.setActiveLeaf(previous, { focus: false });
     }
 
