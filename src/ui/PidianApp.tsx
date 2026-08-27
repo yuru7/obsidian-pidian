@@ -54,7 +54,20 @@ export function PidianApp({ plugin }: { plugin: PidianPlugin }): JSX.Element {
                 void plugin.startNewChat();
               }}
             >
-              +
+              <svg
+                className="pidian-icon"
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M5 12h14" />
+                <path d="M12 5v14" />
+              </svg>
             </button>
             <SessionSelector plugin={plugin} onChange={rerender} />
           </div>

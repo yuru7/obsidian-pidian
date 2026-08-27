@@ -17,6 +17,7 @@ import { ObsidianInstructionReader } from "./infrastructure/obsidian/ObsidianIns
 import { ObsidianNoteEditor } from "./infrastructure/obsidian/ObsidianNoteEditor";
 import { ObsidianNoteRepository } from "./infrastructure/obsidian/ObsidianNoteRepository";
 import { ObsidianPermissionPrompter } from "./infrastructure/obsidian/ObsidianPermissionPrompter";
+import { ObsidianWorkspaceNavigator } from "./infrastructure/obsidian/ObsidianWorkspaceNavigator";
 import { ObsidianSessionRepository } from "./infrastructure/obsidian/ObsidianSessionRepository";
 import { DEFAULT_SETTINGS, mergeSettings, type PidianSettings } from "./settings/Settings";
 import { PidianSettingTab } from "./settings/PidianSettingTab";
@@ -102,6 +103,7 @@ export default class PidianPlugin extends Plugin {
   private initServices(): void {
     const notes = new ObsidianNoteRepository(this.app);
     const editor = new ObsidianNoteEditor(this.app, () => this.settings.maxEditableNotes);
+    const workspace = new ObsidianWorkspaceNavigator(this.app);
     this.noteEditor = editor;
     const sessions = new SessionService(new ObsidianSessionRepository(this.app));
     this.sessionService = sessions;
@@ -157,6 +159,7 @@ export default class PidianPlugin extends Plugin {
           sessionId,
           notes,
           editor,
+          workspace,
           permissions,
           tracker,
         }),

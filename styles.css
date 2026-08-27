@@ -14,7 +14,7 @@
 }
 
 .pidian-header {
-  padding: 12px;
+  padding: 6px 12px;
   border-bottom: 1px solid var(--background-modifier-border);
 }
 
@@ -55,9 +55,18 @@
   color: var(--text-muted);
 }
 
+.pidian-view .pidian-icon-button,
+.pidian-send-button {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .pidian-view .pidian-icon-button {
-  width: 28px;
-  height: 28px;
   border: none;
 }
 
@@ -264,17 +273,7 @@
   margin-top: 8px;
 }
 
-.pidian-send-button {
-  width: 32px;
-  height: 32px;
-  padding: 0;
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.pidian-send-icon {
+.pidian-icon {
   width: 16px;
   height: 16px;
   display: block;
@@ -287,7 +286,7 @@
 .pidian-session-menu {
   position: absolute;
   right: 0;
-  top: 32px;
+  top: calc(100% + 4px);
   width: 240px;
   max-height: 280px;
   overflow: auto;
@@ -298,14 +297,28 @@
   box-shadow: var(--shadow-s);
 }
 
-.pidian-session-item {
-  display: block;
+.pidian-view .pidian-session-item {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+  height: auto;
+  min-height: 0;
   width: 100%;
+  box-sizing: border-box;
+  white-space: normal;
   text-align: left;
   padding: 8px;
   border: 0;
   border-bottom: 1px solid var(--background-modifier-border);
   border-radius: 0;
+}
+
+.pidian-session-title,
+.pidian-session-meta {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .pidian-session-title {
@@ -316,6 +329,9 @@
 .pidian-session-empty {
   font-size: var(--font-ui-smaller);
   color: var(--text-muted);
+}
+
+.pidian-session-empty {
   padding: 8px;
 }
 

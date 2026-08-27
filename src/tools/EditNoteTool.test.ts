@@ -4,6 +4,7 @@ import { ReadRevisionTracker } from "../application/ReadRevisionTracker";
 import { computeRevision } from "../application/revision";
 import type { Note, NoteRepository, SearchHit } from "../domain/notes/NoteRepository";
 import type { NoteEditor, Replacement } from "../domain/notes/NoteEditor";
+import type { OpenFileResult, WorkspaceNavigator, WorkspaceTab } from "../domain/workspace/WorkspaceNavigator";
 import { applyReplacementsToText } from "../application/replacements";
 import { createEditNoteTool } from "./EditNoteTool";
 import { createPidianTools } from "./createPidianTools";
@@ -30,6 +31,20 @@ class MemoryNotes implements NoteRepository {
 
   async exists(path: string): Promise<boolean> {
     return this.files.has(path);
+  }
+}
+
+class MemoryWorkspace implements WorkspaceNavigator {
+  async openFile(_path: string): Promise<OpenFileResult> {
+    throw new Error("unused");
+  }
+
+  async listTabs(): Promise<WorkspaceTab[]> {
+    return [];
+  }
+
+  async focusTab(_target: { tabId?: string; path?: string }): Promise<WorkspaceTab> {
+    throw new Error("unused");
   }
 }
 
@@ -119,6 +134,7 @@ describe("read then edit flow", () => {
       sessionId: "s1",
       notes,
       editor,
+      workspace: new MemoryWorkspace(),
       tracker,
       permissions: new PermissionService(
         () => ({ read: "allow", search: "allow", create: "allow", edit: "allow" }),

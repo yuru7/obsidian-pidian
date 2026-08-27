@@ -3,17 +3,17 @@ import type { PidianToolCall } from "../domain/sessions/PidianSession";
 
 export function ToolCall({ toolCall }: { toolCall: PidianToolCall }): JSX.Element {
   const [open, setOpen] = useState(false);
-  const path =
-    toolCall.args && typeof toolCall.args === "object" && "path" in toolCall.args
-      ? String((toolCall.args as { path?: unknown }).path ?? "")
-      : "";
+  const args = toolCall.args && typeof toolCall.args === "object" ? (toolCall.args as Record<string, unknown>) : {};
+  const path = typeof args.path === "string" ? args.path : "";
+  const tabId = typeof args.tabId === "string" ? args.tabId : "";
+  const detail = path || tabId;
 
   return (
     <div className={`pidian-tool${toolCall.isError ? " is-error" : ""}`}>
       <button className="pidian-disclosure" onClick={() => setOpen((value) => !value)}>
         <span>{open ? "▾" : "▸"}</span>
         <span>{toolCall.name}</span>
-        {path ? <span className="pidian-tool-path">{path}</span> : null}
+        {detail ? <span className="pidian-tool-path">{detail}</span> : null}
       </button>
       {open ? (
         <pre className="pidian-tool-body">

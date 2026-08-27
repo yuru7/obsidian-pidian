@@ -65,6 +65,8 @@ Settings の Custom OpenAI Compatible で、Name / Base URL / Model ID / API key
 
 Ask every time のときは実行前に確認モーダルが出ます。Edit では対象ファイル、変更箇所数、追加・削除文字数、簡易 diff を表示します。拒否するとエージェントには `Tool execution denied by user` が返ります。
 
+Read にはノート本文の読み取りに加え、未オープンファイルを開く `open_file` と、既存タブの確認・移動 `workspace_tabs` も含みます。
+
 **Create / Edit はデフォルト無効です。** 誤編集を防ぐための初期値です。
 
 ### 現在ノートContext
@@ -105,6 +107,7 @@ Create は Undo 対象ではありません。取り消す場合は Obsidian 上
 
 - Pi 標準の `read` / `write` / `edit` / `bash` / `grep` / `find` / `ls` は無効です
 - ノート操作は Pidian の `read_note` / `search_notes` / `create_note` / `edit_note` だけです
+- タブ操作は `open_file` / `workspace_tabs` です。権限は読み取りと同じ設定を使います
 - 編集は exact unique replacement です。曖昧なら実行しません
 - 編集対象は事前の `read_note` が必須です
 - 読み取り後にノートが変わっていたら再 read を要求します
@@ -176,7 +179,7 @@ Pi から Obsidian へ直接アクセスする経路は作りません。
 
 ### Obsidian Tool architecture
 
-初期ツールは `read_note` / `search_notes` / `create_note` / `edit_note` です。Domain の `PidianTool` として定義し、`PiToolAdapter` だけが Pi の `defineTool` に変換します。
+初期ツールは `read_note` / `search_notes` / `open_file` / `workspace_tabs` / `create_note` / `edit_note` です。Domain の `PidianTool` として定義し、`PiToolAdapter` だけが Pi の `defineTool` に変換します。`open_file` と `workspace_tabs` は読み取り権限を使います。
 
 ツール追加手順:
 
@@ -237,6 +240,8 @@ README のこの節をリリース前に手で確認します。
 - [ ] Selection Context
 - [ ] read_note
 - [ ] search_notes
+- [ ] open_file
+- [ ] workspace_tabs
 - [ ] create permission
 - [ ] edit permission
 - [ ] Undo（アクティブノート）
