@@ -1,0 +1,196 @@
+.pidian-view,
+.pidian-view .view-content {
+  padding: 0;
+  height: 100%;
+}
+
+.pidian-root {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  color: var(--text-normal);
+  background: var(--background-primary);
+  font-size: var(--font-ui-small);
+}
+
+.pidian-header {
+  padding: 12px;
+  border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.pidian-header-row,
+.pidian-header-actions,
+.pidian-model-selector,
+.pidian-composer-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pidian-header-row {
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.pidian-title {
+  font-weight: var(--font-semibold, 600);
+}
+
+.pidian-icon-button,
+.pidian-button,
+.pidian-disclosure,
+.pidian-session-item {
+  background: transparent;
+  border: 1px solid var(--background-modifier-border);
+  color: var(--text-normal);
+  border-radius: var(--radius-s);
+  cursor: pointer;
+}
+
+.pidian-icon-button {
+  width: 28px;
+  height: 28px;
+}
+
+.pidian-button-primary,
+.pidian-icon-button:hover,
+.pidian-button:hover,
+.pidian-disclosure:hover,
+.pidian-session-item:hover {
+  background: var(--background-modifier-hover);
+}
+
+.pidian-button-primary {
+  background: var(--interactive-accent);
+  color: var(--text-on-accent);
+  border-color: transparent;
+}
+
+.pidian-model-selector select,
+.pidian-input {
+  width: 100%;
+  background: var(--background-primary);
+  color: var(--text-normal);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--radius-s);
+}
+
+.pidian-chat {
+  flex: 1;
+  overflow: auto;
+  padding: 12px;
+}
+
+.pidian-chat-empty,
+.pidian-context-empty,
+.pidian-session-empty {
+  color: var(--text-muted);
+}
+
+.pidian-message {
+  margin-bottom: 16px;
+}
+
+.pidian-message-role {
+  font-weight: var(--font-semibold, 600);
+  margin-bottom: 4px;
+}
+
+.pidian-message-text,
+.pidian-thinking-body,
+.pidian-tool-body,
+.pidian-confirm-details {
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.pidian-disclosure {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  padding: 4px 8px;
+  margin: 4px 0;
+}
+
+.pidian-tool-path {
+  color: var(--text-muted);
+}
+
+.pidian-tool-body,
+.pidian-thinking-body {
+  margin: 0 0 8px;
+  padding: 8px;
+  background: var(--background-secondary);
+  border-radius: var(--radius-s);
+  overflow: auto;
+}
+
+.pidian-tool.is-error .pidian-disclosure {
+  color: var(--text-error);
+}
+
+.pidian-error {
+  padding: 8px 12px;
+  color: var(--text-error);
+}
+
+.pidian-footer {
+  border-top: 1px solid var(--background-modifier-border);
+  padding: 12px;
+}
+
+.pidian-context {
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+
+.pidian-composer-actions {
+  justify-content: flex-end;
+  margin-top: 8px;
+}
+
+.pidian-session-selector {
+  position: relative;
+}
+
+.pidian-session-menu {
+  position: absolute;
+  right: 0;
+  top: 32px;
+  width: 240px;
+  max-height: 280px;
+  overflow: auto;
+  background: var(--background-primary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--radius-s);
+  z-index: 10;
+  box-shadow: var(--shadow-s);
+}
+
+.pidian-session-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 8px;
+  border: 0;
+  border-bottom: 1px solid var(--background-modifier-border);
+  border-radius: 0;
+}
+
+.pidian-session-title {
+  font-weight: var(--font-medium, 500);
+}
+
+.pidian-session-meta,
+.pidian-session-empty {
+  font-size: var(--font-ui-smaller);
+  color: var(--text-muted);
+  padding: 8px;
+}
+
+.pidian-custom-provider {
+  margin-bottom: 12px;
+  padding: 8px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--radius-s);
+}

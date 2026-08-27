@@ -1,0 +1,80 @@
+const PROVIDER_ENV_VARS: Record<string, string[]> = {
+  anthropic: ["ANTHROPIC_API_KEY", "ANTHROPIC_AUTH_TOKEN", "ANTHROPIC_OAUTH_TOKEN"],
+  openai: ["OPENAI_API_KEY"],
+  "azure-openai-responses": ["AZURE_OPENAI_API_KEY"],
+  nvidia: ["NVIDIA_API_KEY"],
+  deepseek: ["DEEPSEEK_API_KEY"],
+  google: ["GEMINI_API_KEY"],
+  groq: ["GROQ_API_KEY"],
+  cerebras: ["CEREBRAS_API_KEY"],
+  xai: ["XAI_API_KEY"],
+  openrouter: ["OPENROUTER_API_KEY"],
+  "vercel-ai-gateway": ["AI_GATEWAY_API_KEY"],
+  zai: ["ZAI_API_KEY"],
+  mistral: ["MISTRAL_API_KEY"],
+  minimax: ["MINIMAX_API_KEY"],
+  huggingface: ["HF_TOKEN"],
+  fireworks: ["FIREWORKS_API_KEY"],
+  together: ["TOGETHER_API_KEY"],
+  opencode: ["OPENCODE_API_KEY"],
+};
+
+const PROVIDER_LABELS: Record<string, string> = {
+  anthropic: "Anthropic",
+  openai: "OpenAI",
+  "azure-openai-responses": "Azure OpenAI",
+  nvidia: "NVIDIA",
+  deepseek: "DeepSeek",
+  google: "Google",
+  groq: "Groq",
+  cerebras: "Cerebras",
+  xai: "xAI",
+  openrouter: "OpenRouter",
+  "vercel-ai-gateway": "Vercel AI Gateway",
+  zai: "Z.ai",
+  mistral: "Mistral",
+  minimax: "MiniMax",
+  huggingface: "Hugging Face",
+  fireworks: "Fireworks",
+  together: "Together",
+  opencode: "OpenCode",
+};
+
+export function envVarNamesForProvider(providerId: string): string[] {
+  return PROVIDER_ENV_VARS[providerId] ?? [];
+}
+
+export function listKnownCredentialProviders(): Array<{
+  id: string;
+  name: string;
+  envVarNames: string[];
+}> {
+  return Object.entries(PROVIDER_ENV_VARS).map(([id, envVarNames]) => ({
+    id,
+    name: PROVIDER_LABELS[id] ?? id,
+    envVarNames,
+  }));
+}
+
+export function envApiKeyForProvider(providerId: string): string | undefined {
+  for (const name of envVarNamesForProvider(providerId)) {
+    const value = process.env[name]?.trim();
+    if (value) {
+      return value;
+    }
+  }
+  return undefined;
+}
+
+export const PIDIAN_SYSTEM_PROMPT = `You are Pidian, an assistant inside Obsidian.
+
+Use only the provided tools to read, search, create, and edit notes. Never assume you can access the filesystem, shell, or vault files directly.
+
+Notes:
+- read_note returns content plus a revision.
+- You must call read_note before edit_note on that note.
+- edit_note applies exact unique text replacements. Keep oldText unique in the note.
+- If a note changed after it was read, read it again before editing.
+- Create and edit may be denied by the user. Respect denials and continue with read-only help.
+
+Prefer concise answers in the user's language.`;
