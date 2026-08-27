@@ -6,23 +6,26 @@ import { Composer } from "./Composer";
 import { ModelSelector } from "./ModelSelector";
 import { SessionSelector } from "./SessionSelector";
 
+function formatContextLabel(
+  notePath: string,
+  selection?: { startLine: number; endLine: number },
+): string {
+  const fileName = notePath.split("/").pop() || notePath;
+  if (!selection) {
+    return fileName;
+  }
+  const range =
+    selection.startLine === selection.endLine
+      ? `L${selection.startLine}`
+      : `L${selection.startLine}-L${selection.endLine}`;
+  return `${fileName} [${range}]`;
+}
+
 export function PidianApp({ plugin }: { plugin: PidianPlugin }): JSX.Element {
   const [, rerender] = useReducer((value: number) => value + 1, 0);
 
   useEffect(() => {
-    const unsubAgent = plugin.agentService?.subscribe(() => rerender());
-    const workspace = plugin.app.workspace;
-    const onWorkspaceChange = () => rerender();
-    const refs = [
-      workspace.on("active-leaf-change", onWorkspaceChange),
-      workspace.on("file-open", onWorkspaceChange),
-    ];
-    return () => {
-      unsubAgent?.();
-      for (const ref of refs) {
-        workspace.offref(ref);
-      }
-    };
+    return plugin.agentService?.subscribe(() => rerender());
   }, [plugin]);
 
   if (!plugin.agentService) {
@@ -37,7 +40,6 @@ export function PidianApp({ plugin }: { plugin: PidianPlugin }): JSX.Element {
   const session = agent.getSession();
   const streaming = agent.isStreaming();
   const error = agent.getError();
-  const context = agent.getContextPreview();
 
   return (
     <div className="pidian-root">
@@ -61,21 +63,7 @@ export function PidianApp({ plugin }: { plugin: PidianPlugin }): JSX.Element {
       <Chat messages={session?.messages ?? []} />
       {error ? <div className="pidian-error">{error}</div> : null}
       <footer className="pidian-footer">
-        {context ? (
-          <div className="pidian-context">
-            <div>{context.notePath}</div>
-            {context.selection ? (
-              <div>
-                {t("uiSelectionLines", {
-                  start: context.selection.startLine,
-                  end: context.selection.endLine,
-                })}
-              </div>
-            ) : null}
-          </div>
-        ) : (
-          <div className="pidian-context pidian-context-empty">{t("uiNoActiveNote")}</div>
-        )}
+        <ContextPreview plugin={plugin} />
         <Composer
           disabled={!session}
           streaming={streaming}
@@ -89,5 +77,33 @@ export function PidianApp({ plugin }: { plugin: PidianPlugin }): JSX.Element {
         />
       </footer>
     </div>
+  );
+}
+
+function ContextPreview({ plugin }: { plugin: PidianPlugin }): JSX.Element {
+  const [, rerender] = useReducer((value: number) => value + 1, 0);
+
+  useEffect(() => {
+    const onChange = () => rerender();
+    const unsubEditor = plugin.subscribeEditorContext(onChange);
+    const workspace = plugin.app.workspace;
+    const refs = [
+      workspace.on("active-leaf-change", onChange),
+      workspace.on("file-open", onChange),
+    ];
+    return () => {
+      unsubEditor();
+      for (const ref of refs) {
+        workspace.offref(ref);
+      }
+    };
+  }, [plugin]);
+
+  const context = plugin.agentService?.getContextPreview();
+  if (!context) {
+    return <div className="pidian-context pidian-context-empty">{t("uiNoActiveNote")}</div>;
+  }
+  return (
+    <div className="pidian-context">{formatContextLabel(context.notePath, context.selection)}</div>
   );
 }

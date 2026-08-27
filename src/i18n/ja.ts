@@ -54,7 +54,6 @@ export const ja: { [K in keyof typeof en]: string } = {
 
   uiNotInitialized: "Pidian の初期化が完了していません。開発者コンソールを確認してください。",
   uiNewChat: "新しいチャット",
-  uiSelectionLines: "選択範囲: {start}〜{end} 行",
   uiNoActiveNote: "アクティブな Markdown ノートがありません",
   uiPlaceholder: "Pidian に聞く...",
   uiStop: "停止",

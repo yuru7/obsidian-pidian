@@ -11,6 +11,7 @@ import { SessionService } from "./application/SessionService";
 import { PiAgentAdapter } from "./infrastructure/pi/PiAgentAdapter";
 import { envApiKeyForProvider } from "./infrastructure/pi/PiCredentials";
 import { PiModelCatalog } from "./infrastructure/pi/PiModelCatalog";
+import { editorContextExtension } from "./infrastructure/obsidian/editorContextExtension";
 import { ObsidianContextProvider } from "./infrastructure/obsidian/ObsidianContextProvider";
 import { ObsidianInstructionReader } from "./infrastructure/obsidian/ObsidianInstructionReader";
 import { ObsidianNoteEditor } from "./infrastructure/obsidian/ObsidianNoteEditor";
@@ -29,6 +30,7 @@ export default class PidianPlugin extends Plugin {
   sessionService?: SessionService;
   modelCatalog?: PiModelCatalog;
   private noteEditor?: ObsidianNoteEditor;
+  private readonly editorContextListeners = new Set<() => void>();
 
   async onload(): Promise<void> {
     await this.loadSettings();
@@ -81,6 +83,20 @@ export default class PidianPlugin extends Plugin {
 
   onunload(): void {
     this.noteEditor?.dispose();
+    this.editorContextListeners.clear();
+  }
+
+  subscribeEditorContext(listener: () => void): () => void {
+    this.editorContextListeners.add(listener);
+    return () => {
+      this.editorContextListeners.delete(listener);
+    };
+  }
+
+  private notifyEditorContext(): void {
+    for (const listener of this.editorContextListeners) {
+      listener();
+    }
   }
 
   private initServices(): void {
@@ -126,6 +142,11 @@ export default class PidianPlugin extends Plugin {
     this.app.workspace.onLayoutReady(() => {
       contextProvider.rememberCurrentMarkdown();
     });
+    this.registerEditorExtension(
+      editorContextExtension(() => {
+        this.notifyEditorContext();
+      }),
+    );
     this.agentService = new AgentService(
       adapter,
       sessions,

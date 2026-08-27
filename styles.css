@@ -35,53 +35,158 @@
   font-weight: var(--font-semibold, 600);
 }
 
-.pidian-icon-button,
-.pidian-button,
-.pidian-disclosure,
-.pidian-session-item {
-  background: transparent;
-  border: 1px solid var(--background-modifier-border);
+.pidian-view .pidian-icon-button,
+.pidian-view .pidian-button,
+.pidian-view .pidian-disclosure,
+.pidian-view .pidian-session-item {
+  background-color: transparent;
+  box-shadow: none;
   color: var(--text-normal);
   border-radius: var(--radius-s);
   cursor: pointer;
 }
 
-.pidian-icon-button {
+.pidian-view .pidian-button {
+  border: 1px solid var(--background-modifier-border);
+}
+
+.pidian-view .pidian-disclosure {
+  border: none;
+  color: var(--text-muted);
+}
+
+.pidian-view .pidian-icon-button {
   width: 28px;
   height: 28px;
+  border: none;
 }
 
-.pidian-button-primary,
-.pidian-icon-button:hover,
-.pidian-button:hover,
-.pidian-disclosure:hover,
-.pidian-session-item:hover {
-  background: var(--background-modifier-hover);
+.pidian-view .pidian-icon-button:hover,
+.pidian-view .pidian-button:hover,
+.pidian-view .pidian-disclosure:hover,
+.pidian-view .pidian-session-item:hover {
+  background-color: var(--background-modifier-hover);
 }
 
-.pidian-button-primary {
-  background: var(--interactive-accent);
-  color: var(--text-on-accent);
+.pidian-view .pidian-button-primary {
+  background-color: transparent;
+  color: var(--text-normal);
   border-color: transparent;
 }
 
 .pidian-model-selector {
+  position: relative;
   flex: 1;
   min-width: 0;
 }
 
-.pidian-model-selector select,
+.pidian-view .pidian-model-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 100%;
+  min-width: 0;
+  padding: 4px 6px;
+  border: none;
+  background-color: transparent;
+  box-shadow: none;
+  color: var(--text-normal);
+  border-radius: var(--radius-s);
+  cursor: pointer;
+}
+
+.pidian-view .pidian-model-trigger:hover {
+  background-color: var(--background-modifier-hover);
+}
+
+.pidian-model-trigger-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pidian-caret {
+  flex-shrink: 0;
+  box-sizing: border-box;
+  width: 6px;
+  height: 6px;
+  margin-left: 2px;
+  border-right: 1.5px solid var(--text-muted);
+  border-bottom: 1.5px solid var(--text-muted);
+  transform: rotate(45deg);
+}
+
+.pidian-model-selector.is-open .pidian-model-trigger .pidian-caret {
+  transform: rotate(225deg);
+}
+
+.pidian-model-balloon {
+  position: absolute;
+  left: 0;
+  bottom: calc(100% + 6px);
+  min-width: 240px;
+  padding: 6px 8px;
+  background: var(--background-secondary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--radius-s);
+  box-shadow: var(--shadow-s);
+  z-index: 10;
+}
+
+.pidian-model-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 6px 2px;
+  color: var(--text-muted);
+}
+
+.pidian-select {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex: 1;
+  min-width: 0;
+  color: var(--text-normal);
+}
+
+.pidian-select .pidian-caret {
+  position: absolute;
+  top: 50%;
+  right: 6px;
+  margin: 0;
+  pointer-events: none;
+  transform: translateY(-50%) rotate(45deg);
+}
+
+.pidian-view .pidian-model-selector select {
+  width: 100%;
+  min-width: 0;
+  height: 24px;
+  padding: 0 18px 0 0;
+  background-color: transparent;
+  background-image: none;
+  border: none;
+  box-shadow: none;
+  color: var(--text-normal);
+  text-align: right;
+  appearance: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+}
+
+.pidian-view .pidian-model-selector select::-ms-expand {
+  display: none;
+}
+
 .pidian-input {
   width: 100%;
   background: var(--background-primary);
   color: var(--text-normal);
   border: 1px solid var(--background-modifier-border);
   border-radius: var(--radius-s);
-}
-
-.pidian-model-selector select {
-  min-width: 0;
-  height: 32px;
 }
 
 .pidian-chat {
@@ -122,7 +227,7 @@
 }
 
 .pidian-tool-path {
-  color: var(--text-muted);
+  color: var(--text-faint);
 }
 
 .pidian-tool-body,
@@ -144,6 +249,8 @@
 }
 
 .pidian-footer {
+  position: relative;
+  z-index: 2;
   border-top: 1px solid var(--background-modifier-border);
   padding: 12px;
 }

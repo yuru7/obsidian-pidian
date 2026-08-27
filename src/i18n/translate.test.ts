@@ -23,8 +23,8 @@ describe("lookup", () => {
   });
 
   it("interpolates placeholders", () => {
-    expect(lookup("en", "uiSelectionLines", { start: 3, end: 8 })).toBe("Selection: lines 3-8");
-    expect(lookup("ja", "uiSelectionLines", { start: 3, end: 8 })).toBe("選択範囲: 3〜8 行");
+    expect(lookup("en", "noticeError", { error: "timeout" })).toBe("Pidian: timeout");
+    expect(lookup("ja", "noticeError", { error: "timeout" })).toBe("Pidian: timeout");
   });
 
   it("leaves the template unchanged when vars are omitted", () => {
