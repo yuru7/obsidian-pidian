@@ -1,3 +1,4 @@
+import type { TokenUsage } from "../domain/agent/AgentEvent";
 import type { PidianMessage, PidianSession } from "../domain/sessions/PidianSession";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -9,6 +10,19 @@ function expectString(value: unknown, field: string): string {
     throw new Error(`Invalid session field: ${field}`);
   }
   return value;
+}
+
+function parseUsage(value: unknown, field: string): TokenUsage | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+  if (!isRecord(value) || typeof value.input !== "number" || typeof value.output !== "number") {
+    throw new Error(`Invalid session field: ${field}`);
+  }
+  if (!Number.isFinite(value.input) || !Number.isFinite(value.output)) {
+    throw new Error(`Invalid session field: ${field}`);
+  }
+  return { input: value.input, output: value.output };
 }
 
 function parseToolCalls(value: unknown): PidianMessage["toolCalls"] {
@@ -40,12 +54,14 @@ function parseMessage(value: unknown): PidianMessage {
   if (role !== "user" && role !== "assistant") {
     throw new Error("Invalid session field: messages.role");
   }
+  const usage = parseUsage(value.usage, "messages.usage");
   return {
     id: expectString(value.id, "messages.id"),
     role,
     text: typeof value.text === "string" ? value.text : "",
     thinking: typeof value.thinking === "string" ? value.thinking : undefined,
     toolCalls: parseToolCalls(value.toolCalls),
+    ...(usage ? { usage } : {}),
     createdAt: expectString(value.createdAt, "messages.createdAt"),
   };
 }

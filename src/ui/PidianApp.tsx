@@ -1,6 +1,7 @@
-import { useEffect, useReducer } from "react";
+import { useEffect, useReducer, useRef, useState } from "react";
 import { t } from "../i18n";
 import type PidianPlugin from "../main";
+import { sumTokenUsage, type PidianMessage } from "../domain/sessions/PidianSession";
 import { Chat } from "./Chat";
 import { Composer } from "./Composer";
 import { ModelSelector } from "./ModelSelector";
@@ -73,10 +74,13 @@ export function PidianApp({ plugin }: { plugin: PidianPlugin }): JSX.Element {
           </div>
         </div>
       </header>
-      <Chat messages={session?.messages ?? []} />
+      <Chat app={plugin.app} messages={session?.messages ?? []} />
       {error ? <div className="pidian-error">{error}</div> : null}
       <footer className="pidian-footer">
-        <ContextPreview plugin={plugin} />
+        <div className="pidian-footer-meta">
+          <ContextPreview plugin={plugin} />
+          <TokenUsage messages={session?.messages ?? []} />
+        </div>
         <Composer
           disabled={!session}
           streaming={streaming}
@@ -89,6 +93,60 @@ export function PidianApp({ plugin }: { plugin: PidianPlugin }): JSX.Element {
           }}
         />
       </footer>
+    </div>
+  );
+}
+
+function TokenUsage({ messages }: { messages: PidianMessage[] }): JSX.Element {
+  const rootRef = useRef<HTMLDivElement>(null);
+  const [open, setOpen] = useState(false);
+  const usage = sumTokenUsage(messages);
+
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+    const onPointerDown = (event: PointerEvent) => {
+      if (rootRef.current?.contains(event.target as Node)) {
+        return;
+      }
+      setOpen(false);
+    };
+    document.addEventListener("pointerdown", onPointerDown);
+    return () => document.removeEventListener("pointerdown", onPointerDown);
+  }, [open]);
+
+  return (
+    <div
+      ref={rootRef}
+      className={`pidian-token-selector${open ? " is-open" : ""}`}
+    >
+      <button
+        type="button"
+        className="pidian-model-trigger"
+        aria-expanded={open}
+        aria-haspopup="dialog"
+        onClick={() => setOpen((value) => !value)}
+      >
+        <span className="pidian-model-trigger-label">{t("uiTokens")}</span>
+        <span className="pidian-caret" aria-hidden="true" />
+      </button>
+      {open ? (
+        <div className="pidian-model-balloon" role="dialog">
+          <div className="pidian-model-row">
+            <span>{t("uiTokenIn")}</span>
+            <span className="pidian-token-value">{usage.input}</span>
+          </div>
+          <div className="pidian-model-row">
+            <span>{t("uiTokenOut")}</span>
+            <span className="pidian-token-value">{usage.output}</span>
+          </div>
+          <div className="pidian-model-row">
+            <span>{t("uiTokenTotal")}</span>
+            <span className="pidian-token-value">{usage.input + usage.output}</span>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

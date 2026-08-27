@@ -59,6 +59,12 @@ export const ja: { [K in keyof typeof en]: string } = {
   uiEmptyChat: "今開いているノートについて聞いたり、Vault を検索したりできます。",
   uiYou: "あなた",
   uiThinking: "思考中",
+  uiCopy: "コピー",
+  uiCopied: "コピーしました",
+  uiTokens: "Tokens",
+  uiTokenIn: "In",
+  uiTokenOut: "Out",
+  uiTokenTotal: "Total",
 
   permissionAllowTitle: "{tool} を許可しますか？",
   permissionDeny: "拒否",

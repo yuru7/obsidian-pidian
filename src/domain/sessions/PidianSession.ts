@@ -1,6 +1,8 @@
 import type { AgentToolCallRecord } from "../agent/AgentConversation";
+import type { TokenUsage } from "../agent/AgentEvent";
 
 export type PidianToolCall = AgentToolCallRecord;
+export type { TokenUsage };
 
 export interface PidianMessage {
   id: string;
@@ -8,7 +10,21 @@ export interface PidianMessage {
   text: string;
   thinking?: string;
   toolCalls?: PidianToolCall[];
+  usage?: TokenUsage;
   createdAt: string;
+}
+
+export function sumTokenUsage(messages: readonly PidianMessage[]): TokenUsage {
+  let input = 0;
+  let output = 0;
+  for (const message of messages) {
+    if (!message.usage) {
+      continue;
+    }
+    input += message.usage.input;
+    output += message.usage.output;
+  }
+  return { input, output };
 }
 
 export interface PidianSession {

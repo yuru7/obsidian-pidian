@@ -21,6 +21,7 @@
 .pidian-header-row,
 .pidian-header-actions,
 .pidian-model-selector,
+.pidian-token-selector,
 .pidian-composer-actions {
   display: flex;
   align-items: center;
@@ -125,8 +126,25 @@
   transform: rotate(45deg);
 }
 
-.pidian-model-selector.is-open .pidian-model-trigger .pidian-caret {
+.pidian-model-selector.is-open .pidian-model-trigger .pidian-caret,
+.pidian-token-selector.is-open .pidian-model-trigger .pidian-caret {
   transform: rotate(225deg);
+}
+
+.pidian-token-selector {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.pidian-token-selector .pidian-model-balloon {
+  left: auto;
+  right: 0;
+  min-width: 160px;
+}
+
+.pidian-token-value {
+  color: var(--text-normal);
+  font-variant-numeric: tabular-nums;
 }
 
 .pidian-model-balloon {
@@ -242,6 +260,41 @@
   word-break: break-word;
 }
 
+.pidian-view .pidian-markdown.markdown-preview-view {
+  padding: 0;
+  margin: 0;
+  overflow: visible;
+  background: transparent;
+  height: auto;
+  min-height: 0;
+  font-size: inherit;
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+.pidian-markdown :first-child {
+  margin-block-start: 0;
+}
+
+.pidian-markdown :last-child {
+  margin-block-end: 0;
+}
+
+.pidian-message-actions {
+  display: flex;
+  margin-top: 4px;
+}
+
+.pidian-view .pidian-copy-button {
+  width: 24px;
+  height: 24px;
+  color: var(--text-muted);
+}
+
+.pidian-view .pidian-copy-button:hover {
+  color: var(--text-normal);
+}
+
 .pidian-disclosure {
   display: flex;
   gap: 6px;
@@ -279,9 +332,20 @@
   padding: 12px;
 }
 
+.pidian-footer-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
 .pidian-context {
   color: var(--text-muted);
-  margin-bottom: 8px;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .pidian-composer-actions {

@@ -240,6 +240,9 @@ export class AgentService {
         this.appendAssistantError(event.message);
         break;
       case "turn_completed":
+        if (event.usage) {
+          assistant.usage = event.usage;
+        }
         break;
     }
     this.notify();

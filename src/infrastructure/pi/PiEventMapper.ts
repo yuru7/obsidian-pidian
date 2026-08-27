@@ -13,6 +13,33 @@ export interface PiLikeEvent {
   args?: unknown;
   result?: unknown;
   isError?: boolean;
+  messages?: unknown;
+}
+
+function usageFromPiMessages(messages: unknown): { input: number; output: number } | undefined {
+  if (!Array.isArray(messages)) {
+    return undefined;
+  }
+  let input = 0;
+  let output = 0;
+  let found = false;
+  for (const item of messages) {
+    if (!item || typeof item !== "object" || !("usage" in item)) {
+      continue;
+    }
+    const usage = item.usage;
+    if (!usage || typeof usage !== "object") {
+      continue;
+    }
+    const record = usage as { input?: unknown; output?: unknown };
+    if (typeof record.input !== "number" && typeof record.output !== "number") {
+      continue;
+    }
+    input += typeof record.input === "number" ? record.input : 0;
+    output += typeof record.output === "number" ? record.output : 0;
+    found = true;
+  }
+  return found ? { input, output } : undefined;
 }
 
 function hasErrorDetail(result: unknown): boolean {
@@ -83,8 +110,10 @@ export function mapPiEvent(event: PiLikeEvent): AgentEvent | undefined {
         result: toolResultText(event.result),
         isError: Boolean(event.isError) || hasErrorDetail(event.result),
       };
-    case "agent_end":
-      return { type: "turn_completed" };
+    case "agent_end": {
+      const usage = usageFromPiMessages(event.messages);
+      return usage ? { type: "turn_completed", usage } : { type: "turn_completed" };
+    }
     default:
       return undefined;
   }

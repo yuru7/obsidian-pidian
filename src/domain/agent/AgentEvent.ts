@@ -23,8 +23,14 @@ export interface ToolCompletedEvent {
   isError: boolean;
 }
 
+export interface TokenUsage {
+  input: number;
+  output: number;
+}
+
 export interface TurnCompletedEvent {
   type: "turn_completed";
+  usage?: TokenUsage;
 }
 
 export interface AgentErrorEvent {

@@ -49,6 +49,15 @@ describe("PiEventMapper", () => {
     expect(mapPiEvent({ type: "agent_end" })).toEqual({ type: "turn_completed" });
     expect(
       mapPiEvent({
+        type: "agent_end",
+        messages: [
+          { role: "assistant", usage: { input: 10, output: 4 } },
+          { role: "toolResult", usage: { input: 2, output: 1 } },
+        ],
+      }),
+    ).toEqual({ type: "turn_completed", usage: { input: 12, output: 5 } });
+    expect(
+      mapPiEvent({
         type: "tool_execution_end",
         toolCallId: "2",
         toolName: "edit_note",

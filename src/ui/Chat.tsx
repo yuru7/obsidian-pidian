@@ -1,9 +1,10 @@
 import { useEffect, useRef } from "react";
+import type { App } from "obsidian";
 import { t } from "../i18n";
 import type { PidianMessage } from "../domain/sessions/PidianSession";
 import { Message } from "./Message";
 
-export function Chat({ messages }: { messages: PidianMessage[] }): JSX.Element {
+export function Chat({ app, messages }: { app: App; messages: PidianMessage[] }): JSX.Element {
   const endRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -17,7 +18,7 @@ export function Chat({ messages }: { messages: PidianMessage[] }): JSX.Element {
   return (
     <div className="pidian-chat">
       {messages.map((message) => (
-        <Message key={message.id} message={message} />
+        <Message key={message.id} app={app} message={message} />
       ))}
       <div ref={endRef} />
     </div>

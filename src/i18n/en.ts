@@ -58,6 +58,12 @@ export const en = {
   uiEmptyChat: "Ask Pidian about the current note, or search the vault.",
   uiYou: "You",
   uiThinking: "Thinking",
+  uiCopy: "Copy",
+  uiCopied: "Copied",
+  uiTokens: "Tokens",
+  uiTokenIn: "In",
+  uiTokenOut: "Out",
+  uiTokenTotal: "Total",
 
   permissionAllowTitle: "Allow {tool}?",
   permissionDeny: "Deny",
