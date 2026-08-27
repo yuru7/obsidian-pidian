@@ -1,5 +1,6 @@
 import { Notice, Plugin, type ViewCreator, type WorkspaceLeaf } from "obsidian";
 import { AgentService } from "./application/AgentService";
+import { t } from "./i18n";
 import { ContextService } from "./application/ContextService";
 import { CredentialResolver } from "./application/CredentialResolver";
 import { InstructionProvider } from "./application/InstructionProvider";
@@ -40,12 +41,12 @@ export default class PidianPlugin extends Plugin {
       this.initServices();
     } catch (error) {
       console.error("Pidian: failed to initialize agent services", error);
-      new Notice("Pidian: agent services failed to start. Settings and the sidebar still open.");
+      new Notice(t("noticeAgentFailed"));
     }
 
     this.safeRegisterView(VIEW_TYPE_PIDIAN, (leaf) => new PidianView(leaf, this));
     try {
-      this.addRibbonIcon(PIDIAN_ICON_ID, "Open Pidian", () => {
+      this.addRibbonIcon(PIDIAN_ICON_ID, t("commandOpen"), () => {
         void this.activateView();
       });
     } catch (error) {
@@ -53,7 +54,7 @@ export default class PidianPlugin extends Plugin {
     }
     this.addCommand({
       id: "open-pidian",
-      name: "Open Pidian",
+      name: t("commandOpen"),
       icon: PIDIAN_ICON_ID,
       callback: () => {
         void this.activateView();
@@ -61,7 +62,7 @@ export default class PidianPlugin extends Plugin {
     });
     this.addCommand({
       id: "new-pidian-chat",
-      name: "New Pidian chat",
+      name: t("commandNewChat"),
       icon: PIDIAN_ICON_ID,
       callback: () => {
         void this.activateView().then(() => this.startNewChat());
@@ -170,26 +171,26 @@ export default class PidianPlugin extends Plugin {
 
   async startNewChat(): Promise<void> {
     if (!this.agentService) {
-      new Notice("Pidian: agent is not initialized.");
+      new Notice(t("noticeNotInitialized"));
       return;
     }
     await this.agentService.newChat(this.settings.provider, this.settings.model);
     const error = this.agentService.getError();
     if (error) {
-      new Notice(`Pidian: ${error}`);
+      new Notice(t("noticeError", { error }));
     }
   }
 
   async openSession(id: string): Promise<void> {
     if (!this.agentService) {
-      new Notice("Pidian: agent is not initialized.");
+      new Notice(t("noticeNotInitialized"));
       return;
     }
     try {
       await this.agentService.openChat(id);
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      new Notice(`Pidian: ${message}`);
+      new Notice(t("noticeError", { error: message }));
     }
   }
 
@@ -205,7 +206,7 @@ export default class PidianPlugin extends Plugin {
   async activateView(): Promise<void> {
     const leaf = this.resolvePidianLeaf();
     if (!leaf) {
-      new Notice("Pidian: could not open the sidebar.");
+      new Notice(t("noticeSidebarFailed"));
       return;
     }
     await leaf.setViewState({ type: VIEW_TYPE_PIDIAN, active: true });

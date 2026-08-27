@@ -6,7 +6,7 @@ import type {
 } from "../domain/sessions/PidianSession";
 import type { AgentConversation } from "../domain/agent/AgentConversation";
 import { parsePidianSession } from "./sessionSerialization";
-import { titleFromUserMessage } from "./sessionTitle";
+import { NEW_CHAT_TITLE, titleFromUserMessage } from "./sessionTitle";
 
 export class SessionService {
   constructor(private readonly repository: SessionRepository) {}
@@ -16,7 +16,7 @@ export class SessionService {
     return {
       version: 1,
       id: crypto.randomUUID(),
-      title: "New chat",
+      title: NEW_CHAT_TITLE,
       createdAt: now,
       updatedAt: now,
       provider,

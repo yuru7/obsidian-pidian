@@ -29,7 +29,6 @@
 
 .pidian-header-row {
   justify-content: space-between;
-  margin-bottom: 8px;
 }
 
 .pidian-title {
@@ -66,6 +65,11 @@
   border-color: transparent;
 }
 
+.pidian-model-selector {
+  flex: 1;
+  min-width: 0;
+}
+
 .pidian-model-selector select,
 .pidian-input {
   width: 100%;
@@ -73,6 +77,11 @@
   color: var(--text-normal);
   border: 1px solid var(--background-modifier-border);
   border-radius: var(--radius-s);
+}
+
+.pidian-model-selector select {
+  min-width: 0;
+  height: 32px;
 }
 
 .pidian-chat {
@@ -145,8 +154,23 @@
 }
 
 .pidian-composer-actions {
-  justify-content: flex-end;
   margin-top: 8px;
+}
+
+.pidian-send-button {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pidian-send-icon {
+  width: 16px;
+  height: 16px;
+  display: block;
 }
 
 .pidian-session-selector {

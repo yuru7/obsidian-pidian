@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
+import { locale, t } from "../i18n";
 import type PidianPlugin from "../main";
+import { NEW_CHAT_TITLE } from "../application/sessionTitle";
 import type { SessionSummary } from "../domain/sessions/PidianSession";
 
 export function SessionSelector({
@@ -28,7 +30,7 @@ export function SessionSelector({
     <div className="pidian-session-selector">
       <button
         className="pidian-icon-button"
-        aria-label="Session history"
+        aria-label={t("uiSessionHistory")}
         onClick={() => setOpen((value) => !value)}
       >
         ≡
@@ -36,7 +38,7 @@ export function SessionSelector({
       {open ? (
         <div className="pidian-session-menu">
           {sessions.length === 0 ? (
-            <div className="pidian-session-empty">No saved sessions</div>
+            <div className="pidian-session-empty">{t("uiNoSessions")}</div>
           ) : (
             sessions.map((session) => (
               <button
@@ -49,7 +51,7 @@ export function SessionSelector({
                   });
                 }}
               >
-                <div className="pidian-session-title">{session.title}</div>
+                <div className="pidian-session-title">{sessionTitle(session.title)}</div>
                 <div className="pidian-session-meta">
                   {session.provider}/{session.model} · {formatTime(session.updatedAt)}
                 </div>
@@ -62,10 +64,14 @@ export function SessionSelector({
   );
 }
 
+function sessionTitle(title: string): string {
+  return title === NEW_CHAT_TITLE ? t("uiNewChat") : title;
+}
+
 function formatTime(value: string): string {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) {
     return value;
   }
-  return date.toLocaleString();
+  return date.toLocaleString(locale());
 }

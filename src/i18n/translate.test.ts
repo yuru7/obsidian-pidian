@@ -1,0 +1,33 @@
+import { describe, expect, it } from "vitest";
+import { interpolate, lookup, resolveLocale } from "./translate";
+
+describe("resolveLocale", () => {
+  it("keeps supported language codes", () => {
+    expect(resolveLocale("en")).toBe("en");
+    expect(resolveLocale("ja")).toBe("ja");
+  });
+
+  it("uses the language prefix when the region is unknown", () => {
+    expect(resolveLocale("ja-JP")).toBe("ja");
+  });
+
+  it("falls back to English for unsupported languages", () => {
+    expect(resolveLocale("zh")).toBe("en");
+    expect(resolveLocale("")).toBe("en");
+  });
+});
+
+describe("lookup", () => {
+  it("returns Japanese strings for ja", () => {
+    expect(lookup("ja", "uiSend")).toBe("送信");
+  });
+
+  it("interpolates placeholders", () => {
+    expect(lookup("en", "uiSelectionLines", { start: 3, end: 8 })).toBe("Selection: lines 3-8");
+    expect(lookup("ja", "uiSelectionLines", { start: 3, end: 8 })).toBe("選択範囲: 3〜8 行");
+  });
+
+  it("leaves the template unchanged when vars are omitted", () => {
+    expect(interpolate("Hello {name}")).toBe("Hello {name}");
+  });
+});

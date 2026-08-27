@@ -1,4 +1,5 @@
 import { Modal, Setting, type App } from "obsidian";
+import { t } from "../../i18n";
 import type { PermissionPrompter, PermissionRequest } from "../../domain/permissions/Permission";
 
 export class ObsidianPermissionPrompter implements PermissionPrompter {
@@ -24,7 +25,7 @@ class ConfirmToolModal extends Modal {
   }
 
   onOpen(): void {
-    this.titleEl.setText(`Allow ${this.request.toolName}?`);
+    this.titleEl.setText(t("permissionAllowTitle", { tool: this.request.toolName }));
     this.contentEl.empty();
     this.contentEl.createEl("p", { text: this.request.summary });
     if (this.request.details) {
@@ -36,11 +37,11 @@ class ConfirmToolModal extends Modal {
 
     new Setting(this.contentEl)
       .addButton((button) => {
-        button.setButtonText("Deny").onClick(() => this.settle(false));
+        button.setButtonText(t("permissionDeny")).onClick(() => this.settle(false));
       })
       .addButton((button) => {
         button
-          .setButtonText("Allow")
+          .setButtonText(t("permissionAllow"))
           .setCta()
           .onClick(() => this.settle(true));
       });

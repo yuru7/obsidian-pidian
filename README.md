@@ -25,7 +25,7 @@ Pidian は Obsidian の右サイドバーにチャット UI を出し、開い�
 
 ### Provider / Model設定
 
-サイドバー上部、または Settings の Agent セクションで切り替えます。Pi が認識している Provider / Model をそのまま選択できます。Pidian 本体に Provider 固有実装は持たせません。
+サイドバー下部の入力欄横、または Settings の Agent セクションで切り替えます。Pi が認識している Provider / Model をそのまま選択できます。Pidian 本体に Provider 固有実装は持たせません。
 
 ### APIキー設定
 

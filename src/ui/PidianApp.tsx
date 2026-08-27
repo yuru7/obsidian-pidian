@@ -1,4 +1,5 @@
 import { useEffect, useReducer } from "react";
+import { t } from "../i18n";
 import type PidianPlugin from "../main";
 import { Chat } from "./Chat";
 import { Composer } from "./Composer";
@@ -15,7 +16,7 @@ export function PidianApp({ plugin }: { plugin: PidianPlugin }): JSX.Element {
   if (!plugin.agentService) {
     return (
       <div className="pidian-root">
-        <div className="pidian-error">Pidian is not fully initialized. Check the developer console.</div>
+        <div className="pidian-error">{t("uiNotInitialized")}</div>
       </div>
     );
   }
@@ -34,7 +35,7 @@ export function PidianApp({ plugin }: { plugin: PidianPlugin }): JSX.Element {
           <div className="pidian-header-actions">
             <button
               className="pidian-icon-button"
-              aria-label="New chat"
+              aria-label={t("uiNewChat")}
               onClick={() => {
                 void plugin.startNewChat();
               }}
@@ -44,7 +45,6 @@ export function PidianApp({ plugin }: { plugin: PidianPlugin }): JSX.Element {
             <SessionSelector plugin={plugin} onChange={rerender} />
           </div>
         </div>
-        <ModelSelector plugin={plugin} onChange={rerender} />
       </header>
       <Chat messages={session?.messages ?? []} />
       {error ? <div className="pidian-error">{error}</div> : null}
@@ -54,16 +54,20 @@ export function PidianApp({ plugin }: { plugin: PidianPlugin }): JSX.Element {
             <div>{context.notePath}</div>
             {context.selection ? (
               <div>
-                Selection: lines {context.selection.startLine}-{context.selection.endLine}
+                {t("uiSelectionLines", {
+                  start: context.selection.startLine,
+                  end: context.selection.endLine,
+                })}
               </div>
             ) : null}
           </div>
         ) : (
-          <div className="pidian-context pidian-context-empty">No active Markdown note</div>
+          <div className="pidian-context pidian-context-empty">{t("uiNoActiveNote")}</div>
         )}
         <Composer
           disabled={!session}
           streaming={streaming}
+          toolbar={<ModelSelector plugin={plugin} onChange={rerender} />}
           onSend={(text) => {
             void agent.send(text);
           }}

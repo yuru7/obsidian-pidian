@@ -1,9 +1,10 @@
+import { t } from "../i18n";
 import type { PidianMessage } from "../domain/sessions/PidianSession";
 import { Thinking } from "./Thinking";
 import { ToolCall } from "./ToolCall";
 
 export function Message({ message }: { message: PidianMessage }): JSX.Element {
-  const name = message.role === "user" ? "You" : "Pidian";
+  const name = message.role === "user" ? t("uiYou") : "Pidian";
   return (
     <article className={`pidian-message pidian-message-${message.role}`}>
       <div className="pidian-message-role">{name}</div>
