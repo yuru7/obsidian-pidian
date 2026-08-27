@@ -1,83 +1,36 @@
-import { MarkdownView, TFile, type App, type Editor, type WorkspaceLeaf } from "obsidian";
-import type { NoteEditor, Replacement } from "../../domain/notes/NoteEditor";
+import { MarkdownView, type App, type Editor } from "obsidian";
+import { NOTE_NOT_ACTIVE_EDITOR, type NoteEditor, type Replacement } from "../../domain/notes/NoteEditor";
 import {
   applyReplacementsToText,
   type ReplacementResult,
 } from "../../application/replacements";
-import {
-  EditorLeaseManager,
-  type EditorLease,
-} from "../../application/EditorLeaseManager";
 
 export class ObsidianNoteEditor implements NoteEditor {
-  private readonly leases: EditorLeaseManager;
-  private readonly ownedLeaves = new Map<string, WorkspaceLeaf>();
+  constructor(private readonly app: App) {}
 
-  constructor(
-    private readonly app: App,
-    getMaxNotes: () => number,
-  ) {
-    this.leases = new EditorLeaseManager((path) => this.openLease(path), getMaxNotes);
+  async requireActive(path: string): Promise<void> {
+    await this.activeEditor(path);
   }
 
   async applyReplacements(path: string, replacements: Replacement[]): Promise<string> {
-    const existing = await this.findOpenEditor(path);
-    if (existing) {
-      return applyToEditor(existing, replacements);
-    }
-    const lease = await this.leases.acquire(path);
-    return lease.applyReplacements(replacements);
+    const editor = await this.activeEditor(path);
+    return applyToEditor(editor, replacements);
   }
 
-  dispose(): void {
-    for (const leaf of this.ownedLeaves.values()) {
-      leaf.detach();
+  private async activeEditor(path: string): Promise<Editor> {
+    const leaf = this.app.workspace.getMostRecentLeaf(this.app.workspace.rootSplit);
+    if (leaf?.isDeferred) {
+      await leaf.loadIfDeferred();
     }
-    this.ownedLeaves.clear();
-    this.leases.releaseAll();
-  }
-
-  private async findOpenEditor(path: string): Promise<Editor | undefined> {
-    for (const leaf of this.app.workspace.getLeavesOfType("markdown")) {
-      if (leaf.isDeferred) {
-        await leaf.loadIfDeferred();
-      }
-      const view = leaf.view;
-      if (view instanceof MarkdownView && view.file?.path === path) {
-        return view.editor;
-      }
+    const recent = leaf?.view;
+    if (recent instanceof MarkdownView && recent.file?.path === path) {
+      return recent.editor;
     }
-    return undefined;
-  }
-
-  private async openLease(path: string): Promise<EditorLease> {
-    const file = this.app.vault.getAbstractFileByPath(path);
-    if (!(file instanceof TFile)) {
-      throw new Error(`Note not found: ${path}`);
+    const active = this.app.workspace.getActiveViewOfType(MarkdownView);
+    if (active?.file?.path === path) {
+      return active.editor;
     }
-
-    // activeLeaf is deprecated for general queries, but it is the focused leaf
-    // including sidebars. getMostRecentLeaf() skips the Pidian view and would
-    // steal focus from the chat while a background note is opened for Undo.
-    const previous = this.app.workspace.activeLeaf;
-    const leaf = this.app.workspace.getLeaf("tab");
-    await leaf.openFile(file, { active: false });
-    if (previous && previous !== this.app.workspace.activeLeaf) {
-      this.app.workspace.setActiveLeaf(previous, { focus: false });
-    }
-
-    const view = leaf.view;
-    if (!(view instanceof MarkdownView)) {
-      leaf.detach();
-      throw new Error(`Could not open ${path} in a Markdown editor.`);
-    }
-    this.ownedLeaves.set(path, leaf);
-    const editor = view.editor;
-    return {
-      path,
-      getContent: () => editor.getValue(),
-      applyReplacements: async (replacements) => applyToEditor(editor, replacements),
-    };
+    throw new Error(NOTE_NOT_ACTIVE_EDITOR);
   }
 }
 

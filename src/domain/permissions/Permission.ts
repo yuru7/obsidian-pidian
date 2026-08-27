@@ -1,12 +1,12 @@
 export type Permission = "allow" | "ask" | "deny";
 
-export type ToolCategory = "read" | "search" | "create" | "edit";
+export type ToolCategory = "read" | "edit" | "create" | "delete";
 
 export interface PermissionSettings {
   read: Permission;
-  search: Permission;
-  create: Permission;
   edit: Permission;
+  create: Permission;
+  delete: Permission;
 }
 
 export interface PermissionRequest {

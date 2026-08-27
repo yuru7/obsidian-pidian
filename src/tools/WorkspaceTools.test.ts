@@ -6,13 +6,13 @@ import { createWorkspaceTabsTool } from "./WorkspaceTabsTool";
 
 const allowRead = () =>
   new PermissionService(
-    () => ({ read: "allow", search: "allow", create: "deny", edit: "deny" }),
+    () => ({ read: "allow", create: "deny", edit: "deny", delete: "deny" }),
     { confirm: async () => true },
   );
 
 const denyRead = () =>
   new PermissionService(
-    () => ({ read: "deny", search: "allow", create: "deny", edit: "deny" }),
+    () => ({ read: "deny", create: "deny", edit: "deny", delete: "deny" }),
     { confirm: async () => true },
   );
 
@@ -170,7 +170,7 @@ describe("workspace_tabs", () => {
     const tool = createWorkspaceTabsTool({
       workspace,
       permissions: new PermissionService(
-        () => ({ read: "ask", search: "allow", create: "deny", edit: "deny" }),
+        () => ({ read: "ask", create: "deny", edit: "deny", delete: "deny" }),
         { confirm },
       ),
     });

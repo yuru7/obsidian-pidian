@@ -1,7 +1,7 @@
-import { MarkdownView, TFile, type App } from "obsidian";
-import type { Note, NoteRepository, SearchHit } from "../../domain/notes/NoteRepository";
+import { MarkdownView, TFile, TFolder, type App } from "obsidian";
+import type { ListedEntry, Note, NoteRepository, SearchHit } from "../../domain/notes/NoteRepository";
 import { computeRevision } from "../../application/revision";
-import { assertSafeNotePath, isExcludedFromSearch } from "../../application/notePath";
+import { assertSafeDirectoryPath, assertSafeNotePath, isExcludedFromSearch, isRestrictedVaultPath } from "../../application/notePath";
 
 const SEARCH_LIMIT = 50;
 const SNIPPET_RADIUS = 80;
@@ -24,6 +24,32 @@ export class ObsidianNoteRepository implements NoteRepository {
     return this.app.vault.getAbstractFileByPath(normalized) instanceof TFile;
   }
 
+  async list(directory: string): Promise<ListedEntry[]> {
+    const normalized = assertSafeDirectoryPath(directory);
+    const folder = normalized === "" ? this.app.vault.getRoot() : this.app.vault.getAbstractFileByPath(normalized);
+    if (!(folder instanceof TFolder)) {
+      throw new Error(normalized ? `Not a directory: ${normalized}` : "Vault root is not a directory.");
+    }
+    const entries: ListedEntry[] = [];
+    for (const child of folder.children) {
+      if (isRestrictedVaultPath(child.path)) {
+        continue;
+      }
+      entries.push({
+        path: child.path,
+        name: child.name,
+        type: child instanceof TFolder ? "folder" : "file",
+      });
+    }
+    entries.sort((a, b) => {
+      if (a.type !== b.type) {
+        return a.type === "folder" ? -1 : 1;
+      }
+      return a.name.localeCompare(b.name);
+    });
+    return entries;
+  }
+
   async create(path: string, content: string): Promise<Note> {
     const normalized = assertSafeNotePath(path);
     const folder = normalized.includes("/") ? normalized.slice(0, normalized.lastIndexOf("/")) : "";
@@ -32,6 +58,15 @@ export class ObsidianNoteRepository implements NoteRepository {
     }
     await this.app.vault.create(normalized, content);
     return this.read(normalized);
+  }
+
+  async delete(path: string): Promise<void> {
+    const normalized = assertSafeNotePath(path);
+    const file = this.app.vault.getAbstractFileByPath(normalized);
+    if (!(file instanceof TFile)) {
+      throw new Error(`Note not found: ${normalized}`);
+    }
+    await this.app.fileManager.trashFile(file);
   }
 
   async search(query: string): Promise<SearchHit[]> {

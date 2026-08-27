@@ -59,15 +59,15 @@ Settings の Custom OpenAI Compatible で、Name / Base URL / Model ID / API key
 | 操作 | 初期値 |
 | --- | --- |
 | Read | Always allow |
-| Search | Always allow |
-| Create | Deny |
 | Edit | Deny |
+| Create | Deny |
+| Delete | Deny |
 
 Ask every time のときは実行前に確認モーダルが出ます。Edit では対象ファイル、変更箇所数、追加・削除文字数、簡易 diff を表示します。拒否するとエージェントには `Tool execution denied by user` が返ります。
 
-Read にはノート本文の読み取りに加え、未オープンファイルを開く `open_file` と、既存タブの確認・移動 `workspace_tabs` も含みます。
+Read にはノート本文の読み取り、Vault 検索 `search_notes`、ディレクトリ一覧 `list_files`、未オープンファイルを開く `open_file`、既存タブの確認・移動 `workspace_tabs` を含みます。
 
-**Create / Edit はデフォルト無効です。** 誤編集を防ぐための初期値です。
+**Create / Edit / Delete はデフォルト無効です。** 誤操作を防ぐための初期値です。
 
 ### 現在ノートContext
 
@@ -97,19 +97,20 @@ Vault ルートの `pidian/AGENTS.md` がある場合、追加指示として読
 
 ### Undo
 
-`edit_note` は `Vault.modify()` ではなく Markdown editor の transaction で適用します。開いているノートならその editor を使い、Obsidian 標準の Undo（Ctrl+Z）で戻せます。1 回の tool call 内の複数置換は 1 つの transaction にまとめます。
+`edit_note` は `Vault.modify()` ではなく Markdown editor の transaction で適用します。対象はアクティブな Markdown editor である必要があります。Obsidian 標準の Undo（Ctrl+Z）で戻せます。1 回の tool call 内の複数置換は 1 つの transaction にまとめます。
 
-非アクティブなノートは、フォーカスを奪わないようにタブとして開いてから編集します。Undo 履歴を残すため、Pidian が開いた editor はすぐには閉じません。保持数の上限はデフォルト 5 です（1〜10）。上限に達した 6 件目は自動解放せず、編集を拒否します。
+非アクティブなノートを編集する場合は、先に `open_file` で開いてアクティブにしてから `edit_note` します。チャットのフォーカスは奪いません。
 
 Create は Undo 対象ではありません。取り消す場合は Obsidian 上でファイルを削除してください。
 
 ### 安全性
 
 - Pi 標準の `read` / `write` / `edit` / `bash` / `grep` / `find` / `ls` は無効です
-- ノート操作は Pidian の `read_note` / `search_notes` / `create_note` / `edit_note` だけです
+- ノート操作は Pidian の `read_note` / `search_notes` / `list_files` / `create_note` / `edit_note` / `delete_note` だけです
 - タブ操作は `open_file` / `workspace_tabs` です。権限は読み取りと同じ設定を使います
-- 編集は exact unique replacement です。曖昧なら実行しません
+- 編集は exact unique replacement です。曖昧なら実行しません。空ノートは `oldText` を空文字にして初期内容を入れます
 - 編集対象は事前の `read_note` が必須です
+- 非アクティブなノートの編集は、先に `open_file` で開いてアクティブにする必要があります
 - 読み取り後にノートが変わっていたら再 read を要求します
 - `.obsidian/` と `pidian/sessions/` はツール対象外です
 - `pidian/AGENTS.md` は通常検索から除外します
@@ -118,7 +119,6 @@ Create は Undo 対象ではありません。取り消す場合は Obsidian 上
 
 - Desktop only（Mobile 非対応）
 - Embedding / Vault 全体 RAG / Web 検索 / Shell / MCP は初期版の対象外です
-- 非アクティブノートの編集では Undo 用タブが増えることがあります
 
 ## Developer Guide
 
@@ -179,7 +179,7 @@ Pi から Obsidian へ直接アクセスする経路は作りません。
 
 ### Obsidian Tool architecture
 
-初期ツールは `read_note` / `search_notes` / `open_file` / `workspace_tabs` / `create_note` / `edit_note` です。Domain の `PidianTool` として定義し、`PiToolAdapter` だけが Pi の `defineTool` に変換します。`open_file` と `workspace_tabs` は読み取り権限を使います。
+初期ツールは `read_note` / `search_notes` / `list_files` / `open_file` / `workspace_tabs` / `create_note` / `edit_note` / `delete_note` です。Domain の `PidianTool` として定義し、`PiToolAdapter` だけが Pi の `defineTool` に変換します。`search_notes` / `list_files` / `open_file` / `workspace_tabs` は読み取り権限を使います。`delete_note` は削除権限を使い、Obsidian のゴミ箱設定に従ってファイルを捨てます。
 
 ツール追加手順:
 
@@ -194,7 +194,7 @@ Pi から Obsidian へ直接アクセスする経路は作りません。
 
 ### Undo architecture
 
-`ObsidianNoteEditor` は既存の MarkdownView を優先し、無ければ `EditorLeaseManager` が補助タブを開きます。上限超過時は LRU 解放せず拒否します。Private API には依存しません。
+`ObsidianNoteEditor` はアクティブな Markdown editor に対してだけ transaction を適用します。対象がアクティブでない場合は `open_file` を先に要求します。Private API には依存しません。
 
 ### Session format
 
@@ -226,7 +226,7 @@ pnpm test
 pnpm test --watch
 ```
 
-特に CredentialResolver、PermissionService、ContextService、SessionCleanupService、PiEventMapper、revision / replacements、EditorLease 上限、session serialization / migration をカバーします。
+特に CredentialResolver、PermissionService、ContextService、SessionCleanupService、PiEventMapper、revision / replacements、session serialization / migration をカバーします。
 
 ### Manual smoke checklist
 
@@ -240,13 +240,14 @@ README のこの節をリリース前に手で確認します。
 - [ ] Selection Context
 - [ ] read_note
 - [ ] search_notes
+- [ ] list_files
 - [ ] open_file
 - [ ] workspace_tabs
 - [ ] create permission
 - [ ] edit permission
+- [ ] delete permission / delete_note
 - [ ] Undo（アクティブノート）
-- [ ] 非アクティブノート Undo
-- [ ] 5 ファイル上限で 6 件目拒否
+- [ ] 非アクティブノートは open_file してから edit_note
 - [ ] Session 再起動復元
 - [ ] AGENTS.md 反映
 - [ ] 古い Session 削除

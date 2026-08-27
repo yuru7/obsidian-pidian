@@ -1,4 +1,4 @@
-import type { Permission } from "../domain/permissions/Permission";
+import type { PermissionSettings } from "../domain/permissions/Permission";
 
 export interface CustomOpenAIProvider {
   id: string;
@@ -14,13 +14,7 @@ export interface PidianSettings {
   apiKeys: Record<string, string>;
   customProviders: CustomOpenAIProvider[];
   includeSelectionContext: boolean;
-  permissions: {
-    read: Permission;
-    search: Permission;
-    create: Permission;
-    edit: Permission;
-  };
-  maxEditableNotes: number;
+  permissions: PermissionSettings;
   autoDeleteSessions: boolean;
   retentionDays: number;
 }
@@ -33,25 +27,28 @@ export const DEFAULT_SETTINGS: PidianSettings = {
   includeSelectionContext: true,
   permissions: {
     read: "allow",
-    search: "allow",
-    create: "deny",
     edit: "deny",
+    create: "deny",
+    delete: "deny",
   },
-  maxEditableNotes: 5,
   autoDeleteSessions: false,
   retentionDays: 30,
 };
 
 export function mergeSettings(raw: unknown): PidianSettings {
-  const input = raw && typeof raw === "object" ? (raw as Partial<PidianSettings>) : {};
+  const rawObject = raw && typeof raw === "object" ? { ...(raw as Record<string, unknown>) } : {};
+  delete rawObject.maxEditableNotes;
+  const input = rawObject as Partial<PidianSettings>;
   return {
     ...DEFAULT_SETTINGS,
     ...input,
     apiKeys: { ...DEFAULT_SETTINGS.apiKeys, ...(input.apiKeys ?? {}) },
     customProviders: input.customProviders ?? [],
     permissions: {
-      ...DEFAULT_SETTINGS.permissions,
-      ...(input.permissions ?? {}),
+      read: input.permissions?.read ?? DEFAULT_SETTINGS.permissions.read,
+      edit: input.permissions?.edit ?? DEFAULT_SETTINGS.permissions.edit,
+      create: input.permissions?.create ?? DEFAULT_SETTINGS.permissions.create,
+      delete: input.permissions?.delete ?? DEFAULT_SETTINGS.permissions.delete,
     },
   };
 }

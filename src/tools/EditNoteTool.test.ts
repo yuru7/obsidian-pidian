@@ -3,7 +3,7 @@ import { PermissionService } from "../application/PermissionService";
 import { ReadRevisionTracker } from "../application/ReadRevisionTracker";
 import { computeRevision } from "../application/revision";
 import type { Note, NoteRepository, SearchHit } from "../domain/notes/NoteRepository";
-import type { NoteEditor, Replacement } from "../domain/notes/NoteEditor";
+import { NOTE_NOT_ACTIVE_EDITOR, type NoteEditor, type Replacement } from "../domain/notes/NoteEditor";
 import type { OpenFileResult, WorkspaceNavigator, WorkspaceTab } from "../domain/workspace/WorkspaceNavigator";
 import { applyReplacementsToText } from "../application/replacements";
 import { createEditNoteTool } from "./EditNoteTool";
@@ -24,9 +24,20 @@ class MemoryNotes implements NoteRepository {
     return [];
   }
 
+  async list(_directory: string) {
+    return [];
+  }
+
   async create(path: string, content: string): Promise<Note> {
     this.files.set(path, content);
     return this.read(path);
+  }
+
+  async delete(path: string): Promise<void> {
+    if (!this.files.has(path)) {
+      throw new Error(`Note not found: ${path}`);
+    }
+    this.files.delete(path);
   }
 
   async exists(path: string): Promise<boolean> {
@@ -50,8 +61,15 @@ class MemoryWorkspace implements WorkspaceNavigator {
 
 class MemoryEditor implements NoteEditor {
   readonly calls: Replacement[][] = [];
+  active = true;
 
   constructor(private readonly notes: MemoryNotes, private readonly files: Map<string, string>) {}
+
+  async requireActive(_path: string): Promise<void> {
+    if (!this.active) {
+      throw new Error(NOTE_NOT_ACTIVE_EDITOR);
+    }
+  }
 
   async applyReplacements(path: string, replacements: Replacement[]): Promise<string> {
     this.calls.push(replacements);
@@ -79,7 +97,7 @@ describe("edit_note", () => {
       editor,
       tracker,
       permissions: new PermissionService(
-        () => ({ read: "allow", search: "allow", create: "deny", edit: "deny" }),
+        () => ({ read: "allow", create: "deny", edit: "deny", delete: "deny" }),
         { confirm: async () => true },
       ),
     });
@@ -107,7 +125,7 @@ describe("edit_note", () => {
       editor,
       tracker,
       permissions: new PermissionService(
-        () => ({ read: "allow", search: "allow", create: "deny", edit: "allow" }),
+        () => ({ read: "allow", create: "deny", edit: "allow", delete: "deny" }),
         { confirm: async () => true },
       ),
     });
@@ -120,6 +138,36 @@ describe("edit_note", () => {
     expect(result.isError).toBe(true);
     expect(result.content).toContain("The note changed after it was read");
     expect(editor.calls).toHaveLength(0);
+  });
+
+  it("refuses edits when the note is not the active editor", async () => {
+    const files = new Map([["a.md", "hello"]]);
+    const notes = new MemoryNotes(files);
+    const editor = new MemoryEditor(notes, files);
+    editor.active = false;
+    const tracker = new ReadRevisionTracker();
+    const revision = computeRevision("hello");
+    tracker.recordRead("s1", "a.md", revision);
+    const tool = createEditNoteTool({
+      sessionId: "s1",
+      notes,
+      editor,
+      tracker,
+      permissions: new PermissionService(
+        () => ({ read: "allow", create: "deny", edit: "allow", delete: "deny" }),
+        { confirm: async () => true },
+      ),
+    });
+
+    const result = await tool.execute({
+      path: "a.md",
+      revision,
+      replacements: [{ oldText: "hello", newText: "hi" }],
+    });
+    expect(result.isError).toBe(true);
+    expect(result.content).toBe(NOTE_NOT_ACTIVE_EDITOR);
+    expect(editor.calls).toHaveLength(0);
+    expect(files.get("a.md")).toBe("hello");
   });
 });
 
@@ -137,7 +185,7 @@ describe("read then edit flow", () => {
       workspace: new MemoryWorkspace(),
       tracker,
       permissions: new PermissionService(
-        () => ({ read: "allow", search: "allow", create: "allow", edit: "allow" }),
+        () => ({ read: "allow", create: "allow", edit: "allow", delete: "deny" }),
         { confirm },
       ),
     });
@@ -159,5 +207,38 @@ describe("read then edit flow", () => {
     const next = JSON.parse(editResult.content) as { revision: string };
     expect(next.revision).toBe(computeRevision("hello pidian"));
     expect(confirm).not.toHaveBeenCalled();
+  });
+
+  it("inserts content into an empty note", async () => {
+    const files = new Map([["aaa.md", ""]]);
+    const notes = new MemoryNotes(files);
+    const editor = new MemoryEditor(notes, files);
+    const tracker = new ReadRevisionTracker();
+    const tools = createPidianTools({
+      sessionId: "s1",
+      notes,
+      editor,
+      workspace: new MemoryWorkspace(),
+      tracker,
+      permissions: new PermissionService(
+        () => ({ read: "allow", create: "allow", edit: "allow", delete: "deny" }),
+        { confirm: async () => true },
+      ),
+    });
+    const read = tools.find((tool) => tool.name === "read_note");
+    const edit = tools.find((tool) => tool.name === "edit_note");
+    if (!read || !edit) {
+      throw new Error("tools missing");
+    }
+
+    const readResult = await read.execute({ path: "aaa.md" });
+    const payload = JSON.parse(readResult.content) as { revision: string };
+    const editResult = await edit.execute({
+      path: "aaa.md",
+      revision: payload.revision,
+      replacements: [{ oldText: "", newText: "aiueo" }],
+    });
+    expect(editResult.isError).toBeFalsy();
+    expect(files.get("aaa.md")).toBe("aiueo");
   });
 });

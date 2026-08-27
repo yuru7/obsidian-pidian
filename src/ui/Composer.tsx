@@ -1,5 +1,32 @@
-import { useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import { t } from "../i18n";
+
+const MIN_ROWS = 2;
+const MAX_ROWS = 4;
+
+function lineHeightPx(styles: CSSStyleDeclaration): number {
+  const fontSize = parseFloat(styles.fontSize);
+  const value = styles.lineHeight;
+  if (value.endsWith("px")) {
+    return parseFloat(value);
+  }
+  const parsed = parseFloat(value);
+  if (value === "normal" || !Number.isFinite(parsed)) {
+    return fontSize * 1.5;
+  }
+  return fontSize * parsed;
+}
+
+function fitTextarea(el: HTMLTextAreaElement): void {
+  const styles = getComputedStyle(el);
+  const lineHeight = lineHeightPx(styles);
+  const paddingY = parseFloat(styles.paddingTop) + parseFloat(styles.paddingBottom);
+  const borderY = parseFloat(styles.borderTopWidth) + parseFloat(styles.borderBottomWidth);
+  const minHeight = lineHeight * MIN_ROWS + paddingY + borderY;
+  const maxHeight = lineHeight * MAX_ROWS + paddingY + borderY;
+  el.style.height = `${minHeight}px`;
+  el.style.height = `${Math.min(maxHeight, Math.max(minHeight, el.scrollHeight + borderY))}px`;
+}
 
 export function Composer({
   disabled,
@@ -15,6 +42,14 @@ export function Composer({
   onAbort: () => void;
 }): JSX.Element {
   const [text, setText] = useState("");
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  useLayoutEffect(() => {
+    const el = textareaRef.current;
+    if (el) {
+      fitTextarea(el);
+    }
+  }, [text]);
 
   const send = () => {
     const trimmed = text.trim();
@@ -28,11 +63,13 @@ export function Composer({
   return (
     <div className="pidian-composer">
       <textarea
+        ref={textareaRef}
         className="pidian-input"
         placeholder={t("uiPlaceholder")}
         disabled={disabled}
         value={text}
-        rows={3}
+        rows={MIN_ROWS}
+        onFocus={(event) => fitTextarea(event.currentTarget)}
         onChange={(event) => setText(event.target.value)}
         onKeyDown={(event) => {
           if (event.key === "Enter" && !event.shiftKey) {

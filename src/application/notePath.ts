@@ -21,16 +21,25 @@ export function assertSafeNotePath(path: string): string {
   if (parts.some((part) => part === ".." || part === ".")) {
     throw new UnsafeNotePathError("Note path must not contain parent segments.");
   }
-  if (normalized === ".obsidian" || normalized.startsWith(".obsidian/")) {
-    throw new UnsafeNotePathError("Notes inside .obsidian/ cannot be accessed.");
-  }
-  if (normalized === SESSIONS_DIR || normalized.startsWith(`${SESSIONS_DIR}/`)) {
-    throw new UnsafeNotePathError("Session files cannot be accessed as notes.");
+  if (isRestrictedVaultPath(normalized)) {
+    throw new UnsafeNotePathError(
+      normalized === ".obsidian" || normalized.startsWith(".obsidian/")
+        ? "Notes inside .obsidian/ cannot be accessed."
+        : "Session files cannot be accessed as notes.",
+    );
   }
   return normalized;
 }
 
-export function isExcludedFromSearch(path: string): boolean {
+export function assertSafeDirectoryPath(path: string): string {
+  const normalized = normalizeNotePath(path).replace(/\/+$/, "");
+  if (!normalized || normalized === ".") {
+    return "";
+  }
+  return assertSafeNotePath(normalized);
+}
+
+export function isRestrictedVaultPath(path: string): boolean {
   const normalized = normalizeNotePath(path);
   if (normalized === ".obsidian" || normalized.startsWith(".obsidian/")) {
     return true;
@@ -38,7 +47,14 @@ export function isExcludedFromSearch(path: string): boolean {
   if (normalized === SESSIONS_DIR || normalized.startsWith(`${SESSIONS_DIR}/`)) {
     return true;
   }
-  if (normalized === AGENTS_FILE_PATH) {
+  return false;
+}
+
+export function isExcludedFromSearch(path: string): boolean {
+  if (isRestrictedVaultPath(path)) {
+    return true;
+  }
+  if (normalizeNotePath(path) === AGENTS_FILE_PATH) {
     return true;
   }
   return false;

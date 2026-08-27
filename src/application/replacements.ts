@@ -32,6 +32,10 @@ export function applyReplacementsToText(
   let next = content;
   for (const replacement of replacements) {
     if (replacement.oldText.length === 0) {
+      if (next.length === 0) {
+        next = replacement.newText;
+        continue;
+      }
       return { ok: false, error: "oldText must not be empty." };
     }
     const count = countOccurrences(next, replacement.oldText);

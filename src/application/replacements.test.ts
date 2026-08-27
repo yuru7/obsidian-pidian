@@ -17,6 +17,16 @@ describe("replacements", () => {
     const result = applyReplacementsToText("one one", [{ oldText: "one", newText: "two" }]);
     expect(result.ok).toBe(false);
   });
+
+  it("inserts into an empty note when oldText is empty", () => {
+    const result = applyReplacementsToText("", [{ oldText: "", newText: "aiueo" }]);
+    expect(result).toEqual({ ok: true, content: "aiueo" });
+  });
+
+  it("rejects empty oldText when the note is not empty", () => {
+    const result = applyReplacementsToText("hello", [{ oldText: "", newText: "x" }]);
+    expect(result).toEqual({ ok: false, error: "oldText must not be empty." });
+  });
 });
 
 describe("revision", () => {

@@ -18,7 +18,7 @@ export function createOpenFileTool(options: {
     name: "open_file",
     label: "Open file",
     description:
-      "Open a vault file that is not currently in a tab. If it is already open, reports the existing tab instead of creating a duplicate. Use workspace_tabs to switch between open tabs.",
+      "Open a vault file and make it the active editor tab. If it is already open, activates that tab instead of creating a duplicate. Use this before edit_note when the note is not the active editor.",
     parameters: {
       type: "object",
       properties: {

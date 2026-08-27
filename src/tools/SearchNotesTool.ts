@@ -31,7 +31,7 @@ export function createSearchNotesTool(options: {
           return { content: "query is required.", isError: true };
         }
         const decision = await options.permissions.authorize({
-          category: "search",
+          category: "read",
           toolName: "search_notes",
           summary: `Search notes for "${query}"`,
         });

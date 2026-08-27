@@ -32,11 +32,10 @@ export class PidianSettingTab extends PluginSettingTab {
     const fallbackModels = this.fallbackModels(this.plugin.settings.model);
     this.renderAgent(agentEl, fallbackProviders, fallbackModels);
 
+    this.renderPermissions(containerEl);
     this.renderCustomProviders(containerEl);
     this.renderCredentials(containerEl, fallbackProviders);
     this.renderContext(containerEl);
-    this.renderPermissions(containerEl);
-    this.renderEditing(containerEl);
     this.renderSession(containerEl);
 
     void this.enrichAgentFromCatalog(agentEl);
@@ -196,25 +195,9 @@ export class PidianSettingTab extends PluginSettingTab {
   private renderPermissions(containerEl: HTMLElement): void {
     containerEl.createEl("h3", { text: t("settingsPermissions") });
     this.permissionSetting(containerEl, t("settingsPermissionRead"), "read");
-    this.permissionSetting(containerEl, t("settingsPermissionSearch"), "search");
-    this.permissionSetting(containerEl, t("settingsPermissionCreate"), "create");
     this.permissionSetting(containerEl, t("settingsPermissionEdit"), "edit");
-  }
-
-  private renderEditing(containerEl: HTMLElement): void {
-    containerEl.createEl("h3", { text: t("settingsEditing") });
-    new Setting(containerEl)
-      .setName(t("settingsMaxEditableNotes"))
-      .setDesc(t("settingsMaxEditableNotesDesc"))
-      .addSlider((slider) => {
-        slider.setLimits(1, 10, 1);
-        slider.setDynamicTooltip();
-        slider.setValue(this.plugin.settings.maxEditableNotes);
-        slider.onChange(async (value) => {
-          this.plugin.settings.maxEditableNotes = value;
-          await this.plugin.saveSettings();
-        });
-      });
+    this.permissionSetting(containerEl, t("settingsPermissionCreate"), "create");
+    this.permissionSetting(containerEl, t("settingsPermissionDelete"), "delete");
   }
 
   private renderSession(containerEl: HTMLElement): void {

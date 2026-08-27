@@ -41,7 +41,7 @@ export function createEditNoteTool(options: {
     name: "edit_note",
     label: "Edit note",
     description:
-      "Edit a note using exact unique text replacements. The note must be read first, and revision must match.",
+      "Edit a note using exact unique text replacements. The note must be the active editor; if it is not, call open_file (or workspace_tabs) first to open and activate it. The note must also be read first, and revision must match. For an empty note, use oldText as an empty string to insert the initial content.",
     parameters: {
       type: "object",
       properties: {
@@ -59,7 +59,11 @@ export function createEditNoteTool(options: {
           items: {
             type: "object",
             properties: {
-              oldText: { type: "string", description: "Exact text to replace. Must be unique." },
+              oldText: {
+                type: "string",
+                description:
+                  "Exact text to replace. Must be unique. Use an empty string only when the note is empty, to insert the initial content.",
+              },
               newText: { type: "string", description: "Replacement text." },
             },
             required: ["oldText", "newText"],
@@ -92,6 +96,7 @@ export function createEditNoteTool(options: {
         if (!applied.ok) {
           return { content: applied.error, isError: true };
         }
+        await options.editor.requireActive(path);
 
         const summary = summarizeReplacements(replacements);
         const decision = await options.permissions.authorize({

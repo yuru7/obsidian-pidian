@@ -4,7 +4,7 @@ import { PermissionService } from "./PermissionService";
 describe("PermissionService", () => {
   it("allows immediately when set to allow", async () => {
     const confirm = vi.fn();
-    const service = new PermissionService(() => ({ read: "allow", search: "allow", create: "deny", edit: "deny" }), {
+    const service = new PermissionService(() => ({ read: "allow", create: "deny", edit: "deny", delete: "deny" }), {
       confirm,
     });
     await expect(
@@ -15,7 +15,7 @@ describe("PermissionService", () => {
 
   it("denies immediately when set to deny", async () => {
     const confirm = vi.fn();
-    const service = new PermissionService(() => ({ read: "allow", search: "allow", create: "deny", edit: "deny" }), {
+    const service = new PermissionService(() => ({ read: "allow", create: "deny", edit: "deny", delete: "deny" }), {
       confirm,
     });
     const decision = await service.authorize({
@@ -28,7 +28,7 @@ describe("PermissionService", () => {
   });
 
   it("asks the user and reports a denial", async () => {
-    const service = new PermissionService(() => ({ read: "allow", search: "allow", create: "ask", edit: "ask" }), {
+    const service = new PermissionService(() => ({ read: "allow", create: "ask", edit: "ask", delete: "deny" }), {
       confirm: async () => false,
     });
     const decision = await service.authorize({
@@ -41,7 +41,7 @@ describe("PermissionService", () => {
 
   it("asks the user and allows when confirmed", async () => {
     const confirm = vi.fn(async () => true);
-    const service = new PermissionService(() => ({ read: "ask", search: "ask", create: "ask", edit: "ask" }), {
+    const service = new PermissionService(() => ({ read: "ask", create: "ask", edit: "ask", delete: "ask" }), {
       confirm,
     });
     await expect(

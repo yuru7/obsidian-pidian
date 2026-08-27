@@ -30,7 +30,6 @@ export default class PidianPlugin extends Plugin {
   agentService?: AgentService;
   sessionService?: SessionService;
   modelCatalog?: PiModelCatalog;
-  private noteEditor?: ObsidianNoteEditor;
   private readonly editorContextListeners = new Set<() => void>();
 
   async onload(): Promise<void> {
@@ -83,7 +82,6 @@ export default class PidianPlugin extends Plugin {
   }
 
   onunload(): void {
-    this.noteEditor?.dispose();
     this.editorContextListeners.clear();
   }
 
@@ -102,9 +100,8 @@ export default class PidianPlugin extends Plugin {
 
   private initServices(): void {
     const notes = new ObsidianNoteRepository(this.app);
-    const editor = new ObsidianNoteEditor(this.app, () => this.settings.maxEditableNotes);
+    const editor = new ObsidianNoteEditor(this.app);
     const workspace = new ObsidianWorkspaceNavigator(this.app);
-    this.noteEditor = editor;
     const sessions = new SessionService(new ObsidianSessionRepository(this.app));
     this.sessionService = sessions;
     const tracker = new ReadRevisionTracker();

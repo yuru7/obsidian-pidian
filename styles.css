@@ -190,18 +190,33 @@
   display: none;
 }
 
-.pidian-input {
+.pidian-view textarea.pidian-input {
+  display: block;
   width: 100%;
+  box-sizing: border-box;
   background: var(--background-primary);
   color: var(--text-normal);
   border: 1px solid var(--background-modifier-border);
   border-radius: var(--radius-s);
+  padding: 6px 8px;
+  line-height: var(--line-height-normal, 1.5);
+  resize: none;
+  overflow-y: auto;
+  min-height: calc(2lh + 12px + 2px);
+  max-height: calc(4lh + 12px + 2px);
+}
+
+.pidian-view textarea.pidian-input:focus {
+  padding: 6px 8px;
 }
 
 .pidian-chat {
   flex: 1;
   overflow: auto;
   padding: 12px;
+  /* Obsidian sets body { user-select: none }; allow copy from the transcript. */
+  user-select: text;
+  -webkit-user-select: text;
 }
 
 .pidian-chat-empty,

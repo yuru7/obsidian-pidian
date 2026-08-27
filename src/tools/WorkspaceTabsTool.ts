@@ -15,7 +15,7 @@ export function createWorkspaceTabsTool(options: {
     name: "workspace_tabs",
     label: "Workspace tabs",
     description:
-      "List open editor tabs, or focus an existing tab. Call with no arguments to list tabs. Pass tabId or path to switch to that tab. Does not open files that are not already in a tab; use open_file for that.",
+      "List open editor tabs, or focus an existing tab. Call with no arguments to list tabs. Pass tabId or path to switch to that tab and make it the active editor. Does not open files that are not already in a tab; use open_file for that.",
     parameters: {
       type: "object",
       properties: {
