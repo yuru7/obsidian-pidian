@@ -17,14 +17,18 @@ export interface PidianMessage {
 export function sumTokenUsage(messages: readonly PidianMessage[]): TokenUsage {
   let input = 0;
   let output = 0;
+  let cacheRead = 0;
+  let cacheWrite = 0;
   for (const message of messages) {
     if (!message.usage) {
       continue;
     }
     input += message.usage.input;
     output += message.usage.output;
+    cacheRead += message.usage.cacheRead;
+    cacheWrite += message.usage.cacheWrite;
   }
-  return { input, output };
+  return { input, output, cacheRead, cacheWrite };
 }
 
 export interface PidianSession {

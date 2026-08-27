@@ -62,9 +62,10 @@ export const ja: { [K in keyof typeof en]: string } = {
   uiCopy: "コピー",
   uiCopied: "コピーしました",
   uiTokens: "Tokens",
-  uiTokenIn: "In",
-  uiTokenOut: "Out",
-  uiTokenTotal: "Total",
+  uiTokenRead: "Read",
+  uiTokenCacheRead: "Cache Read",
+  uiTokenWrite: "Write",
+  uiTokenCacheWrite: "Cache Write",
 
   permissionAllowTitle: "{tool} を許可しますか？",
   permissionDeny: "拒否",

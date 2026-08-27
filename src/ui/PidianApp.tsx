@@ -134,16 +134,20 @@ function TokenUsage({ messages }: { messages: PidianMessage[] }): JSX.Element {
       {open ? (
         <div className="pidian-model-balloon" role="dialog">
           <div className="pidian-model-row">
-            <span>{t("uiTokenIn")}</span>
+            <span>{t("uiTokenRead")}</span>
             <span className="pidian-token-value">{usage.input}</span>
           </div>
           <div className="pidian-model-row">
-            <span>{t("uiTokenOut")}</span>
+            <span>{t("uiTokenCacheRead")}</span>
+            <span className="pidian-token-value">{usage.cacheRead}</span>
+          </div>
+          <div className="pidian-model-row">
+            <span>{t("uiTokenWrite")}</span>
             <span className="pidian-token-value">{usage.output}</span>
           </div>
           <div className="pidian-model-row">
-            <span>{t("uiTokenTotal")}</span>
-            <span className="pidian-token-value">{usage.input + usage.output}</span>
+            <span>{t("uiTokenCacheWrite")}</span>
+            <span className="pidian-token-value">{usage.cacheWrite}</span>
           </div>
         </div>
       ) : null}

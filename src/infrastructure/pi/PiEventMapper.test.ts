@@ -51,11 +51,23 @@ describe("PiEventMapper", () => {
       mapPiEvent({
         type: "agent_end",
         messages: [
-          { role: "assistant", usage: { input: 10, output: 4 } },
-          { role: "toolResult", usage: { input: 2, output: 1 } },
+          { role: "assistant", usage: { input: 10, output: 4, cacheRead: 6, cacheWrite: 2 } },
+          { role: "toolResult", usage: { input: 2, output: 1, cacheRead: 1, cacheWrite: 3 } },
         ],
       }),
-    ).toEqual({ type: "turn_completed", usage: { input: 12, output: 5 } });
+    ).toEqual({
+      type: "turn_completed",
+      usage: { input: 12, output: 5, cacheRead: 7, cacheWrite: 5 },
+    });
+    expect(
+      mapPiEvent({
+        type: "agent_end",
+        messages: [{ role: "assistant", usage: { input: 10, output: 4 } }],
+      }),
+    ).toEqual({
+      type: "turn_completed",
+      usage: { input: 10, output: 4, cacheRead: 0, cacheWrite: 0 },
+    });
     expect(
       mapPiEvent({
         type: "tool_execution_end",

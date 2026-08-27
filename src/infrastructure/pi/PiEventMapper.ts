@@ -1,4 +1,4 @@
-import type { AgentEvent } from "../../domain/agent/AgentEvent";
+import type { AgentEvent, TokenUsage } from "../../domain/agent/AgentEvent";
 
 export interface PiLikeAssistantEvent {
   type: string;
@@ -16,12 +16,14 @@ export interface PiLikeEvent {
   messages?: unknown;
 }
 
-function usageFromPiMessages(messages: unknown): { input: number; output: number } | undefined {
+function usageFromPiMessages(messages: unknown): TokenUsage | undefined {
   if (!Array.isArray(messages)) {
     return undefined;
   }
   let input = 0;
   let output = 0;
+  let cacheRead = 0;
+  let cacheWrite = 0;
   let found = false;
   for (const item of messages) {
     if (!item || typeof item !== "object" || !("usage" in item)) {
@@ -31,15 +33,22 @@ function usageFromPiMessages(messages: unknown): { input: number; output: number
     if (!usage || typeof usage !== "object") {
       continue;
     }
-    const record = usage as { input?: unknown; output?: unknown };
+    const record = usage as {
+      input?: unknown;
+      output?: unknown;
+      cacheRead?: unknown;
+      cacheWrite?: unknown;
+    };
     if (typeof record.input !== "number" && typeof record.output !== "number") {
       continue;
     }
     input += typeof record.input === "number" ? record.input : 0;
     output += typeof record.output === "number" ? record.output : 0;
+    cacheRead += typeof record.cacheRead === "number" ? record.cacheRead : 0;
+    cacheWrite += typeof record.cacheWrite === "number" ? record.cacheWrite : 0;
     found = true;
   }
-  return found ? { input, output } : undefined;
+  return found ? { input, output, cacheRead, cacheWrite } : undefined;
 }
 
 function hasErrorDetail(result: unknown): boolean {

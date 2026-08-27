@@ -12,17 +12,33 @@ function expectString(value: unknown, field: string): string {
   return value;
 }
 
+function parseTokenCount(value: unknown, field: string): number {
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    throw new Error(`Invalid session field: ${field}`);
+  }
+  return value;
+}
+
+function parseOptionalTokenCount(value: unknown, field: string): number {
+  if (value === undefined) {
+    return 0;
+  }
+  return parseTokenCount(value, field);
+}
+
 function parseUsage(value: unknown, field: string): TokenUsage | undefined {
   if (value === undefined) {
     return undefined;
   }
-  if (!isRecord(value) || typeof value.input !== "number" || typeof value.output !== "number") {
+  if (!isRecord(value)) {
     throw new Error(`Invalid session field: ${field}`);
   }
-  if (!Number.isFinite(value.input) || !Number.isFinite(value.output)) {
-    throw new Error(`Invalid session field: ${field}`);
-  }
-  return { input: value.input, output: value.output };
+  return {
+    input: parseTokenCount(value.input, `${field}.input`),
+    output: parseTokenCount(value.output, `${field}.output`),
+    cacheRead: parseOptionalTokenCount(value.cacheRead, `${field}.cacheRead`),
+    cacheWrite: parseOptionalTokenCount(value.cacheWrite, `${field}.cacheWrite`),
+  };
 }
 
 function parseToolCalls(value: unknown): PidianMessage["toolCalls"] {

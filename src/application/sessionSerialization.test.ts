@@ -35,7 +35,7 @@ describe("session serialization", () => {
           id: "m2",
           role: "assistant",
           text: "Hi",
-          usage: { input: 12, output: 3 },
+          usage: { input: 12, output: 3, cacheRead: 8, cacheWrite: 4 },
           createdAt: "2026-01-01T00:00:01.000Z",
         },
       ],
@@ -52,18 +52,40 @@ describe("session serialization", () => {
           id: "a1",
           role: "assistant",
           text: "A",
-          usage: { input: 10, output: 4 },
+          usage: { input: 10, output: 4, cacheRead: 6, cacheWrite: 2 },
           createdAt: "2026-01-01T00:00:01.000Z",
         },
         {
           id: "a2",
           role: "assistant",
           text: "B",
-          usage: { input: 2, output: 1 },
+          usage: { input: 2, output: 1, cacheRead: 1, cacheWrite: 3 },
           createdAt: "2026-01-01T00:00:02.000Z",
         },
       ]),
-    ).toEqual({ input: 12, output: 5 });
+    ).toEqual({ input: 12, output: 5, cacheRead: 7, cacheWrite: 5 });
+  });
+
+  it("defaults missing cache usage to zero", () => {
+    const parsed = parsePidianSession({
+      ...sample,
+      messages: [
+        sample.messages[0],
+        {
+          id: "m2",
+          role: "assistant",
+          text: "Hi",
+          usage: { input: 12, output: 3 },
+          createdAt: "2026-01-01T00:00:01.000Z",
+        },
+      ],
+    });
+    expect(parsed.messages[1]?.usage).toEqual({
+      input: 12,
+      output: 3,
+      cacheRead: 0,
+      cacheWrite: 0,
+    });
   });
 
   it("rejects unknown versions", () => {

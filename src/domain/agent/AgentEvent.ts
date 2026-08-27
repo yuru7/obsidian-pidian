@@ -26,6 +26,8 @@ export interface ToolCompletedEvent {
 export interface TokenUsage {
   input: number;
   output: number;
+  cacheRead: number;
+  cacheWrite: number;
 }
 
 export interface TurnCompletedEvent {

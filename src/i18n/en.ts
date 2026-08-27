@@ -61,9 +61,10 @@ export const en = {
   uiCopy: "Copy",
   uiCopied: "Copied",
   uiTokens: "Tokens",
-  uiTokenIn: "In",
-  uiTokenOut: "Out",
-  uiTokenTotal: "Total",
+  uiTokenRead: "Read",
+  uiTokenCacheRead: "Cache Read",
+  uiTokenWrite: "Write",
+  uiTokenCacheWrite: "Cache Write",
 
   permissionAllowTitle: "Allow {tool}?",
   permissionDeny: "Deny",
