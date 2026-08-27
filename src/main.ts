@@ -2,14 +2,14 @@ import { Notice, Plugin, type ViewCreator, type WorkspaceLeaf } from "obsidian";
 import { AgentService } from "./application/AgentService";
 import { t } from "./i18n";
 import { ContextService } from "./application/ContextService";
-import { CredentialResolver } from "./application/CredentialResolver";
+import type { CredentialResolver } from "./application/CredentialResolver";
 import { InstructionProvider } from "./application/InstructionProvider";
 import { PermissionService } from "./application/PermissionService";
 import { ReadRevisionTracker } from "./application/ReadRevisionTracker";
 import { SessionCleanupService } from "./application/SessionCleanupService";
 import { SessionService } from "./application/SessionService";
 import { PiAgentAdapter } from "./infrastructure/pi/PiAgentAdapter";
-import { envApiKeyForProvider } from "./infrastructure/pi/PiCredentials";
+import { createCredentialResolver } from "./infrastructure/pi/PiCredentials";
 import { PiModelCatalog } from "./infrastructure/pi/PiModelCatalog";
 import { editorContextExtension } from "./infrastructure/obsidian/editorContextExtension";
 import { ObsidianContextProvider } from "./infrastructure/obsidian/ObsidianContextProvider";
@@ -30,10 +30,12 @@ export default class PidianPlugin extends Plugin {
   agentService?: AgentService;
   sessionService?: SessionService;
   modelCatalog?: PiModelCatalog;
+  credentials?: CredentialResolver;
   private readonly editorContextListeners = new Set<() => void>();
 
   async onload(): Promise<void> {
     await this.loadSettings();
+    this.credentials = createCredentialResolver(() => this.settings);
 
     // Settings first (Copilot does this), then services, then views/ribbon.
     // Views are always registered even if agent init fails.
@@ -109,16 +111,8 @@ export default class PidianPlugin extends Plugin {
       () => this.settings.permissions,
       new ObsidianPermissionPrompter(this.app),
     );
-    const credentials = new CredentialResolver({
-      getSetting: (providerId) => this.settings.apiKeys[providerId],
-      getEnv: (providerId) => {
-        const custom = this.settings.customProviders.find((item) => item.id === providerId);
-        if (custom?.apiKey.trim()) {
-          return undefined;
-        }
-        return envApiKeyForProvider(providerId);
-      },
-    });
+    const credentials = this.credentials ?? createCredentialResolver(() => this.settings);
+    this.credentials = credentials;
     const adapter = new PiAgentAdapter({
       credentials,
       getCustomProviders: () => this.settings.customProviders,
@@ -126,6 +120,7 @@ export default class PidianPlugin extends Plugin {
     this.modelCatalog = new PiModelCatalog(
       () => adapter.getRuntime(),
       () => this.settings.customProviders,
+      credentials,
     );
     const contextProvider = new ObsidianContextProvider(this.app);
     this.registerEvent(

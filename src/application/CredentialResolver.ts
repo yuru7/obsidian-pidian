@@ -31,4 +31,8 @@ export class CredentialResolver {
 
     return { source: "none" };
   }
+
+  hasCredential(providerId: string): boolean {
+    return this.resolve(providerId).source !== "none";
+  }
 }

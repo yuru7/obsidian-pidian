@@ -25,4 +25,25 @@ describe("CredentialResolver", () => {
     });
     expect(resolver.resolve("openai")).toEqual({ source: "none" });
   });
+
+  it("treats settings or env keys as configured", () => {
+    expect(
+      new CredentialResolver({
+        getSetting: () => "setting-key",
+        getEnv: () => undefined,
+      }).hasCredential("openai"),
+    ).toBe(true);
+    expect(
+      new CredentialResolver({
+        getSetting: () => "  ",
+        getEnv: () => "env-key",
+      }).hasCredential("openai"),
+    ).toBe(true);
+    expect(
+      new CredentialResolver({
+        getSetting: () => undefined,
+        getEnv: () => undefined,
+      }).hasCredential("openai"),
+    ).toBe(false);
+  });
 });

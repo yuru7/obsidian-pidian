@@ -1,5 +1,6 @@
 import { envVarNamesForProvider } from "./PiCredentials";
 import { ModelRuntime } from "@earendil-works/pi-coding-agent";
+import type { CredentialResolver } from "../../application/CredentialResolver";
 import type { CatalogModel, CatalogProvider, ModelCatalog } from "../../domain/agent/ModelCatalog";
 import type { CustomOpenAIProvider } from "../../settings/Settings";
 
@@ -7,6 +8,7 @@ export class PiModelCatalog implements ModelCatalog {
   constructor(
     private readonly getRuntime: () => Promise<ModelRuntime>,
     private readonly getCustomProviders: () => CustomOpenAIProvider[],
+    private readonly credentials: CredentialResolver,
   ) {}
 
   async listProviders(): Promise<CatalogProvider[]> {
@@ -23,7 +25,9 @@ export class PiModelCatalog implements ModelCatalog {
       isCustom: true,
     }));
     const seen = new Set(providers.map((provider) => provider.id));
-    return [...providers, ...custom.filter((provider) => !seen.has(provider.id))];
+    return [...providers, ...custom.filter((provider) => !seen.has(provider.id))].filter((provider) =>
+      this.credentials.hasCredential(provider.id),
+    );
   }
 
   async listModels(providerId: string): Promise<CatalogModel[]> {

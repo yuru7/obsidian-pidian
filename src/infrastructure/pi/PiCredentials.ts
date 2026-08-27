@@ -1,3 +1,6 @@
+import { CredentialResolver } from "../../application/CredentialResolver";
+import type { PidianSettings } from "../../settings/Settings";
+
 const PROVIDER_ENV_VARS: Record<string, string[]> = {
   anthropic: ["ANTHROPIC_API_KEY", "ANTHROPIC_AUTH_TOKEN", "ANTHROPIC_OAUTH_TOKEN"],
   openai: ["OPENAI_API_KEY"],
@@ -17,6 +20,7 @@ const PROVIDER_ENV_VARS: Record<string, string[]> = {
   fireworks: ["FIREWORKS_API_KEY"],
   together: ["TOGETHER_API_KEY"],
   opencode: ["OPENCODE_API_KEY"],
+  "opencode-go": ["OPENCODE_API_KEY"],
 };
 
 const PROVIDER_LABELS: Record<string, string> = {
@@ -37,7 +41,8 @@ const PROVIDER_LABELS: Record<string, string> = {
   huggingface: "Hugging Face",
   fireworks: "Fireworks",
   together: "Together",
-  opencode: "OpenCode",
+  opencode: "OpenCode Zen",
+  "opencode-go": "OpenCode Go",
 };
 
 export function envVarNamesForProvider(providerId: string): string[] {
@@ -64,6 +69,19 @@ export function envApiKeyForProvider(providerId: string): string | undefined {
     }
   }
   return undefined;
+}
+
+export function createCredentialResolver(getSettings: () => PidianSettings): CredentialResolver {
+  return new CredentialResolver({
+    getSetting: (providerId) => getSettings().apiKeys[providerId],
+    getEnv: (providerId) => {
+      const custom = getSettings().customProviders.find((item) => item.id === providerId);
+      if (custom?.apiKey.trim()) {
+        return undefined;
+      }
+      return envApiKeyForProvider(providerId);
+    },
+  });
 }
 
 export const PIDIAN_SYSTEM_PROMPT = `You are Pidian, an assistant inside Obsidian.

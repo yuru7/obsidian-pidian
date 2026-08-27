@@ -30,7 +30,7 @@ export class PidianSettingTab extends PluginSettingTab {
     const agentEl = containerEl.createDiv();
     const fallbackProviders = this.fallbackProviders();
     const fallbackModels = this.fallbackModels(this.plugin.settings.model);
-    this.renderAgent(agentEl, fallbackProviders, fallbackModels);
+    this.renderAgent(agentEl, this.selectableProviders(fallbackProviders), fallbackModels);
 
     this.renderPermissions(containerEl);
     this.renderCustomProviders(containerEl);
@@ -60,6 +60,14 @@ export class PidianSettingTab extends PluginSettingTab {
     return [...known, ...custom];
   }
 
+  private selectableProviders(providers: CatalogProvider[]): CatalogProvider[] {
+    const credentials = this.plugin.credentials;
+    if (!credentials) {
+      return providers;
+    }
+    return providers.filter((provider) => credentials.hasCredential(provider.id));
+  }
+
   private fallbackModels(modelId: string): CatalogModel[] {
     if (!modelId) {
       return [];
@@ -85,7 +93,11 @@ export class PidianSettingTab extends PluginSettingTab {
         return;
       }
       agentEl.empty();
-      this.renderAgent(agentEl, providers.length > 0 ? providers : this.fallbackProviders(), models);
+      this.renderAgent(
+        agentEl,
+        providers.length > 0 ? providers : this.selectableProviders(this.fallbackProviders()),
+        models,
+      );
     } catch (error) {
       if (!agentEl.isConnected) {
         return;
