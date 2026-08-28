@@ -146,7 +146,7 @@
 }
 
 .pidian-model-selector.is-open .pidian-model-trigger .pidian-caret,
-.pidian-token-selector.is-open .pidian-model-trigger .pidian-caret {
+.pidian-token-selector:hover .pidian-model-trigger .pidian-caret {
   transform: rotate(225deg);
 }
 
@@ -155,10 +155,28 @@
   flex-shrink: 0;
 }
 
+.pidian-token-selector .pidian-model-trigger {
+  cursor: default;
+}
+
 .pidian-token-selector .pidian-model-balloon {
+  display: none;
   left: auto;
   right: 0;
   min-width: 180px;
+}
+
+.pidian-token-selector:hover .pidian-model-balloon {
+  display: block;
+}
+
+.pidian-token-selector .pidian-model-balloon::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 100%;
+  height: 8px;
 }
 
 .pidian-token-value {
