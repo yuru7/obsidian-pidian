@@ -7,6 +7,7 @@ import { Chat } from "./Chat";
 import { Composer } from "./Composer";
 import { ModelSelector } from "./ModelSelector";
 import { SessionSelector } from "./SessionSelector";
+import { Spinner } from "./Thinking";
 
 function formatContextLabel(notePath: string, startLine: number, endLine: number): string {
   const fileName = notePath.split("/").pop() || notePath;
@@ -65,9 +66,14 @@ export function PidianApp({ plugin }: { plugin: PidianPlugin }): JSX.Element {
           </div>
         </div>
       </header>
-      <Chat app={plugin.app} messages={session?.messages ?? []} streaming={streaming} />
+      <Chat app={plugin.app} messages={session?.messages ?? []} />
       {error ? <div className="pidian-error">{error}</div> : null}
       <footer className="pidian-footer">
+        {streaming ? (
+          <div className="pidian-streaming-indicator">
+            <Spinner />
+          </div>
+        ) : null}
         <div className="pidian-footer-meta">
           <ContextPreview plugin={plugin} />
           <TokenUsage messages={session?.messages ?? []} />

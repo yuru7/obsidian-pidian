@@ -3,30 +3,22 @@ import type { App } from "obsidian";
 import { t } from "../i18n";
 import type { PidianMessage } from "../domain/sessions/PidianSession";
 import { Markdown } from "./Markdown";
-import { Thinking, ThinkingWait } from "./Thinking";
+import { Thinking } from "./Thinking";
 import { ToolCall } from "./ToolCall";
 
 export function Message({
   app,
   message,
-  streaming,
 }: {
   app: App;
   message: PidianMessage;
-  streaming?: boolean;
 }): JSX.Element {
   const name = message.role === "user" ? t("uiYou") : "Pidian";
   const assistant = message.role === "assistant";
-  const waiting =
-    Boolean(streaming) &&
-    assistant &&
-    !message.text &&
-    !(message.toolCalls && message.toolCalls.length > 0);
   return (
     <article className={`pidian-message pidian-message-${message.role}`}>
       <div className="pidian-message-role">{name}</div>
-      {waiting && !message.thinking ? <ThinkingWait /> : null}
-      {message.thinking ? <Thinking text={message.thinking} waiting={waiting} /> : null}
+      {message.thinking ? <Thinking text={message.thinking} /> : null}
       {message.toolCalls?.map((toolCall) => (
         <ToolCall key={toolCall.id} toolCall={toolCall} />
       ))}

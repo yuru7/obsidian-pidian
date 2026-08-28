@@ -349,15 +349,95 @@
   margin: 4px 0;
 }
 
-.pidian-thinking-wait {
-  color: var(--text-muted);
-  padding: 4px 8px;
-  margin: 4px 0;
+.pidian-streaming-indicator {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  transform: translate(-50%, calc(-100% - 8px));
+  pointer-events: none;
+  z-index: 3;
 }
 
-.pidian-thinking-dots {
+.pidian-spinner {
+  --pidian-spinner-size: 16px;
+  position: relative;
   display: inline-block;
-  min-width: 5ch;
+  width: var(--pidian-spinner-size);
+  height: var(--pidian-spinner-size);
+  color: var(--text-muted);
+}
+
+.pidian-spinner span {
+  position: absolute;
+  inset: 0;
+  transform: rotate(calc(var(--dot) * 45deg));
+}
+
+.pidian-spinner span::before {
+  content: "";
+  display: block;
+  width: 25%;
+  height: 25%;
+  margin-inline: auto;
+  border-radius: 50%;
+  background: currentColor;
+  animation: pidian-spinner-fade 0.8s linear infinite;
+  animation-delay: calc(var(--dot) * 0.1s - 0.8s);
+}
+
+.pidian-spinner span:nth-child(1) {
+  --dot: 0;
+}
+
+.pidian-spinner span:nth-child(2) {
+  --dot: 1;
+}
+
+.pidian-spinner span:nth-child(3) {
+  --dot: 2;
+}
+
+.pidian-spinner span:nth-child(4) {
+  --dot: 3;
+}
+
+.pidian-spinner span:nth-child(5) {
+  --dot: 4;
+}
+
+.pidian-spinner span:nth-child(6) {
+  --dot: 5;
+}
+
+.pidian-spinner span:nth-child(7) {
+  --dot: 6;
+}
+
+.pidian-spinner span:nth-child(8) {
+  --dot: 7;
+}
+
+@keyframes pidian-spinner-fade {
+  0% {
+    opacity: 1;
+  }
+  20% {
+    opacity: 0.25;
+  }
+  100% {
+    opacity: 0.2;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pidian-spinner span::before {
+    animation: none;
+    opacity: 0.25;
+  }
+
+  .pidian-spinner span:nth-child(1)::before {
+    opacity: 1;
+  }
 }
 
 .pidian-tool-path {

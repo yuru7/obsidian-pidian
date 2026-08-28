@@ -1,58 +1,25 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { t } from "../i18n";
 
-const DOT_INTERVAL_MS = 600;
-const MAX_DOTS = 5;
+const SPINNER_DOTS = 8;
 
-function useThinkingDots(active: boolean): string {
-  const [count, setCount] = useState(1);
-
-  useEffect(() => {
-    if (!active) {
-      return undefined;
-    }
-    setCount(1);
-    const id = window.setInterval(() => {
-      setCount((value) => (value === MAX_DOTS ? 1 : value + 1));
-    }, DOT_INTERVAL_MS);
-    return () => window.clearInterval(id);
-  }, [active]);
-
-  return ".".repeat(count);
-}
-
-function ThinkingLabel({ waiting }: { waiting: boolean }): JSX.Element {
-  const dots = useThinkingDots(waiting);
-  if (!waiting) {
-    return <>{t("uiThinking")}</>;
-  }
+export function Spinner(): JSX.Element {
   return (
-    <>
-      {t("uiThinkingWait")}
-      <span className="pidian-thinking-dots" aria-hidden="true">
-        {dots}
-      </span>
-    </>
+    <span className="pidian-spinner" role="status" aria-label={t("uiThinking")}>
+      {Array.from({ length: SPINNER_DOTS }, (_, index) => (
+        <span key={index} />
+      ))}
+    </span>
   );
 }
 
-export function ThinkingWait(): JSX.Element {
-  return (
-    <div className="pidian-thinking-wait" aria-live="polite">
-      <ThinkingLabel waiting />
-    </div>
-  );
-}
-
-export function Thinking({ text, waiting }: { text: string; waiting?: boolean }): JSX.Element {
+export function Thinking({ text }: { text: string }): JSX.Element {
   const [open, setOpen] = useState(false);
   return (
     <div className="pidian-thinking">
       <button className="pidian-disclosure" onClick={() => setOpen((value) => !value)}>
         <span>{open ? "▾" : "▸"}</span>
-        <span>
-          <ThinkingLabel waiting={Boolean(waiting)} />
-        </span>
+        <span>{t("uiThinking")}</span>
       </button>
       {open ? <pre className="pidian-thinking-body">{text}</pre> : null}
     </div>
