@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { locale, t } from "../i18n";
 import type PidianPlugin from "../main";
 import { NEW_CHAT_TITLE } from "../application/sessionTitle";
@@ -11,6 +11,7 @@ export function SessionSelector({
   plugin: PidianPlugin;
   onChange: () => void;
 }): JSX.Element {
+  const rootRef = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(false);
   const [sessions, setSessions] = useState<SessionSummary[]>([]);
 
@@ -26,8 +27,22 @@ export function SessionSelector({
     void sessions.list().then(setSessions).catch(() => setSessions([]));
   }, [open, plugin]);
 
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+    const onPointerDown = (event: PointerEvent) => {
+      if (rootRef.current?.contains(event.target as Node)) {
+        return;
+      }
+      setOpen(false);
+    };
+    document.addEventListener("pointerdown", onPointerDown);
+    return () => document.removeEventListener("pointerdown", onPointerDown);
+  }, [open]);
+
   return (
-    <div className="pidian-session-selector">
+    <div ref={rootRef} className="pidian-session-selector">
       <button
         className="pidian-icon-button"
         aria-label={t("uiSessionHistory")}

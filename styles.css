@@ -39,7 +39,9 @@
 .pidian-view .pidian-icon-button,
 .pidian-view .pidian-button,
 .pidian-view .pidian-disclosure,
-.pidian-view .pidian-session-item {
+.pidian-view .pidian-session-item,
+.pidian-view .pidian-model-menu-item,
+.pidian-view .pidian-select-trigger {
   background-color: transparent;
   box-shadow: none;
   color: var(--text-normal);
@@ -74,7 +76,9 @@
 .pidian-view .pidian-icon-button:hover,
 .pidian-view .pidian-button:hover,
 .pidian-view .pidian-disclosure:hover,
-.pidian-view .pidian-session-item:hover {
+.pidian-view .pidian-session-item:hover,
+.pidian-view .pidian-model-menu-item:hover,
+.pidian-view .pidian-select-trigger:hover {
   background-color: var(--background-modifier-hover);
 }
 
@@ -179,6 +183,23 @@
   color: var(--text-normal);
 }
 
+.pidian-view .pidian-select-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  width: 100%;
+  min-width: 0;
+  height: 24px;
+  padding: 0 18px 0 6px;
+  border: none;
+}
+
+.pidian-select-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .pidian-select .pidian-caret {
   position: absolute;
   top: 50%;
@@ -188,24 +209,44 @@
   transform: translateY(-50%) rotate(45deg);
 }
 
-.pidian-view .pidian-model-selector select {
-  width: 100%;
-  min-width: 0;
-  height: 24px;
-  padding: 0 18px 0 0;
-  background-color: transparent;
-  background-image: none;
-  border: none;
-  box-shadow: none;
-  color: var(--text-normal);
-  text-align: right;
-  appearance: none;
-  -webkit-appearance: none;
-  cursor: pointer;
+.pidian-select.is-open .pidian-caret {
+  transform: translateY(-50%) rotate(225deg);
 }
 
-.pidian-view .pidian-model-selector select::-ms-expand {
-  display: none;
+.pidian-model-menu {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 4px);
+  min-width: 180px;
+  width: max-content;
+  max-width: 280px;
+  max-height: 280px;
+  overflow: auto;
+  background: var(--background-primary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--radius-s);
+  z-index: 11;
+  box-shadow: var(--shadow-s);
+}
+
+.pidian-view .pidian-model-menu-item {
+  display: block;
+  height: auto;
+  min-height: 0;
+  width: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: left;
+  padding: 8px;
+  border: 0;
+  border-bottom: 1px solid var(--background-modifier-border);
+  border-radius: 0;
+}
+
+.pidian-view .pidian-model-menu-item.is-selected {
+  background-color: var(--background-modifier-hover);
 }
 
 .pidian-view textarea.pidian-input {
