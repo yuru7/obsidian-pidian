@@ -104,6 +104,34 @@ describe("PiModelCatalog.listProviders", () => {
     }).listProviders();
     expect(listed.map((provider) => provider.id)).toEqual(["custom-1"]);
   });
+
+  it("uses the settings name when the runtime already registered the custom provider", async () => {
+    const custom: CustomOpenAIProvider[] = [
+      {
+        id: "custom-1",
+        name: "XXXカスタム",
+        baseUrl: "http://localhost:11434/v1",
+        modelId: "bbb aaaaa",
+        apiKey: "",
+      },
+    ];
+    const listed = await catalog({
+      providerIds: ["custom-1"],
+      custom,
+      credentials: createCredentialResolver(() => ({
+        ...DEFAULT_SETTINGS,
+        customProviders: custom,
+      })),
+    }).listProviders();
+    expect(listed).toEqual([
+      {
+        id: "custom-1",
+        name: "XXXカスタム",
+        envVarNames: [],
+        isCustom: true,
+      },
+    ]);
+  });
 });
 
 describe("PiModelCatalog.listModels", () => {

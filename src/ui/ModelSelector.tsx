@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useReducer, useRef, useState } from "react";
 import { t } from "../i18n";
 import type PidianPlugin from "../main";
 import type { CatalogModel, CatalogProvider } from "../domain/agent/ModelCatalog";
@@ -17,12 +17,20 @@ export function ModelSelector({
   const [openList, setOpenList] = useState<"provider" | "model" | null>(null);
   const [providers, setProviders] = useState<CatalogProvider[]>([]);
   const [models, setModels] = useState<CatalogModel[]>([]);
+  const [settingsRev, bumpSettings] = useReducer((value: number) => value + 1, 0);
   const session = plugin.agentService?.getSession();
   const provider = session?.provider ?? plugin.settings.provider;
   const model = session?.model ?? plugin.settings.model;
-  const providerName = providers.find((item) => item.id === provider)?.name ?? provider;
-  const modelName = models.find((item) => item.id === model)?.name ?? model;
-  const label = [providerName, modelName].filter(Boolean).join(" ");
+  const providerName = providers.find((item) => item.id === provider)?.name ?? "";
+  const modelName = models.find((item) => item.id === model)?.name ?? "";
+  const selected = Boolean(provider && model);
+  const label = selected
+    ? [providerName || provider, modelName || model].filter(Boolean).join(" ")
+    : t("uiNoModel");
+
+  useEffect(() => {
+    return plugin.subscribeSettings(() => bumpSettings());
+  }, [plugin]);
 
   useEffect(() => {
     const catalog = plugin.modelCatalog;
@@ -31,7 +39,7 @@ export function ModelSelector({
       return;
     }
     void catalog.listProviders().then(setProviders).catch(() => setProviders([]));
-  }, [plugin, open]);
+  }, [plugin, open, settingsRev]);
 
   useEffect(() => {
     const catalog = plugin.modelCatalog;
@@ -40,7 +48,7 @@ export function ModelSelector({
       return;
     }
     void catalog.listModels(provider).then(setModels).catch(() => setModels([]));
-  }, [plugin, provider, open]);
+  }, [plugin, provider, open, settingsRev]);
 
   useEffect(() => {
     if (!open) {
@@ -106,6 +114,7 @@ export function ModelSelector({
             <ChoiceDropdown
               items={providers}
               value={provider}
+              placeholder={t("uiNoModel")}
               open={openList === "provider"}
               onToggle={() => setOpenList((current) => (current === "provider" ? null : "provider"))}
               onSelect={changeProvider}
@@ -116,6 +125,7 @@ export function ModelSelector({
             <ChoiceDropdown
               items={models}
               value={model}
+              placeholder={t("uiNoModel")}
               open={openList === "model"}
               onToggle={() => setOpenList((current) => (current === "model" ? null : "model"))}
               onSelect={changeModel}
@@ -130,17 +140,19 @@ export function ModelSelector({
 function ChoiceDropdown({
   items,
   value,
+  placeholder,
   open,
   onToggle,
   onSelect,
 }: {
   items: MenuItem[];
   value: string;
+  placeholder: string;
   open: boolean;
   onToggle: () => void;
   onSelect: (id: string) => void;
 }): JSX.Element {
-  const selected = items.find((item) => item.id === value)?.name ?? value;
+  const selected = items.find((item) => item.id === value)?.name ?? (value || placeholder);
   return (
     <span className={`pidian-select${open ? " is-open" : ""}`}>
       <button

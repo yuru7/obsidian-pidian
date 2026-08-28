@@ -7,10 +7,11 @@ import { PermissionService } from "./application/PermissionService";
 import { ReadRevisionTracker } from "./application/ReadRevisionTracker";
 import { SessionCleanupService } from "./application/SessionCleanupService";
 import { SessionService } from "./application/SessionService";
+import { connectionConfigFingerprint, reconcileModelSelection } from "./application/modelSelection";
 import { bindPluginDirectory } from "./application/notePath";
 import { corsFreeFetch } from "./infrastructure/pi/corsFreeFetch";
 import { PiAgentAdapter } from "./infrastructure/pi/PiAgentAdapter";
-import { createCredentialResolver } from "./infrastructure/pi/PiCredentials";
+import { createCredentialResolver, listKnownCredentialProviders } from "./infrastructure/pi/PiCredentials";
 import { PiModelCatalog } from "./infrastructure/pi/PiModelCatalog";
 import { createSearchService } from "./infrastructure/search/createSearchService";
 import { createFetchService } from "./infrastructure/fetch/createFetchService";
@@ -35,6 +36,8 @@ export default class PidianPlugin extends Plugin {
   modelCatalog?: PiModelCatalog;
   credentials?: CredentialResolver;
   private readonly editorContextListeners = new Set<() => void>();
+  private readonly settingsListeners = new Set<() => void>();
+  private connectionFingerprint = "";
 
   async onload(): Promise<void> {
     await this.loadSettings();
@@ -88,6 +91,7 @@ export default class PidianPlugin extends Plugin {
 
   onunload(): void {
     this.editorContextListeners.clear();
+    this.settingsListeners.clear();
   }
 
   subscribeEditorContext(listener: () => void): () => void {
@@ -97,8 +101,21 @@ export default class PidianPlugin extends Plugin {
     };
   }
 
+  subscribeSettings(listener: () => void): () => void {
+    this.settingsListeners.add(listener);
+    return () => {
+      this.settingsListeners.delete(listener);
+    };
+  }
+
   private notifyEditorContext(): void {
     for (const listener of this.editorContextListeners) {
+      listener();
+    }
+  }
+
+  private notifySettings(): void {
+    for (const listener of this.settingsListeners) {
       listener();
     }
   }
@@ -267,12 +284,46 @@ export default class PidianPlugin extends Plugin {
   async loadSettings(): Promise<void> {
     this.settings = mergeSettings(await this.loadData());
     this.syncCustomProviderKeys();
+    this.connectionFingerprint = connectionConfigFingerprint(this.settings);
     bindPluginDirectory(() => this.settings.pluginDirectory);
   }
 
   async saveSettings(): Promise<void> {
     this.syncCustomProviderKeys();
+    const nextFingerprint = connectionConfigFingerprint(this.settings);
+    const connectionChanged = nextFingerprint !== this.connectionFingerprint;
+    this.connectionFingerprint = nextFingerprint;
+    await this.syncActiveSession(connectionChanged);
     await this.saveData(this.settings);
+    this.notifySettings();
+  }
+
+  private async syncActiveSession(connectionChanged: boolean): Promise<void> {
+    const known = new Set(listKnownCredentialProviders().map((item) => item.id));
+    const nextSettings = reconcileModelSelection(
+      { provider: this.settings.provider, model: this.settings.model },
+      this.settings.customProviders,
+      known,
+    );
+    this.settings.provider = nextSettings.provider;
+    this.settings.model = nextSettings.model;
+
+    const session = this.agentService?.getSession();
+    if (!session) {
+      return;
+    }
+    const nextSession = reconcileModelSelection(
+      { provider: session.provider, model: session.model },
+      this.settings.customProviders,
+      known,
+    );
+    if (nextSession.provider !== session.provider || nextSession.model !== session.model) {
+      await this.agentService?.setModel(nextSession.provider, nextSession.model);
+      return;
+    }
+    if (connectionChanged && nextSession.provider && nextSession.model) {
+      await this.agentService?.reloadModel();
+    }
   }
 
   private syncCustomProviderKeys(): void {

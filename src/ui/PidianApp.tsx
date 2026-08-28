@@ -18,7 +18,12 @@ export function PidianApp({ plugin }: { plugin: PidianPlugin }): JSX.Element {
   const [, rerender] = useReducer((value: number) => value + 1, 0);
 
   useEffect(() => {
-    return plugin.agentService?.subscribe(() => rerender());
+    const unsubAgent = plugin.agentService?.subscribe(() => rerender());
+    const unsubSettings = plugin.subscribeSettings(() => rerender());
+    return () => {
+      unsubAgent?.();
+      unsubSettings();
+    };
   }, [plugin]);
 
   if (!plugin.agentService) {
@@ -79,7 +84,7 @@ export function PidianApp({ plugin }: { plugin: PidianPlugin }): JSX.Element {
           <TokenUsage messages={session?.messages ?? []} />
         </div>
         <Composer
-          disabled={!session}
+          disabled={!session || !session.provider || !session.model}
           streaming={streaming}
           toolbar={<ModelSelector plugin={plugin} onChange={rerender} />}
           onSend={(text) => {

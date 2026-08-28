@@ -31,8 +31,11 @@ export class PiModelCatalog implements ModelCatalog {
         envVarNames: [] as string[],
         isCustom: true,
       }));
-    const seen = new Set(providers.map((provider) => provider.id));
-    return [...providers, ...custom.filter((provider) => !seen.has(provider.id))].filter(
+    const byId = new Map(providers.map((provider) => [provider.id, provider]));
+    for (const provider of custom) {
+      byId.set(provider.id, provider);
+    }
+    return [...byId.values()].filter(
       (provider) => provider.isCustom || this.credentials.hasCredential(provider.id),
     );
   }

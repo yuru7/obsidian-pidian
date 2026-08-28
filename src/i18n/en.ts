@@ -58,6 +58,7 @@ export const en = {
   uiNotInitialized: "Pidian is not fully initialized. Check the developer console.",
   uiNewChat: "New chat",
   uiNoActiveNote: "No active Markdown note",
+  uiNoModel: "No model selected",
   uiPlaceholder: "Ask Pidian...",
   uiStop: "Stop",
   uiSend: "Send",

@@ -59,10 +59,12 @@ export class AgentService {
       unsubscribe: () => undefined,
     };
     this.error = undefined;
-    try {
-      await this.ensureAgent();
-    } catch (error) {
-      this.error = error instanceof Error ? error.message : String(error);
+    if (provider && model) {
+      try {
+        await this.ensureAgent();
+      } catch (error) {
+        this.error = error instanceof Error ? error.message : String(error);
+      }
     }
     this.notify();
     return session;
@@ -79,10 +81,12 @@ export class AgentService {
       unsubscribe: () => undefined,
     };
     this.error = undefined;
-    try {
-      await this.ensureAgent();
-    } catch (error) {
-      this.error = error instanceof Error ? error.message : String(error);
+    if (loaded.provider && loaded.model) {
+      try {
+        await this.ensureAgent();
+      } catch (error) {
+        this.error = error instanceof Error ? error.message : String(error);
+      }
     }
     this.notify();
     return loaded;
@@ -90,13 +94,22 @@ export class AgentService {
 
   async setModel(provider: string, model: string): Promise<void> {
     const session = this.requireSession();
-    if (session.provider === provider && session.model === model && this.current?.agent) {
+    if (session.provider === provider && session.model === model && (this.current?.agent || !provider)) {
       return;
     }
     session.provider = provider;
     session.model = model;
     if (session.messages.length > 0) {
       await this.sessions.save(session);
+    }
+    await this.recreateAgent();
+    this.notify();
+  }
+
+  async reloadModel(): Promise<void> {
+    const session = this.getSession();
+    if (!session?.provider || !session.model) {
+      return;
     }
     await this.recreateAgent();
     this.notify();
@@ -169,6 +182,10 @@ export class AgentService {
     this.current?.unsubscribe();
     await this.current?.agent?.dispose();
     this.current = { session, unsubscribe: () => undefined };
+    if (!session.provider || !session.model) {
+      this.error = undefined;
+      return;
+    }
     try {
       await this.ensureAgent();
       this.error = undefined;
