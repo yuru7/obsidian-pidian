@@ -25,7 +25,8 @@ export const ja: { [K in keyof typeof en]: string } = {
   settingsCustomProviderDefaultName: "カスタム OpenAI Compatible",
   settingsCredentialsHelp:
     "API キーはこのプラグインの Obsidian データに保存されます。空欄なら環境変数、それもなければ Pi の既存 credential を使います。",
-  settingsUsingEnv: '環境変数 "{name}" を使用中',
+  settingsEnvSet: '環境変数 "{name}" が設定済み',
+  settingsEnvAvailable: "環境変数 {names} が使用可能",
   settingsApiKey: "API キー",
   settingsPermissionRead: "読み取り",
   settingsPermissionEdit: "編集",

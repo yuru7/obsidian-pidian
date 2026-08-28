@@ -593,6 +593,18 @@
   border-radius: var(--radius-s);
 }
 
+.pidian-settings-using-env {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25em;
+}
+
+.pidian-settings-env-check {
+  display: inline-flex;
+  flex-shrink: 0;
+  --icon-size: 1em;
+}
+
 .pidian-settings-tablist {
   display: flex;
   flex-wrap: wrap;

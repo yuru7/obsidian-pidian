@@ -1,4 +1,4 @@
-import { Notice, PluginSettingTab, Setting, type App } from "obsidian";
+import { Notice, PluginSettingTab, Setting, setIcon, type App } from "obsidian";
 import { t } from "../i18n";
 import type PidianPlugin from "../main";
 import type { CatalogModel, CatalogProvider } from "../domain/agent/ModelCatalog";
@@ -17,6 +17,20 @@ function permissionOptions(): Array<{ value: Permission; label: string }> {
     { value: "ask", label: t("settingsPermissionAsk") },
     { value: "deny", label: t("settingsPermissionDeny") },
   ];
+}
+
+function quotedEnvVarNames(names: string[]): string {
+  return names.map((name) => `"${name}"`).join(", ");
+}
+
+function usingEnvDescription(name: string): DocumentFragment {
+  return createFragment((root) => {
+    const wrap = root.createSpan({ cls: "pidian-settings-using-env" });
+    const icon = wrap.createSpan({ cls: "pidian-settings-env-check" });
+    icon.setAttr("aria-hidden", "true");
+    setIcon(icon, "check");
+    wrap.createSpan({ text: t("settingsEnvSet", { name }) });
+  });
 }
 
 function sortProviders(providers: CatalogProvider[]): CatalogProvider[] {
@@ -279,8 +293,10 @@ export class PidianSettingTab extends PluginSettingTab {
         .setName(provider.name)
         .setDesc(
           usingEnv && usedEnvName
-            ? t("settingsUsingEnv", { name: usedEnvName })
-            : envNames.join(", ") || t("settingsApiKey"),
+            ? usingEnvDescription(usedEnvName)
+            : envNames.length > 0
+              ? t("settingsEnvAvailable", { names: quotedEnvVarNames(envNames) })
+              : t("settingsApiKey"),
         )
         .addText((text) => {
           text.inputEl.type = "password";

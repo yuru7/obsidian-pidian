@@ -29,11 +29,17 @@ describe("lookup", () => {
   it("interpolates placeholders", () => {
     expect(lookup("en", "noticeError", { error: "timeout" })).toBe("Pidian: timeout");
     expect(lookup("ja", "noticeError", { error: "timeout" })).toBe("Pidian: timeout");
-    expect(lookup("en", "settingsUsingEnv", { name: "OPENAI_API_KEY" })).toBe(
-      'Using environment variable "OPENAI_API_KEY"',
+    expect(lookup("en", "settingsEnvSet", { name: "OPENAI_API_KEY" })).toBe(
+      'Environment variable "OPENAI_API_KEY" is set',
     );
-    expect(lookup("ja", "settingsUsingEnv", { name: "OPENAI_API_KEY" })).toBe(
-      '環境変数 "OPENAI_API_KEY" を使用中',
+    expect(lookup("ja", "settingsEnvSet", { name: "OPENAI_API_KEY" })).toBe(
+      '環境変数 "OPENAI_API_KEY" が設定済み',
+    );
+    expect(lookup("en", "settingsEnvAvailable", { names: '"OPENAI_API_KEY"' })).toBe(
+      'Environment variable "OPENAI_API_KEY" is available',
+    );
+    expect(lookup("ja", "settingsEnvAvailable", { names: '"OPENAI_API_KEY"' })).toBe(
+      '環境変数 "OPENAI_API_KEY" が使用可能',
     );
   });
 

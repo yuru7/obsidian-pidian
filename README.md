@@ -8,14 +8,6 @@ Obsidian Desktop から Pi エージェントをサイドバーで使うプラ�
 
 Pidian は Obsidian の右サイドバーにチャット UI を出し、開いているノートをコンテキストにしながら会話できるプラグインです。初期版は Desktop 専用です。
 
-### インストール
-
-1. リリースの `main.js` / `manifest.json` / `styles.css` を Vault の `.obsidian/plugins/pidian/` に置く
-2. Obsidian のコミュニティプラグイン設定で Pidian を有効化する
-3. 左リボンのチャットアイコン、またはコマンドパレットの `Open Pidian` でサイドバーを開く。有効化直後は右サイドバーが自動で開きます
-
-開発中は [Developer Guide](#developer-guide) の `pnpm dev` を使います。
-
 ### 初期設定
 
 1. Settings → Pidian を開く
@@ -31,7 +23,7 @@ Pidian は Obsidian の右サイドバーにチャット UI を出し、開い�
 
 API キーは **Obsidian Plugin data**（`data.json`）に保存されます。チャットセッションファイルには保存しません。
 
-ローカル保存を避けたい場合は、各 Provider の環境変数を使ってください。設定値が空なら環境変数が使われ、「Using environment variable "OPENAI_API_KEY"」のように変数名付きで表示されます。値そのものは表示しません。
+ローカル保存を避けたい場合は、各 Provider の環境変数を使ってください。設定値が空なら環境変数が使われ、「環境変数 "OPENAI_API_KEY" が設定済み」のように変数名付きでオプション画面に表示されます。値そのものは表示しません。
 
 優先順位:
 
