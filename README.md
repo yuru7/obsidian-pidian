@@ -103,6 +103,7 @@ Create は Undo 対象ではありません。取り消す場合は Obsidian 上
 
 - Pi 標準の `read` / `write` / `edit` / `bash` / `grep` / `find` / `ls` は無効です
 - ノート操作は Pidian の `read_note` / `search_notes` / `list_files` / `create_note` / `edit_note` / `delete_note` だけです
+- エージェントは、ユーザーがノートの作成・編集・削除を明確に依頼したときだけ書き込みツールを使います。試し打ちや提案だけのときはチャットで答えます
 - タブ操作は `open_file` / `workspace_tabs` です。権限は読み取りと同じ設定を使います
 - 編集は exact unique replacement です。曖昧なら実行しません。空ノートは `oldText` を空文字にして初期内容を入れます
 - 編集対象は事前の `read_note` が必須です

@@ -4,6 +4,7 @@ import {
   createCredentialResolver,
   envApiKeyForProvider,
   listKnownCredentialProviders,
+  PIDIAN_SYSTEM_PROMPT,
 } from "./PiCredentials";
 
 const ORIGINAL_OPENCODE_KEY = process.env.OPENCODE_API_KEY;
@@ -53,5 +54,15 @@ describe("OpenCode credentials", () => {
     }));
     expect(resolver.resolve("opencode")).toEqual({ source: "settings", apiKey: "zen-key" });
     expect(resolver.resolve("opencode-go")).toEqual({ source: "env", apiKey: "shared-key" });
+  });
+});
+
+describe("PIDIAN_SYSTEM_PROMPT", () => {
+  it("forbids write tools unless the user clearly asked to change a note", () => {
+    expect(PIDIAN_SYSTEM_PROMPT).toContain(
+      "Do not call create_note, edit_note, or delete_note unless the user clearly asked",
+    );
+    expect(PIDIAN_SYSTEM_PROMPT).toContain("Do not use those tools to try them, experiment");
+    expect(PIDIAN_SYSTEM_PROMPT).toContain("If it is unclear whether the user wants a vault change, ask first");
   });
 });

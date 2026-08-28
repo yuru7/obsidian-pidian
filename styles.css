@@ -325,6 +325,8 @@
   background: var(--background-secondary);
   border-radius: var(--radius-s);
   overflow: auto;
+  font-size: var(--font-ui-smaller);
+  font-family: var(--font-monospace);
 }
 
 .pidian-tool.is-error .pidian-disclosure {
