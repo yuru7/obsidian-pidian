@@ -12,6 +12,7 @@ import type { AgentEventListener } from "../../domain/agent/AgentEvent";
 import type { AgentPrompt, AgentSession } from "../../domain/agent/AgentSession";
 import type { CustomOpenAIProvider } from "../../settings/Settings";
 import { CredentialResolver } from "../../application/CredentialResolver";
+import { injectCorsFreeFetch } from "./corsFreeFetch";
 import { PIDIAN_SYSTEM_PROMPT } from "./PiCredentials";
 import { mapPiEvent } from "./PiEventMapper";
 import { toPiTools } from "./PiToolAdapter";
@@ -40,7 +41,7 @@ export class PiAgentAdapter implements AgentEngine {
       this.runtimePromise = ModelRuntime.create({
         allowModelNetwork: false,
         refreshOnCreate: false,
-      });
+      }).then(injectCorsFreeFetch);
     }
     return this.runtimePromise;
   }
