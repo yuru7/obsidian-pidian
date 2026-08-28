@@ -51,8 +51,8 @@ export class PiAgentAdapter implements AgentEngine {
 
   async createSession(options: AgentSessionOptions): Promise<AgentSession> {
     const runtime = await this.getRuntime();
-    await this.applyCredentials(runtime);
     this.registerCustomProviders(runtime);
+    await this.applyCredentials(runtime);
 
     const model = runtime.getModel(options.provider, options.model);
     if (!model) {
@@ -87,13 +87,15 @@ export class PiAgentAdapter implements AgentEngine {
   }
 
   private async applyCredentials(runtime: ModelRuntime): Promise<void> {
+    const customById = new Map(this.options.getCustomProviders().map((provider) => [provider.id, provider]));
     const providerIds = new Set<string>([
       ...runtime.getProviders().map((provider) => provider.id),
-      ...this.options.getCustomProviders().map((provider) => provider.id),
+      ...customById.keys(),
     ]);
     for (const providerId of providerIds) {
       const resolved = this.options.credentials.resolve(providerId);
-      if (resolved.source === "none") {
+      const custom = customById.get(providerId);
+      if (resolved.source === "none" && !custom) {
         try {
           await runtime.removeRuntimeApiKey(providerId);
         } catch {
@@ -101,25 +103,30 @@ export class PiAgentAdapter implements AgentEngine {
         }
         continue;
       }
-      await runtime.setRuntimeApiKey(providerId, resolved.apiKey);
+      const apiKey = resolved.source === "none" ? customApiKey(custom) : resolved.apiKey;
+      await runtime.setRuntimeApiKey(providerId, apiKey);
     }
   }
 
   private registerCustomProviders(runtime: ModelRuntime): void {
     for (const provider of this.options.getCustomProviders()) {
+      if (!provider.baseUrl.trim() || !provider.modelId.trim()) {
+        continue;
+      }
       try {
         runtime.unregisterProvider(provider.id);
       } catch {
         // Not registered yet.
       }
       runtime.registerProvider(provider.id, {
-        name: provider.name,
-        baseUrl: provider.baseUrl,
+        name: provider.name.trim() || provider.id,
+        baseUrl: provider.baseUrl.trim(),
+        apiKey: customApiKey(provider),
         api: "openai-completions",
         models: [
           {
-            id: provider.modelId,
-            name: provider.modelId,
+            id: provider.modelId.trim(),
+            name: provider.modelId.trim(),
             reasoning: false,
             input: ["text"],
             contextWindow: 128000,
@@ -161,6 +168,11 @@ class PiWrappedSession implements AgentSession {
   async dispose(): Promise<void> {
     this.session.dispose();
   }
+}
+
+function customApiKey(provider: CustomOpenAIProvider | undefined): string {
+  const key = provider?.apiKey.trim();
+  return key || "local";
 }
 
 function toPiMessages(conversation: AgentConversation, model: Model<Api>): Array<Record<string, unknown>> {

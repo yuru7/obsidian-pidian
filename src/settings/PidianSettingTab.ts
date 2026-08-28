@@ -179,7 +179,7 @@ export class PidianSettingTab extends PluginSettingTab {
     if (!credentials) {
       return providers;
     }
-    return providers.filter((provider) => credentials.hasCredential(provider.id));
+    return providers.filter((provider) => provider.isCustom || credentials.hasCredential(provider.id));
   }
 
   private fallbackModels(modelId: string): CatalogModel[] {

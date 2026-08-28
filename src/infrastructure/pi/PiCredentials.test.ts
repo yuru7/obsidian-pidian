@@ -55,6 +55,22 @@ describe("OpenCode credentials", () => {
     expect(resolver.resolve("opencode")).toEqual({ source: "settings", apiKey: "zen-key" });
     expect(resolver.resolve("opencode-go")).toEqual({ source: "env", apiKey: "shared-key" });
   });
+
+  it("reads a custom provider API key from the provider entry", () => {
+    const resolver = createCredentialResolver(() => ({
+      ...DEFAULT_SETTINGS,
+      customProviders: [
+        {
+          id: "custom-1",
+          name: "Local",
+          baseUrl: "http://localhost:11434/v1",
+          modelId: "llama",
+          apiKey: "local-key",
+        },
+      ],
+    }));
+    expect(resolver.resolve("custom-1")).toEqual({ source: "settings", apiKey: "local-key" });
+  });
 });
 
 describe("PIDIAN_SYSTEM_PROMPT", () => {

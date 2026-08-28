@@ -73,10 +73,16 @@ export function envApiKeyForProvider(providerId: string): string | undefined {
 
 export function createCredentialResolver(getSettings: () => PidianSettings): CredentialResolver {
   return new CredentialResolver({
-    getSetting: (providerId) => getSettings().apiKeys[providerId],
+    getSetting: (providerId) => {
+      const settings = getSettings();
+      const fromKeys = settings.apiKeys[providerId];
+      if (fromKeys?.trim()) {
+        return fromKeys;
+      }
+      return settings.customProviders.find((item) => item.id === providerId)?.apiKey;
+    },
     getEnv: (providerId) => {
-      const custom = getSettings().customProviders.find((item) => item.id === providerId);
-      if (custom?.apiKey.trim()) {
+      if (getSettings().customProviders.some((item) => item.id === providerId)) {
         return undefined;
       }
       return envApiKeyForProvider(providerId);

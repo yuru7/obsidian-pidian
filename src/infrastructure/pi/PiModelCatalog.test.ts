@@ -56,21 +56,21 @@ describe("PiModelCatalog.listProviders", () => {
     expect(listed).toEqual([]);
   });
 
-  it("includes a custom provider only when it has an API key", async () => {
+  it("includes a configured custom provider even without an API key", async () => {
     const custom: CustomOpenAIProvider[] = [
       {
         id: "ollama",
         name: "Ollama",
         baseUrl: "http://localhost:11434/v1",
         modelId: "llama",
-        apiKey: "local",
+        apiKey: "",
       },
       {
-        id: "empty",
-        name: "Empty",
+        id: "incomplete",
+        name: "Incomplete",
         baseUrl: "http://localhost:1234/v1",
-        modelId: "x",
-        apiKey: "",
+        modelId: "",
+        apiKey: "x",
       },
     ];
     const listed = await catalog({
@@ -78,10 +78,53 @@ describe("PiModelCatalog.listProviders", () => {
       custom,
       credentials: createCredentialResolver(() => ({
         ...DEFAULT_SETTINGS,
-        apiKeys: { ollama: "local" },
         customProviders: custom,
       })),
     }).listProviders();
     expect(listed.map((provider) => provider.id)).toEqual(["ollama"]);
+  });
+
+  it("includes a custom provider whose key is stored only on the provider entry", async () => {
+    const custom: CustomOpenAIProvider[] = [
+      {
+        id: "custom-1",
+        name: "Local",
+        baseUrl: "http://localhost:11434/v1",
+        modelId: "llama",
+        apiKey: "local-key",
+      },
+    ];
+    const listed = await catalog({
+      providerIds: [],
+      custom,
+      credentials: createCredentialResolver(() => ({
+        ...DEFAULT_SETTINGS,
+        customProviders: custom,
+      })),
+    }).listProviders();
+    expect(listed.map((provider) => provider.id)).toEqual(["custom-1"]);
+  });
+});
+
+describe("PiModelCatalog.listModels", () => {
+  it("returns the configured custom model id", async () => {
+    const custom: CustomOpenAIProvider[] = [
+      {
+        id: "ollama",
+        name: "Ollama",
+        baseUrl: "http://localhost:11434/v1",
+        modelId: "llama",
+        apiKey: "",
+      },
+    ];
+    const models = await catalog({
+      providerIds: [],
+      custom,
+      credentials: createCredentialResolver(() => ({
+        ...DEFAULT_SETTINGS,
+        customProviders: custom,
+      })),
+    }).listModels("ollama");
+    expect(models).toEqual([{ id: "llama", name: "llama", providerId: "ollama" }]);
   });
 });

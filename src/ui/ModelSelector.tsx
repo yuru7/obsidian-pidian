@@ -31,7 +31,7 @@ export function ModelSelector({
       return;
     }
     void catalog.listProviders().then(setProviders).catch(() => setProviders([]));
-  }, [plugin]);
+  }, [plugin, open]);
 
   useEffect(() => {
     const catalog = plugin.modelCatalog;
@@ -40,7 +40,7 @@ export function ModelSelector({
       return;
     }
     void catalog.listModels(provider).then(setModels).catch(() => setModels([]));
-  }, [plugin, provider]);
+  }, [plugin, provider, open]);
 
   useEffect(() => {
     if (!open) {
