@@ -24,7 +24,11 @@ export function truncateToUtf8Bytes(text: string, maxBytes: number): string {
   }
   let end = Math.max(0, maxBytes);
   if (end < bytes.length) {
-    while (end > 0 && (bytes[end] & 0xc0) === 0x80) {
+    while (end > 0) {
+      const byte = bytes[end];
+      if (byte === undefined || (byte & 0xc0) !== 0x80) {
+        break;
+      }
       end -= 1;
     }
   }
@@ -46,6 +50,9 @@ export function sliceNoteContent(content: string, offset: number, limit: number)
 
   for (let index = startIndex; index < totalLines && collected.length < maxLines; index += 1) {
     const line = lines[index];
+    if (line === undefined) {
+      throw new Error(`missing line at index ${index}`);
+    }
     const separatorBytes = collected.length === 0 ? 0 : 1;
     const lineBytes = utf8ByteLength(line);
     if (byteCount + separatorBytes + lineBytes > READ_NOTE_MAX_BYTES) {

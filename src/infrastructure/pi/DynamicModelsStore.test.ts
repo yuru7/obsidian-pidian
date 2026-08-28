@@ -34,6 +34,7 @@ function memoryFile(initial?: string) {
     writeText: async (next: string) => {
       text = next;
     },
+    mtimeMs: async () => (text === undefined ? undefined : 0),
     contents: () => text,
   };
 }

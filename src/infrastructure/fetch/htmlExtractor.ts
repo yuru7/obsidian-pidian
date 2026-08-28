@@ -60,7 +60,7 @@ export function extractReadability(html: string): ExtractedHtml | undefined {
     if (!content) {
       return undefined;
     }
-    const title = article.title?.trim();
+    const title = article?.title?.trim();
     return title ? { title, content, extractor: "readability" } : { content, extractor: "readability" };
   } catch {
     return undefined;
