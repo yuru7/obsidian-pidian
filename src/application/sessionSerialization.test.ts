@@ -94,6 +94,16 @@ describe("session serialization", () => {
     });
   });
 
+  it("round-trips thinkingLevel", () => {
+    const withThinking: PidianSession = { ...sample, thinkingLevel: "high" };
+    const json = serializePidianSession(withThinking);
+    expect(parsePidianSession(JSON.parse(json))).toEqual(withThinking);
+  });
+
+  it("ignores unknown thinkingLevel values", () => {
+    expect(parsePidianSession({ ...sample, thinkingLevel: "nope" }).thinkingLevel).toBeUndefined();
+  });
+
   it("rejects unknown versions", () => {
     expect(() => migratePidianSession({ ...sample, version: 99 })).toThrow(/Unsupported session version/);
   });

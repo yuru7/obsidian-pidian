@@ -9,6 +9,7 @@ import { SessionCleanupService } from "./application/SessionCleanupService";
 import { SessionService } from "./application/SessionService";
 import { connectionConfigFingerprint, reconcileModelSelection } from "./application/modelSelection";
 import { bindPluginDirectory } from "./application/notePath";
+import { isThinkingLevel } from "./domain/agent/thinkingLevel";
 import { corsFreeFetch } from "./infrastructure/pi/corsFreeFetch";
 import {
   createDynamicModelsFile,
@@ -245,7 +246,7 @@ export default class PidianPlugin extends Plugin {
       new Notice(t("noticeNotInitialized"));
       return;
     }
-    await this.agentService.newChat(this.settings.provider, this.settings.model);
+    await this.agentService.newChat(this.settings.provider, this.settings.model, this.settings.thinkingLevel);
     const error = this.agentService.getError();
     if (error) {
       new Notice(t("noticeError", { error }));
@@ -265,12 +266,15 @@ export default class PidianPlugin extends Plugin {
     }
   }
 
-  async changeModel(provider: string, model: string): Promise<void> {
+  async changeModel(provider: string, model: string, thinkingLevel?: string): Promise<void> {
     this.settings.provider = provider;
     this.settings.model = model;
+    if (isThinkingLevel(thinkingLevel)) {
+      this.settings.thinkingLevel = thinkingLevel;
+    }
     await this.saveSettings();
     if (this.agentService?.getSession()) {
-      await this.agentService.setModel(provider, model);
+      await this.agentService.setModel(provider, model, this.settings.thinkingLevel);
     }
   }
 

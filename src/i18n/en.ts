@@ -61,6 +61,7 @@ export const en = {
   uiNewChat: "New chat",
   uiNoActiveNote: "No active Markdown note",
   uiNoModel: "No model selected",
+  uiThinkingLevel: "Thinking",
   uiPlaceholder: "Ask Pidian...",
   uiStop: "Stop",
   uiSend: "Send",

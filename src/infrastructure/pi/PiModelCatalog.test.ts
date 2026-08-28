@@ -7,7 +7,13 @@ import { PiModelCatalog } from "./PiModelCatalog";
 
 function catalog(options: {
   providerIds?: string[];
-  models?: Array<{ id: string; name?: string; provider: string }>;
+  models?: Array<{
+    id: string;
+    name?: string;
+    provider: string;
+    reasoning?: boolean;
+    thinkingLevelMap?: Record<string, string | null>;
+  }>;
   custom?: CustomOpenAIProvider[];
   credentials: CredentialResolver;
 }): PiModelCatalog {
@@ -154,7 +160,7 @@ describe("PiModelCatalog.listModels", () => {
         customProviders: custom,
       })),
     }).listModels("ollama");
-    expect(models).toEqual([{ id: "llama", name: "llama", providerId: "ollama" }]);
+    expect(models).toEqual([{ id: "llama", name: "llama", providerId: "ollama", thinkingLevels: [] }]);
   });
 
   it("returns every configured custom model id", async () => {
@@ -176,8 +182,8 @@ describe("PiModelCatalog.listModels", () => {
       })),
     }).listModels("ollama");
     expect(models).toEqual([
-      { id: "llama", name: "llama", providerId: "ollama" },
-      { id: "mistral", name: "mistral", providerId: "ollama" },
+      { id: "llama", name: "llama", providerId: "ollama", thinkingLevels: [] },
+      { id: "mistral", name: "mistral", providerId: "ollama", thinkingLevels: [] },
     ]);
   });
 
@@ -215,5 +221,25 @@ describe("PiModelCatalog.listModels", () => {
       })),
     }).listModels("openai");
     expect(models.map((model) => model.name)).toEqual(["Alpha", "Mu", "Zeta"]);
+    expect(models.map((model) => model.thinkingLevels)).toEqual([["off"], ["off"], ["off"]]);
+  });
+
+  it("exposes catalog thinking levels for reasoning models", async () => {
+    const models = await catalog({
+      models: [
+        {
+          id: "gpt-5",
+          name: "GPT-5",
+          provider: "openai",
+          reasoning: true,
+          thinkingLevelMap: { off: null, xhigh: "xhigh" },
+        },
+      ],
+      credentials: createCredentialResolver(() => ({
+        ...DEFAULT_SETTINGS,
+        apiKeys: { openai: "sk-test" },
+      })),
+    }).listModels("openai");
+    expect(models[0]?.thinkingLevels).toEqual(["minimal", "low", "medium", "high", "xhigh"]);
   });
 });

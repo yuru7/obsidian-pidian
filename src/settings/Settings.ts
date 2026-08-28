@@ -1,5 +1,6 @@
-import { DEFAULT_PLUGIN_DIRECTORY, parsePluginDirectory } from "../application/notePath";
+import { DEFAULT_THINKING_LEVEL, parseThinkingLevel, type ThinkingLevel } from "../domain/agent/thinkingLevel";
 import type { PermissionSettings } from "../domain/permissions/Permission";
+import { DEFAULT_PLUGIN_DIRECTORY, parsePluginDirectory } from "../application/notePath";
 
 export interface CustomOpenAIProvider {
   id: string;
@@ -32,6 +33,7 @@ export type SessionFileFormat = "json.md" | "json";
 export interface PidianSettings {
   provider: string;
   model: string;
+  thinkingLevel: ThinkingLevel;
   apiKeys: Record<string, string>;
   customProviders: CustomOpenAIProvider[];
   permissions: PermissionSettings;
@@ -44,6 +46,7 @@ export interface PidianSettings {
 export const DEFAULT_SETTINGS: PidianSettings = {
   provider: "openai",
   model: "gpt-5",
+  thinkingLevel: DEFAULT_THINKING_LEVEL,
   apiKeys: {},
   customProviders: [],
   permissions: {
@@ -114,6 +117,7 @@ export function mergeSettings(raw: unknown): PidianSettings {
     customProviders: parseCustomProviders(input.customProviders),
     sessionFileFormat: parseSessionFileFormat(input.sessionFileFormat),
     pluginDirectory: parsePluginDirectory(input.pluginDirectory),
+    thinkingLevel: parseThinkingLevel(input.thinkingLevel),
     permissions: {
       read: input.permissions?.read ?? DEFAULT_SETTINGS.permissions.read,
       edit: input.permissions?.edit ?? DEFAULT_SETTINGS.permissions.edit,

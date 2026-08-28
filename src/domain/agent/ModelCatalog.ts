@@ -9,6 +9,7 @@ export interface CatalogModel {
   id: string;
   name: string;
   providerId: string;
+  thinkingLevels: string[];
 }
 
 export interface ModelCatalog {

@@ -5,11 +5,13 @@ import {
   SettingsManager,
   type ResourceLoader,
 } from "@earendil-works/pi-coding-agent";
+import { clampThinkingLevel } from "@earendil-works/pi-ai";
 import type { Api, Model, ModelsStore } from "@earendil-works/pi-ai";
 import type { AgentConversation } from "../../domain/agent/AgentConversation";
 import type { AgentEngine, AgentSessionOptions } from "../../domain/agent/AgentEngine";
 import type { AgentEventListener } from "../../domain/agent/AgentEvent";
 import type { AgentPrompt, AgentSession } from "../../domain/agent/AgentSession";
+import { isThinkingLevel } from "../../domain/agent/thinkingLevel";
 import {
   customProviderModelIds,
   isConfiguredCustomProvider,
@@ -102,6 +104,9 @@ export class PiAgentAdapter implements AgentEngine {
       throw new Error(`Unknown model ${options.provider}/${options.model}. Check Settings.`);
     }
 
+    const thinkingLevel = isThinkingLevel(options.thinkingLevel)
+      ? clampThinkingLevel(model, options.thinkingLevel)
+      : undefined;
     const agentsContent = normalizeAgentsContent(await this.options.readAgentsFile());
     const settingsManager = SettingsManager.inMemory();
     const loader = new PidianResourceLoader({
@@ -111,6 +116,7 @@ export class PiAgentAdapter implements AgentEngine {
 
     const { session } = await createAgentSession({
       model,
+      thinkingLevel,
       modelRuntime: runtime,
       sessionManager: SessionManager.inMemory(),
       settingsManager,

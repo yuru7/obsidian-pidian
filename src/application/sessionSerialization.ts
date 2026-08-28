@@ -1,4 +1,5 @@
 import type { TokenUsage } from "../domain/agent/AgentEvent";
+import { parseOptionalThinkingLevel } from "../domain/agent/thinkingLevel";
 import type { PidianMessage, PidianSession } from "../domain/sessions/PidianSession";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -86,6 +87,7 @@ function parseV1(raw: Record<string, unknown>): PidianSession {
   if (!Array.isArray(raw.messages)) {
     throw new Error("Invalid session field: messages");
   }
+  const thinkingLevel = parseOptionalThinkingLevel(raw.thinkingLevel);
   return {
     version: 1,
     id: expectString(raw.id, "id"),
@@ -94,6 +96,7 @@ function parseV1(raw: Record<string, unknown>): PidianSession {
     updatedAt: expectString(raw.updatedAt, "updatedAt"),
     provider: expectString(raw.provider, "provider"),
     model: expectString(raw.model, "model"),
+    ...(thinkingLevel ? { thinkingLevel } : {}),
     messages: raw.messages.map(parseMessage),
   };
 }

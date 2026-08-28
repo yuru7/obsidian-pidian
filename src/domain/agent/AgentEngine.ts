@@ -6,6 +6,7 @@ export interface AgentSessionOptions {
   sessionId: string;
   provider: string;
   model: string;
+  thinkingLevel?: string;
   conversation?: AgentConversation;
   tools: PidianTool[];
 }

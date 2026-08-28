@@ -2,6 +2,12 @@ import { useEffect, useReducer, useRef, useState } from "react";
 import { t } from "../i18n";
 import type PidianPlugin from "../main";
 import { sortCatalogModels, type CatalogModel, type CatalogProvider } from "../domain/agent/ModelCatalog";
+import {
+  clampThinkingLevel,
+  DEFAULT_THINKING_LEVEL,
+  formatModelSelectionLabel,
+  hasSelectableThinkingLevels,
+} from "../domain/agent/thinkingLevel";
 
 type MenuItem = { id: string; name: string };
 
@@ -14,7 +20,7 @@ export function ModelSelector({
 }): JSX.Element {
   const rootRef = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(false);
-  const [openList, setOpenList] = useState<"provider" | "model" | null>(null);
+  const [openList, setOpenList] = useState<"provider" | "model" | "thinking" | null>(null);
   const [providers, setProviders] = useState<CatalogProvider[]>([]);
   const [models, setModels] = useState<CatalogModel[]>([]);
   const [settingsRev, bumpSettings] = useReducer((value: number) => value + 1, 0);
@@ -22,10 +28,19 @@ export function ModelSelector({
   const provider = session?.provider ?? plugin.settings.provider;
   const model = session?.model ?? plugin.settings.model;
   const providerName = providers.find((item) => item.id === provider)?.name ?? "";
-  const modelName = models.find((item) => item.id === model)?.name ?? "";
+  const catalogModel = models.find((item) => item.id === model);
+  const modelName = catalogModel?.name ?? "";
+  const thinkingLevels = catalogModel?.thinkingLevels ?? [];
+  const showThinking = hasSelectableThinkingLevels(thinkingLevels);
+  const requestedThinking = session
+    ? (session.thinkingLevel ?? DEFAULT_THINKING_LEVEL)
+    : plugin.settings.thinkingLevel;
+  const thinkingLevel = showThinking
+    ? clampThinkingLevel(requestedThinking, thinkingLevels)
+    : undefined;
   const selected = Boolean(provider && model);
   const label = selected
-    ? [providerName || provider, modelName || model].filter(Boolean).join(" ")
+    ? formatModelSelectionLabel(providerName || provider, modelName || model, thinkingLevel)
     : t("uiNoModel");
 
   useEffect(() => {
@@ -69,6 +84,10 @@ export function ModelSelector({
     return () => document.removeEventListener("pointerdown", onPointerDown);
   }, [open]);
 
+  const applySelection = (nextProvider: string, nextModel: string, nextThinking?: string) => {
+    void plugin.changeModel(nextProvider, nextModel, nextThinking).then(onChange);
+  };
+
   const changeProvider = (nextProvider: string) => {
     setOpenList(null);
     if (nextProvider === provider) {
@@ -80,9 +99,10 @@ export function ModelSelector({
     }
     void catalog.listModels(nextProvider).then((nextModels) => {
       const sorted = sortCatalogModels(nextModels);
-      const first = sorted[0]?.id ?? "";
-      return plugin.changeModel(nextProvider, first);
-    }).then(onChange);
+      const first = sorted[0];
+      const nextThinking = clampThinkingLevel(thinkingLevel ?? plugin.settings.thinkingLevel, first?.thinkingLevels ?? []);
+      applySelection(nextProvider, first?.id ?? "", nextThinking);
+    });
   };
 
   const changeModel = (nextModel: string) => {
@@ -90,7 +110,19 @@ export function ModelSelector({
     if (nextModel === model) {
       return;
     }
-    void plugin.changeModel(provider, nextModel).then(onChange);
+    const nextThinking = clampThinkingLevel(
+      thinkingLevel ?? plugin.settings.thinkingLevel,
+      models.find((item) => item.id === nextModel)?.thinkingLevels ?? [],
+    );
+    applySelection(provider, nextModel, nextThinking);
+  };
+
+  const changeThinking = (nextThinking: string) => {
+    setOpenList(null);
+    if (nextThinking === thinkingLevel) {
+      return;
+    }
+    applySelection(provider, model, nextThinking);
   };
 
   return (
@@ -132,6 +164,19 @@ export function ModelSelector({
               onSelect={changeModel}
             />
           </div>
+          {showThinking ? (
+            <div className="pidian-model-row">
+              <span>{t("uiThinkingLevel")}</span>
+              <ChoiceDropdown
+                items={thinkingLevels.map((level) => ({ id: level, name: level }))}
+                value={thinkingLevel ?? ""}
+                placeholder={t("uiNoModel")}
+                open={openList === "thinking"}
+                onToggle={() => setOpenList((current) => (current === "thinking" ? null : "thinking"))}
+                onSelect={changeThinking}
+              />
+            </div>
+          ) : null}
         </div>
       ) : null}
     </div>

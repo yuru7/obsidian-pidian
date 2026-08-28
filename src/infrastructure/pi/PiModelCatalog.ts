@@ -1,7 +1,8 @@
-import { envVarNamesForProvider } from "./PiCredentials";
+import { getSupportedThinkingLevels } from "@earendil-works/pi-ai";
 import { ModelRuntime } from "@earendil-works/pi-coding-agent";
 import type { CredentialResolver } from "../../application/CredentialResolver";
 import { sortCatalogModels, type CatalogModel, type CatalogProvider, type ModelCatalog } from "../../domain/agent/ModelCatalog";
+import { envVarNamesForProvider } from "./PiCredentials";
 import {
   customProviderModelIds,
   isConfiguredCustomProvider,
@@ -52,6 +53,7 @@ export class PiModelCatalog implements ModelCatalog {
           id: modelId,
           name: modelId,
           providerId: custom.id,
+          thinkingLevels: [],
         })),
       );
     }
@@ -61,6 +63,7 @@ export class PiModelCatalog implements ModelCatalog {
         id: model.id,
         name: model.name ?? model.id,
         providerId: model.provider,
+        thinkingLevels: [...getSupportedThinkingLevels(model)],
       })),
     );
   }

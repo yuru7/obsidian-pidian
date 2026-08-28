@@ -186,7 +186,7 @@ export class PidianSettingTab extends PluginSettingTab {
     if (!modelId) {
       return [];
     }
-    return [{ id: modelId, name: modelId, providerId: this.plugin.settings.provider }];
+    return [{ id: modelId, name: modelId, providerId: this.plugin.settings.provider, thinkingLevels: [] }];
   }
 
   private async enrichAgentFromCatalog(agentEl: HTMLElement): Promise<void> {

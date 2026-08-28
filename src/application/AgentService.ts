@@ -3,6 +3,7 @@ import type { AgentEvent } from "../domain/agent/AgentEvent";
 import type { AgentSession } from "../domain/agent/AgentSession";
 import type { PidianTool } from "../domain/tools/PidianTool";
 import type { PidianMessage, PidianSession } from "../domain/sessions/PidianSession";
+import { DEFAULT_THINKING_LEVEL } from "../domain/agent/thinkingLevel";
 import { ContextService, formatAgentPrompt } from "./ContextService";
 import { SessionService } from "./SessionService";
 
@@ -51,9 +52,9 @@ export class AgentService {
     return () => this.listeners.delete(listener);
   }
 
-  async newChat(provider: string, model: string): Promise<PidianSession> {
+  async newChat(provider: string, model: string, thinkingLevel?: string): Promise<PidianSession> {
     await this.disposeCurrent();
-    const session = this.sessions.create(provider, model);
+    const session = this.sessions.create(provider, model, thinkingLevel);
     this.current = {
       session,
       unsubscribe: () => undefined,
@@ -92,13 +93,20 @@ export class AgentService {
     return loaded;
   }
 
-  async setModel(provider: string, model: string): Promise<void> {
+  async setModel(provider: string, model: string, thinkingLevel?: string): Promise<void> {
     const session = this.requireSession();
-    if (session.provider === provider && session.model === model && (this.current?.agent || !provider)) {
+    const nextThinking = thinkingLevel ?? session.thinkingLevel;
+    if (
+      session.provider === provider &&
+      session.model === model &&
+      session.thinkingLevel === nextThinking &&
+      (this.current?.agent || !provider)
+    ) {
       return;
     }
     session.provider = provider;
     session.model = model;
+    session.thinkingLevel = nextThinking;
     if (session.messages.length > 0) {
       await this.sessions.save(session);
     }
@@ -213,6 +221,7 @@ export class AgentService {
       sessionId: session.id,
       provider: session.provider,
       model: session.model,
+      thinkingLevel: session.thinkingLevel ?? DEFAULT_THINKING_LEVEL,
       conversation: this.sessions.toConversation(session),
       tools: this.createTools(session.id),
     });

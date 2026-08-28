@@ -11,7 +11,7 @@ import { NEW_CHAT_TITLE, titleFromUserMessage } from "./sessionTitle";
 export class SessionService {
   constructor(private readonly repository: SessionRepository) {}
 
-  create(provider: string, model: string): PidianSession {
+  create(provider: string, model: string, thinkingLevel?: string): PidianSession {
     const now = new Date().toISOString();
     return {
       version: 1,
@@ -21,6 +21,7 @@ export class SessionService {
       updatedAt: now,
       provider,
       model,
+      ...(thinkingLevel ? { thinkingLevel } : {}),
       messages: [],
     };
   }

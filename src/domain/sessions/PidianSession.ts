@@ -39,6 +39,7 @@ export interface PidianSession {
   updatedAt: string;
   provider: string;
   model: string;
+  thinkingLevel?: string;
   messages: PidianMessage[];
 }
 

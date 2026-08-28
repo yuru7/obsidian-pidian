@@ -62,6 +62,7 @@ export const ja: { [K in keyof typeof en]: string } = {
   uiNewChat: "新しいチャット",
   uiNoActiveNote: "アクティブな Markdown ノートがありません",
   uiNoModel: "モデル未選択",
+  uiThinkingLevel: "思考量",
   uiPlaceholder: "Pidian に聞く...",
   uiStop: "停止",
   uiSend: "送信",

@@ -40,6 +40,12 @@ describe("mergeSettings", () => {
     expect("includeSelectionContext" in merged).toBe(false);
   });
 
+  it("defaults thinking level to medium and keeps a known value", () => {
+    expect(mergeSettings({}).thinkingLevel).toBe("medium");
+    expect(mergeSettings({ thinkingLevel: "high" }).thinkingLevel).toBe("high");
+    expect(mergeSettings({ thinkingLevel: "nope" } as Record<string, unknown>).thinkingLevel).toBe("medium");
+  });
+
   it("defaults session files to json.md and keeps json when set", () => {
     expect(mergeSettings({}).sessionFileFormat).toBe("json.md");
     expect(mergeSettings({ sessionFileFormat: "json" }).sessionFileFormat).toBe("json");
