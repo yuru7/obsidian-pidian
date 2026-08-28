@@ -286,9 +286,14 @@
 }
 
 .pidian-view .pidian-copy-button {
-  width: 24px;
-  height: 24px;
+  width: 20px;
+  height: 20px;
   color: var(--text-muted);
+}
+
+.pidian-view .pidian-copy-button .pidian-icon {
+  width: 14px;
+  height: 14px;
 }
 
 .pidian-view .pidian-copy-button:hover {
