@@ -1,7 +1,7 @@
 import { EditorView } from "@codemirror/view";
 
 /**
- * Workspace events do not fire on selection-only changes.
+ * Workspace events do not fire on cursor-only or selection-only changes.
  * Obsidian documents CodeMirror view plugins / update listeners for
  * "when the user entered or selected some text".
  */

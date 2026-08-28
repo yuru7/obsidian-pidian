@@ -13,7 +13,6 @@ export interface PidianSettings {
   model: string;
   apiKeys: Record<string, string>;
   customProviders: CustomOpenAIProvider[];
-  includeSelectionContext: boolean;
   permissions: PermissionSettings;
   autoDeleteSessions: boolean;
   retentionDays: number;
@@ -24,7 +23,6 @@ export const DEFAULT_SETTINGS: PidianSettings = {
   model: "gpt-5",
   apiKeys: {},
   customProviders: [],
-  includeSelectionContext: true,
   permissions: {
     read: "allow",
     edit: "deny",
@@ -38,6 +36,7 @@ export const DEFAULT_SETTINGS: PidianSettings = {
 export function mergeSettings(raw: unknown): PidianSettings {
   const rawObject = raw && typeof raw === "object" ? { ...(raw as Record<string, unknown>) } : {};
   delete rawObject.maxEditableNotes;
+  delete rawObject.includeSelectionContext;
   const input = rawObject as Partial<PidianSettings>;
   return {
     ...DEFAULT_SETTINGS,

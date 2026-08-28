@@ -144,7 +144,7 @@ export default class PidianPlugin extends Plugin {
     this.agentService = new AgentService(
       adapter,
       sessions,
-      new ContextService(contextProvider, () => this.settings.includeSelectionContext),
+      new ContextService(contextProvider),
       new InstructionProvider(() => new ObsidianInstructionReader(this.app).read()),
       (sessionId) =>
         createPidianTools({

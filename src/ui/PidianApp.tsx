@@ -1,4 +1,5 @@
 import { useEffect, useReducer, useRef, useState } from "react";
+import { formatLineRange } from "../application/activeMarkdown";
 import { t } from "../i18n";
 import type PidianPlugin from "../main";
 import { sumTokenUsage, type PidianMessage } from "../domain/sessions/PidianSession";
@@ -7,19 +8,9 @@ import { Composer } from "./Composer";
 import { ModelSelector } from "./ModelSelector";
 import { SessionSelector } from "./SessionSelector";
 
-function formatContextLabel(
-  notePath: string,
-  selection?: { startLine: number; endLine: number },
-): string {
+function formatContextLabel(notePath: string, startLine: number, endLine: number): string {
   const fileName = notePath.split("/").pop() || notePath;
-  if (!selection) {
-    return fileName;
-  }
-  const range =
-    selection.startLine === selection.endLine
-      ? `L${selection.startLine}`
-      : `L${selection.startLine}-L${selection.endLine}`;
-  return `${fileName} [${range}]`;
+  return `${fileName} [${formatLineRange(startLine, endLine)}]`;
 }
 
 export function PidianApp({ plugin }: { plugin: PidianPlugin }): JSX.Element {
@@ -179,6 +170,8 @@ function ContextPreview({ plugin }: { plugin: PidianPlugin }): JSX.Element {
     return <div className="pidian-context pidian-context-empty">{t("uiNoActiveNote")}</div>;
   }
   return (
-    <div className="pidian-context">{formatContextLabel(context.notePath, context.selection)}</div>
+    <div className="pidian-context">
+      {formatContextLabel(context.notePath, context.startLine, context.endLine)}
+    </div>
   );
 }

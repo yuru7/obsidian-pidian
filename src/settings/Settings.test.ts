@@ -20,4 +20,11 @@ describe("mergeSettings", () => {
     });
     expect("maxEditableNotes" in merged).toBe(false);
   });
+
+  it("drops the former selection context setting", () => {
+    const merged = mergeSettings({
+      includeSelectionContext: true,
+    });
+    expect("includeSelectionContext" in merged).toBe(false);
+  });
 });

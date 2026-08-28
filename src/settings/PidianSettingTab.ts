@@ -35,7 +35,6 @@ export class PidianSettingTab extends PluginSettingTab {
     this.renderPermissions(containerEl);
     this.renderCustomProviders(containerEl);
     this.renderCredentials(containerEl, fallbackProviders);
-    this.renderContext(containerEl);
     this.renderSession(containerEl);
 
     void this.enrichAgentFromCatalog(agentEl);
@@ -188,20 +187,6 @@ export class PidianSettingTab extends PluginSettingTab {
           });
         });
     }
-  }
-
-  private renderContext(containerEl: HTMLElement): void {
-    containerEl.createEl("h3", { text: t("settingsContext") });
-    new Setting(containerEl)
-      .setName(t("settingsIncludeSelection"))
-      .setDesc(t("settingsIncludeSelectionDesc"))
-      .addToggle((toggle) => {
-        toggle.setValue(this.plugin.settings.includeSelectionContext);
-        toggle.onChange(async (value) => {
-          this.plugin.settings.includeSelectionContext = value;
-          await this.plugin.saveSettings();
-        });
-      });
   }
 
   private renderPermissions(containerEl: HTMLElement): void {

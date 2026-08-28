@@ -24,10 +24,6 @@ export const ja: { [K in keyof typeof en]: string } = {
     "API キーはこのプラグインの Obsidian データに保存されます。空欄なら環境変数、それもなければ Pi の既存 credential を使います。",
   settingsUsingEnv: "環境変数を使用中",
   settingsApiKey: "API キー",
-  settingsContext: "コンテキスト",
-  settingsIncludeSelection: "選択テキストをコンテキストに含める",
-  settingsIncludeSelectionDesc:
-    "アクティブなノートでテキストを選択しているとき、ノート全文に加えてフォーカスコンテキストとして送信します。",
   settingsPermissions: "権限",
   settingsPermissionRead: "読み取り",
   settingsPermissionEdit: "編集",

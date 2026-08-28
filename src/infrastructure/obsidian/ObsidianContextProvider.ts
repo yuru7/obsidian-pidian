@@ -90,10 +90,8 @@ export class ObsidianContextProvider implements ContextProvider {
 function fromEditor(file: TFile, editor: Editor): MarkdownEditorSource {
   return {
     notePath: file.path,
-    noteContent: editor.getValue(),
-    selectedText: editor.getSelection(),
-    selectionFromLine: editor.getCursor("from").line,
-    selectionToLine: editor.getCursor("to").line,
+    fromLine: editor.getCursor("from").line,
+    toLine: editor.getCursor("to").line,
   };
 }
 

@@ -1,13 +1,9 @@
-import type { ContextSnapshot, SelectionContext } from "../domain/notes/ContextSnapshot";
-
-const EXCERPT_RADIUS = 5;
+import type { ContextSnapshot } from "../domain/notes/ContextSnapshot";
 
 export interface MarkdownEditorSource {
   notePath: string;
-  noteContent: string;
-  selectedText: string;
-  selectionFromLine: number;
-  selectionToLine: number;
+  fromLine: number;
+  toLine: number;
 }
 
 export function pickMarkdownSource<T extends { notePath: string }>(
@@ -22,36 +18,13 @@ export function pickMarkdownSource<T extends { notePath: string }>(
 }
 
 export function snapshotFromEditorSource(source: MarkdownEditorSource): ContextSnapshot {
-  const snapshot: ContextSnapshot = {
+  return {
     notePath: source.notePath,
-    noteContent: source.noteContent,
+    startLine: source.fromLine + 1,
+    endLine: source.toLine + 1,
   };
-  if (source.selectedText.length > 0) {
-    snapshot.selection = selectionContext(
-      source.noteContent,
-      source.selectionFromLine,
-      source.selectionToLine,
-      source.selectedText,
-    );
-  }
-  return snapshot;
 }
 
-function selectionContext(
-  content: string,
-  fromLine: number,
-  toLine: number,
-  text: string,
-): SelectionContext {
-  const lines = content.split("\n");
-  const startLine = fromLine + 1;
-  const endLine = toLine + 1;
-  const excerptStart = Math.max(0, fromLine - EXCERPT_RADIUS);
-  const excerptEnd = Math.min(lines.length, toLine + 1 + EXCERPT_RADIUS);
-  return {
-    text,
-    startLine,
-    endLine,
-    excerpt: lines.slice(excerptStart, excerptEnd).join("\n"),
-  };
+export function formatLineRange(startLine: number, endLine: number): string {
+  return startLine === endLine ? `L${startLine}` : `L${startLine}-L${endLine}`;
 }

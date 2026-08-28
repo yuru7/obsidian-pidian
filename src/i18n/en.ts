@@ -22,10 +22,6 @@ export const en = {
     "API keys are stored in this plugin's Obsidian data. Leave a field empty to use an environment variable or Pi's existing credentials.",
   settingsUsingEnv: "Using environment variable",
   settingsApiKey: "API key",
-  settingsContext: "Context",
-  settingsIncludeSelection: "Include selected text context",
-  settingsIncludeSelectionDesc:
-    "When text is selected in the active note, send it as focus context in addition to the full note.",
   settingsPermissions: "Permissions",
   settingsPermissionRead: "Read",
   settingsPermissionEdit: "Edit",

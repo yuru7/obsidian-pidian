@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { pickMarkdownSource, snapshotFromEditorSource } from "./activeMarkdown";
+import { formatLineRange, pickMarkdownSource, snapshotFromEditorSource } from "./activeMarkdown";
 
 describe("pickMarkdownSource", () => {
   it("skips empty sources and keeps the first note with a path", () => {
@@ -18,32 +18,39 @@ describe("pickMarkdownSource", () => {
 });
 
 describe("snapshotFromEditorSource", () => {
-  it("keeps the editor content and selection", () => {
+  it("converts the cursor line to a 1-based range", () => {
     const snapshot = snapshotFromEditorSource({
       notePath: "notes/example.md",
-      noteContent: "a\nb\nc\nd\ne\nf\ng",
-      selectedText: "c",
-      selectionFromLine: 2,
-      selectionToLine: 2,
+      fromLine: 11,
+      toLine: 11,
     });
-    expect(snapshot.notePath).toBe("notes/example.md");
-    expect(snapshot.noteContent).toBe("a\nb\nc\nd\ne\nf\ng");
-    expect(snapshot.selection).toMatchObject({
-      text: "c",
-      startLine: 3,
-      endLine: 3,
+    expect(snapshot).toEqual({
+      notePath: "notes/example.md",
+      startLine: 12,
+      endLine: 12,
     });
-    expect(snapshot.selection?.excerpt).toContain("c");
   });
 
-  it("omits selection when nothing is selected", () => {
+  it("keeps a multi-line selection range", () => {
     const snapshot = snapshotFromEditorSource({
       notePath: "notes/example.md",
-      noteContent: "hello",
-      selectedText: "",
-      selectionFromLine: 0,
-      selectionToLine: 0,
+      fromLine: 12,
+      toLine: 14,
     });
-    expect(snapshot.selection).toBeUndefined();
+    expect(snapshot).toEqual({
+      notePath: "notes/example.md",
+      startLine: 13,
+      endLine: 15,
+    });
+  });
+});
+
+describe("formatLineRange", () => {
+  it("formats a single line", () => {
+    expect(formatLineRange(12, 12)).toBe("L12");
+  });
+
+  it("formats a multi-line selection", () => {
+    expect(formatLineRange(13, 15)).toBe("L13-L15");
   });
 });
