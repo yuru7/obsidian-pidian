@@ -1,9 +1,9 @@
 import {
   createAgentSession,
-  DefaultResourceLoader,
   ModelRuntime,
   SessionManager,
   SettingsManager,
+  type ResourceLoader,
 } from "@earendil-works/pi-coding-agent";
 import type { Api, Model } from "@earendil-works/pi-ai";
 import type { AgentConversation } from "../../domain/agent/AgentConversation";
@@ -13,6 +13,7 @@ import type { AgentPrompt, AgentSession } from "../../domain/agent/AgentSession"
 import type { CustomOpenAIProvider } from "../../settings/Settings";
 import { CredentialResolver } from "../../application/CredentialResolver";
 import { injectCorsFreeFetch } from "./corsFreeFetch";
+import { PidianResourceLoader } from "./PidianResourceLoader";
 import { normalizeAgentsContent, pidianAgentsFiles } from "./pidianAgentsFiles";
 import { PIDIAN_SYSTEM_PROMPT } from "./PiCredentials";
 import { mapPiEvent } from "./PiEventMapper";
@@ -60,28 +61,17 @@ export class PiAgentAdapter implements AgentEngine {
 
     const agentsContent = normalizeAgentsContent(await this.options.readAgentsFile());
     const settingsManager = SettingsManager.inMemory();
-    const loader = new DefaultResourceLoader({
-      cwd: process.cwd(),
-      agentDir: process.cwd(),
-      settingsManager,
-      noExtensions: true,
-      noSkills: true,
-      noPromptTemplates: true,
-      noThemes: true,
-      noContextFiles: true,
-      systemPromptOverride: () => PIDIAN_SYSTEM_PROMPT,
-      agentsFilesOverride: () => ({
-        agentsFiles: pidianAgentsFiles(agentsContent),
-      }),
+    const loader = new PidianResourceLoader({
+      systemPrompt: PIDIAN_SYSTEM_PROMPT,
+      agentsFiles: pidianAgentsFiles(agentsContent),
     });
-    await loader.reload();
 
     const { session } = await createAgentSession({
       model,
       modelRuntime: runtime,
       sessionManager: SessionManager.inMemory(),
       settingsManager,
-      resourceLoader: loader,
+      resourceLoader: loader as unknown as ResourceLoader,
       noTools: "builtin",
       customTools: toPiTools(options.tools),
     });

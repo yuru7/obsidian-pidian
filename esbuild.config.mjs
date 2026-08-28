@@ -50,6 +50,16 @@ function __pidianDynImport(specifier) {
 }
 `;
 
+const stubDir = path.join(rootDir, "src/infrastructure/pi/stubs");
+const stubPaths = {
+  jiti: path.join(stubDir, "jiti.js"),
+  highlight: path.join(stubDir, "highlight.js"),
+  photon: path.join(stubDir, "photon.js"),
+  tui: path.join(stubDir, "pi-tui.js"),
+  mermaid: path.join(stubDir, "mermaid.js"),
+  resourceLoader: path.join(rootDir, "src/infrastructure/pi/PidianResourceLoader.ts"),
+};
+
 const obsidianCompatPlugin = {
   name: "obsidian-compat",
   setup(build) {
@@ -62,6 +72,23 @@ const obsidianCompatPlugin = {
       );
       return { contents, loader: "js" };
     });
+
+    // DefaultResourceLoader pulls the extension loader, which imports the whole
+    // Pi barrel (CLI, TUI, jiti). Pidian only needs prompt + AGENTS.md.
+    build.onResolve({ filter: /(?:^|[\\/])resource-loader\.js$/ }, (args) => {
+      const importer = args.importer.replaceAll("\\", "/");
+      if (!importer.includes("@earendil-works/pi-coding-agent")) {
+        return undefined;
+      }
+      return { path: stubPaths.resourceLoader };
+    });
+
+    // AgentSession still imports TUI themes and coding-tool renderers.
+    build.onResolve({ filter: /^(jiti|jiti\/)/ }, () => ({ path: stubPaths.jiti }));
+    build.onResolve({ filter: /^highlight\.js/ }, () => ({ path: stubPaths.highlight }));
+    build.onResolve({ filter: /^@silvia-odwyer\/photon-node/ }, () => ({ path: stubPaths.photon }));
+    build.onResolve({ filter: /^@earendil-works\/pi-tui/ }, () => ({ path: stubPaths.tui }));
+    build.onResolve({ filter: /^grok-mermaid/ }, () => ({ path: stubPaths.mermaid }));
   },
 };
 
@@ -111,6 +138,7 @@ const context = await esbuild.context({
   },
   define: {
     "import.meta.url": "import_meta_url",
+    ...(prod ? { "process.env.NODE_ENV": '"production"' } : {}),
   },
 });
 
