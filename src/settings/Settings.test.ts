@@ -27,6 +27,12 @@ describe("mergeSettings", () => {
     expect(mergeSettings({ permissions: { webSearch: "allow" } }).permissions.webSearch).toBe("allow");
   });
 
+  it("defaults edit to ask and keeps an explicit value", () => {
+    expect(mergeSettings({}).permissions.edit).toBe("ask");
+    expect(mergeSettings({ permissions: { edit: "allow" } }).permissions.edit).toBe("allow");
+    expect(mergeSettings({ permissions: { edit: "deny" } }).permissions.edit).toBe("deny");
+  });
+
   it("drops the former selection context setting", () => {
     const merged = mergeSettings({
       includeSelectionContext: true,

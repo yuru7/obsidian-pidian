@@ -30,7 +30,7 @@ export const DEFAULT_SETTINGS: PidianSettings = {
   customProviders: [],
   permissions: {
     read: "allow",
-    edit: "deny",
+    edit: "ask",
     create: "deny",
     delete: "deny",
     webSearch: "deny",

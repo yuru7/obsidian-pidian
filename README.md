@@ -6,14 +6,14 @@ Obsidian Desktop から Pi エージェントをサイドバーで使うプラ�
 
 ### Pidianとは
 
-Pidian は Obsidian の右サイドバーにチャット UI を出し、開いているノートをコンテキストにしながら会話できるプラグインです。初期版は Desktop 専用です。
+Pidian は Obsidian のサイドバーにチャット UI を出し、開いているノートをコンテキストにして会話できるプラグインです。
 
 ### 初期設定
 
 1. Settings → Pidian を開く
 2. Provider と Model を選ぶ
 3. API キーを設定する。空欄なら環境変数、それも無ければ Pi 側の既存 credential を使います
-4. Create / Edit / Delete / Web search は **デフォルト無効** です。必要なときだけ Always allow か Ask every time に変更してください
+4. Create / Delete / Web search は **デフォルト無効** です。Edit は毎回確認です。必要なときだけ Always allow か Ask every time に変更してください
 
 ### Provider / Model設定
 
@@ -51,7 +51,7 @@ Settings の Custom OpenAI Compatible で、Name / Base URL / Model ID / API key
 | 操作 | 初期値 |
 | --- | --- |
 | Read | Always allow |
-| Edit | Deny |
+| Edit | Ask every time |
 | Create | Deny |
 | Delete | Deny |
 | Web search | Deny |
@@ -62,7 +62,7 @@ Read にはノート本文の読み取り、Vault 検索 `search_notes`、ディ
 
 `web_search` / `fetch_url` は Web search 権限を使い、既定は拒否です。検索プロバイダは DuckDuckGo HTML Search です。`fetch_url` は HTML を Markdown に変換して返します。
 
-**Create / Edit / Delete / Web search はデフォルト無効です。** 誤操作を防ぐための初期値です。
+**Create / Delete / Web search はデフォルト無効です。** Edit は毎回確認です。誤操作を防ぐための初期値です。
 
 ### 現在ノートContext
 
