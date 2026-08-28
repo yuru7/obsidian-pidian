@@ -58,11 +58,12 @@ export class PiAgentAdapter implements AgentEngine {
       throw new Error(`Unknown model ${options.provider}/${options.model}. Check Settings.`);
     }
 
-    const agents = { content: normalizeAgentsContent(await this.options.readAgentsFile()) };
+    const agentsContent = normalizeAgentsContent(await this.options.readAgentsFile());
+    const settingsManager = SettingsManager.inMemory();
     const loader = new DefaultResourceLoader({
       cwd: process.cwd(),
       agentDir: process.cwd(),
-      settingsManager: SettingsManager.inMemory({ compaction: { enabled: false } }),
+      settingsManager,
       noExtensions: true,
       noSkills: true,
       noPromptTemplates: true,
@@ -70,7 +71,7 @@ export class PiAgentAdapter implements AgentEngine {
       noContextFiles: true,
       systemPromptOverride: () => PIDIAN_SYSTEM_PROMPT,
       agentsFilesOverride: () => ({
-        agentsFiles: pidianAgentsFiles(agents.content),
+        agentsFiles: pidianAgentsFiles(agentsContent),
       }),
     });
     await loader.reload();
@@ -79,7 +80,7 @@ export class PiAgentAdapter implements AgentEngine {
       model,
       modelRuntime: runtime,
       sessionManager: SessionManager.inMemory(),
-      settingsManager: SettingsManager.inMemory({ compaction: { enabled: false } }),
+      settingsManager,
       resourceLoader: loader,
       noTools: "builtin",
       customTools: toPiTools(options.tools),
@@ -92,7 +93,7 @@ export class PiAgentAdapter implements AgentEngine {
       ) as unknown as typeof session.agent.state.messages;
     }
 
-    return new PiWrappedSession(session, loader, agents, this.options.readAgentsFile);
+    return new PiWrappedSession(session);
   }
 
   private async applyCredentials(runtime: ModelRuntime): Promise<void> {
@@ -144,30 +145,14 @@ export class PiAgentAdapter implements AgentEngine {
 type PiSession = Awaited<ReturnType<typeof createAgentSession>>["session"];
 
 class PiWrappedSession implements AgentSession {
-  constructor(
-    private readonly session: PiSession,
-    private readonly loader: DefaultResourceLoader,
-    private readonly agents: { content: string | undefined },
-    private readonly readAgentsFile: () => Promise<string | undefined>,
-  ) {}
+  constructor(private readonly session: PiSession) {}
 
   async prompt(request: AgentPrompt): Promise<void> {
-    await this.syncAgentsFile();
     await this.session.prompt(request.text, { expandPromptTemplates: false });
     const errorMessage = this.session.agent.state.errorMessage;
     if (errorMessage) {
       throw new Error(errorMessage);
     }
-  }
-
-  private async syncAgentsFile(): Promise<void> {
-    const next = normalizeAgentsContent(await this.readAgentsFile());
-    if (next === this.agents.content) {
-      return;
-    }
-    this.agents.content = next;
-    await this.loader.reload();
-    this.session.setActiveToolsByName(this.session.getActiveToolNames());
   }
 
   async abort(): Promise<void> {
