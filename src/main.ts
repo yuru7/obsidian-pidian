@@ -106,7 +106,9 @@ export default class PidianPlugin extends Plugin {
     const notes = new ObsidianNoteRepository(this.app);
     const editor = new ObsidianNoteEditor(this.app);
     const workspace = new ObsidianWorkspaceNavigator(this.app);
-    const sessions = new SessionService(new ObsidianSessionRepository(this.app));
+    const sessions = new SessionService(
+      new ObsidianSessionRepository(this.app, () => this.settings.sessionFileFormat),
+    );
     this.sessionService = sessions;
     const tracker = new ReadRevisionTracker();
     const permissions = new PermissionService(
@@ -279,7 +281,9 @@ export default class PidianPlugin extends Plugin {
     if (!this.agentService) {
       return;
     }
-    const cleanup = new SessionCleanupService(new ObsidianSessionRepository(this.app));
+    const cleanup = new SessionCleanupService(
+      new ObsidianSessionRepository(this.app, () => this.settings.sessionFileFormat),
+    );
     await cleanup.cleanup({
       enabled: this.settings.autoDeleteSessions,
       retentionDays: this.settings.retentionDays,

@@ -32,6 +32,9 @@ export const en = {
   settingsPermissionAsk: "Ask every time",
   settingsPermissionDeny: "Deny",
   settingsSession: "Session",
+  settingsSessionFileFormat: "Session file format",
+  settingsSessionFileFormatDesc:
+    ".json.md files appear in Obsidian's built-in file explorer.",
   settingsAutoDelete: "Automatically delete old sessions",
   settingsAutoDeleteDesc:
     "Off by default. When enabled, sessions older than the retention period are deleted on startup.",

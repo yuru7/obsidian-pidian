@@ -1,15 +1,23 @@
+import type { SessionFileFormat } from "../settings/Settings";
 import { SESSIONS_DIR } from "./notePath";
 
-/** New session files use `.json.md` so they appear in Obsidian's file explorer. */
+/** `.json.md` so session files appear in Obsidian's file explorer. */
 export const SESSION_FILE_EXTENSION = ".json.md";
 export const LEGACY_SESSION_FILE_EXTENSION = ".json";
+
+export function sessionFileExtension(format: SessionFileFormat = "json.md"): string {
+  return format === "json" ? LEGACY_SESSION_FILE_EXTENSION : SESSION_FILE_EXTENSION;
+}
 
 export function sessionFileTimestamp(createdAt: string): string {
   return createdAt.replaceAll(":", "");
 }
 
-export function newSessionFilePath(session: { id: string; createdAt: string }): string {
-  return `${SESSIONS_DIR}/${sessionFileTimestamp(session.createdAt)}_${session.id}${SESSION_FILE_EXTENSION}`;
+export function newSessionFilePath(
+  session: { id: string; createdAt: string },
+  format: SessionFileFormat = "json.md",
+): string {
+  return `${SESSIONS_DIR}/${sessionFileTimestamp(session.createdAt)}_${session.id}${sessionFileExtension(format)}`;
 }
 
 export function isSessionFilePath(path: string): boolean {

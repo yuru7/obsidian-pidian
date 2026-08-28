@@ -5,16 +5,21 @@ import {
   isSessionFilePath,
   newSessionFilePath,
   SESSION_FILE_EXTENSION,
+  sessionFileExtension,
   sessionIdFromFilePath,
 } from "../../application/sessionFilePath";
 import { parseSessionFile, serializeSessionFile } from "../../application/sessionSerialization";
+import type { SessionFileFormat } from "../../settings/Settings";
 
 export class ObsidianSessionRepository implements SessionRepository {
-  constructor(private readonly app: App) {}
+  constructor(
+    private readonly app: App,
+    private readonly getSessionFileFormat: () => SessionFileFormat = () => "json.md",
+  ) {}
 
   async save(session: PidianSession): Promise<void> {
     await this.ensureDir();
-    const path = (await this.resolveExistingPath(session.id)) ?? newSessionFilePath(session);
+    const path = (await this.resolveExistingPath(session.id)) ?? newSessionFilePath(session, this.getSessionFileFormat());
     await this.app.vault.adapter.write(
       path,
       serializeSessionFile(session, path.endsWith(SESSION_FILE_EXTENSION)),
@@ -37,7 +42,7 @@ export class ObsidianSessionRepository implements SessionRepository {
         const raw = await this.app.vault.adapter.read(file);
         const session = parseSessionFile(raw);
         const existing = byId.get(session.id);
-        if (!existing || file.endsWith(SESSION_FILE_EXTENSION)) {
+        if (!existing || file.endsWith(sessionFileExtension(this.getSessionFileFormat()))) {
           byId.set(session.id, {
             id: session.id,
             title: session.title,
@@ -71,7 +76,8 @@ export class ObsidianSessionRepository implements SessionRepository {
 
   private async resolveExistingPath(id: string): Promise<string | undefined> {
     const matches = (await this.listSessionPaths()).filter((file) => sessionIdFromFilePath(file) === id);
-    return matches.find((file) => file.endsWith(SESSION_FILE_EXTENSION)) ?? matches[0];
+    const preferred = sessionFileExtension(this.getSessionFileFormat());
+    return matches.find((file) => file.endsWith(preferred)) ?? matches[0];
   }
 
   private async ensureDir(): Promise<void> {

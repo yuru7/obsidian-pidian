@@ -34,6 +34,9 @@ export const ja: { [K in keyof typeof en]: string } = {
   settingsPermissionAsk: "毎回確認",
   settingsPermissionDeny: "拒否",
   settingsSession: "セッション",
+  settingsSessionFileFormat: "セッションファイルの記録方式",
+  settingsSessionFileFormatDesc:
+    ".json.md は Obsidian の内蔵エクスプローラーに表示されます。",
   settingsAutoDelete: "古いセッションを自動削除",
   settingsAutoDeleteDesc: "初期値はオフです。オンにすると、保持期間より古いセッションを起動時に削除します。",
   settingsRetentionDays: "保持日数",

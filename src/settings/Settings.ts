@@ -8,12 +8,15 @@ export interface CustomOpenAIProvider {
   apiKey: string;
 }
 
+export type SessionFileFormat = "json.md" | "json";
+
 export interface PidianSettings {
   provider: string;
   model: string;
   apiKeys: Record<string, string>;
   customProviders: CustomOpenAIProvider[];
   permissions: PermissionSettings;
+  sessionFileFormat: SessionFileFormat;
   autoDeleteSessions: boolean;
   retentionDays: number;
 }
@@ -30,9 +33,14 @@ export const DEFAULT_SETTINGS: PidianSettings = {
     delete: "deny",
     webSearch: "deny",
   },
+  sessionFileFormat: "json.md",
   autoDeleteSessions: false,
   retentionDays: 30,
 };
+
+export function parseSessionFileFormat(value: unknown): SessionFileFormat {
+  return value === "json" ? "json" : "json.md";
+}
 
 export function mergeSettings(raw: unknown): PidianSettings {
   const rawObject = raw && typeof raw === "object" ? { ...(raw as Record<string, unknown>) } : {};
@@ -44,6 +52,7 @@ export function mergeSettings(raw: unknown): PidianSettings {
     ...input,
     apiKeys: { ...DEFAULT_SETTINGS.apiKeys, ...(input.apiKeys ?? {}) },
     customProviders: input.customProviders ?? [],
+    sessionFileFormat: parseSessionFileFormat(input.sessionFileFormat),
     permissions: {
       read: input.permissions?.read ?? DEFAULT_SETTINGS.permissions.read,
       edit: input.permissions?.edit ?? DEFAULT_SETTINGS.permissions.edit,

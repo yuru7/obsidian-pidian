@@ -16,6 +16,12 @@ describe("sessionFilePath", () => {
     );
   });
 
+  it("uses timestamp_id.json when the json format is selected", () => {
+    expect(newSessionFilePath({ id: "abc", createdAt: "2026-01-01T00:00:00.000Z" }, "json")).toBe(
+      "pidian/sessions/2026-01-01T000000.000Z_abc.json",
+    );
+  });
+
   it("accepts timestamped, id-only, and legacy session files", () => {
     expect(isSessionFilePath("pidian/sessions/2026-01-01T000000.000Z_abc.json.md")).toBe(true);
     expect(isSessionFilePath("pidian/sessions/abc.json.md")).toBe(true);

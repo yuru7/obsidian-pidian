@@ -33,4 +33,10 @@ describe("mergeSettings", () => {
     });
     expect("includeSelectionContext" in merged).toBe(false);
   });
+
+  it("defaults session files to json.md and keeps json when set", () => {
+    expect(mergeSettings({}).sessionFileFormat).toBe("json.md");
+    expect(mergeSettings({ sessionFileFormat: "json" }).sessionFileFormat).toBe("json");
+    expect(mergeSettings({ sessionFileFormat: "nope" } as Record<string, unknown>).sessionFileFormat).toBe("json.md");
+  });
 });

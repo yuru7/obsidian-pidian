@@ -4,7 +4,9 @@ import type PidianPlugin from "../main";
 import type { CatalogModel, CatalogProvider } from "../domain/agent/ModelCatalog";
 import type { Permission } from "../domain/permissions/Permission";
 import { listKnownCredentialProviders } from "../infrastructure/pi/PiCredentials";
-import type { CustomOpenAIProvider } from "./Settings";
+import { parseSessionFileFormat, type CustomOpenAIProvider } from "./Settings";
+
+const RETENTION_PRESETS = new Set(["7", "30", "90"]);
 
 function permissionOptions(): Array<{ value: Permission; label: string }> {
   return [
@@ -14,7 +16,16 @@ function permissionOptions(): Array<{ value: Permission; label: string }> {
   ];
 }
 
+function sortProviders(providers: CatalogProvider[]): CatalogProvider[] {
+  return [...providers].sort((a, b) => {
+    const byName = a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: "base" });
+    return byName !== 0 ? byName : a.id.localeCompare(b.id);
+  });
+}
+
 export class PidianSettingTab extends PluginSettingTab {
+  private customRetentionSelected = false;
+
   constructor(
     app: App,
     private readonly plugin: PidianPlugin,
@@ -24,6 +35,7 @@ export class PidianSettingTab extends PluginSettingTab {
 
   display(): void {
     const { containerEl } = this;
+    const scrollTop = this.readSettingsScroll();
     containerEl.empty();
     containerEl.createEl("h2", { text: "Pidian" });
 
@@ -38,6 +50,28 @@ export class PidianSettingTab extends PluginSettingTab {
     this.renderSession(containerEl);
 
     void this.enrichAgentFromCatalog(agentEl);
+    this.writeSettingsScroll(scrollTop);
+  }
+
+  hide(): void {
+    this.customRetentionSelected = false;
+    super.hide();
+  }
+
+  private readSettingsScroll(): number {
+    return Math.max(this.containerEl.scrollTop, this.containerEl.parentElement?.scrollTop ?? 0);
+  }
+
+  private writeSettingsScroll(scrollTop: number): void {
+    const apply = (): void => {
+      this.containerEl.scrollTop = scrollTop;
+      const parent = this.containerEl.parentElement;
+      if (parent) {
+        parent.scrollTop = scrollTop;
+      }
+    };
+    apply();
+    requestAnimationFrame(apply);
   }
 
   private fallbackProviders(): CatalogProvider[] {
@@ -116,7 +150,7 @@ export class PidianSettingTab extends PluginSettingTab {
       .setName(t("settingsProvider"))
       .setDesc(t("settingsProviderDesc"))
       .addDropdown((dropdown) => {
-        for (const provider of providers) {
+        for (const provider of sortProviders(providers)) {
           dropdown.addOption(provider.id, provider.name);
         }
         dropdown.setValue(this.plugin.settings.provider);
@@ -171,7 +205,7 @@ export class PidianSettingTab extends PluginSettingTab {
     containerEl.createEl("p", {
       text: t("settingsCredentialsHelp"),
     });
-    for (const provider of providers.filter((item) => !item.isCustom)) {
+    for (const provider of sortProviders(providers.filter((item) => !item.isCustom))) {
       const envNames = provider.envVarNames;
       const usingEnv =
         !this.plugin.settings.apiKeys[provider.id]?.trim() && envNames.some((name) => Boolean(process.env[name]));
@@ -198,8 +232,24 @@ export class PidianSettingTab extends PluginSettingTab {
     this.permissionSetting(containerEl, t("settingsPermissionWebSearch"), "webSearch");
   }
 
+  private isCustomRetention(): boolean {
+    return this.customRetentionSelected || !RETENTION_PRESETS.has(String(this.plugin.settings.retentionDays));
+  }
+
   private renderSession(containerEl: HTMLElement): void {
     containerEl.createEl("h3", { text: t("settingsSession") });
+    new Setting(containerEl)
+      .setName(t("settingsSessionFileFormat"))
+      .setDesc(t("settingsSessionFileFormatDesc"))
+      .addDropdown((dropdown) => {
+        dropdown.addOption("json.md", ".json.md");
+        dropdown.addOption("json", ".json");
+        dropdown.setValue(this.plugin.settings.sessionFileFormat);
+        dropdown.onChange(async (value) => {
+          this.plugin.settings.sessionFileFormat = parseSessionFileFormat(value);
+          await this.plugin.saveSettings();
+        });
+      });
     new Setting(containerEl)
       .setName(t("settingsAutoDelete"))
       .setDesc(t("settingsAutoDeleteDesc"))
@@ -213,37 +263,44 @@ export class PidianSettingTab extends PluginSettingTab {
       });
 
     if (this.plugin.settings.autoDeleteSessions) {
-      new Setting(containerEl).setName(t("settingsRetentionDays")).addDropdown((dropdown) => {
+      const retentionWrap = containerEl.createDiv();
+      const customEl = retentionWrap.createDiv();
+      new Setting(retentionWrap).setName(t("settingsRetentionDays")).addDropdown((dropdown) => {
         dropdown.addOption("7", "7");
         dropdown.addOption("30", "30");
         dropdown.addOption("90", "90");
         dropdown.addOption("custom", t("settingsRetentionCustom"));
-        const preset = ["7", "30", "90"].includes(String(this.plugin.settings.retentionDays))
-          ? String(this.plugin.settings.retentionDays)
-          : "custom";
-        dropdown.setValue(preset);
+        dropdown.setValue(this.isCustomRetention() ? "custom" : String(this.plugin.settings.retentionDays));
         dropdown.onChange(async (value) => {
+          this.customRetentionSelected = value === "custom";
           if (value !== "custom") {
             this.plugin.settings.retentionDays = Number(value);
             await this.plugin.saveSettings();
-            this.display();
           }
+          this.renderCustomRetentionDays(customEl);
         });
       });
-      if (!["7", "30", "90"].includes(String(this.plugin.settings.retentionDays))) {
-        new Setting(containerEl).setName(t("settingsRetentionCustomDays")).addText((text) => {
-          text.setValue(String(this.plugin.settings.retentionDays));
-          text.onChange(async (value) => {
-            const parsed = Number(value);
-            if (!Number.isInteger(parsed) || parsed <= 0) {
-              return;
-            }
-            this.plugin.settings.retentionDays = parsed;
-            await this.plugin.saveSettings();
-          });
-        });
-      }
+      retentionWrap.append(customEl);
+      this.renderCustomRetentionDays(customEl);
     }
+  }
+
+  private renderCustomRetentionDays(containerEl: HTMLElement): void {
+    containerEl.empty();
+    if (!this.isCustomRetention()) {
+      return;
+    }
+    new Setting(containerEl).setName(t("settingsRetentionCustomDays")).addText((text) => {
+      text.setValue(String(this.plugin.settings.retentionDays));
+      text.onChange(async (value) => {
+        const parsed = Number(value);
+        if (!Number.isInteger(parsed) || parsed <= 0) {
+          return;
+        }
+        this.plugin.settings.retentionDays = parsed;
+        await this.plugin.saveSettings();
+      });
+    });
   }
 
   private permissionSetting(containerEl: HTMLElement, name: string, key: keyof PidianPlugin["settings"]["permissions"]): void {

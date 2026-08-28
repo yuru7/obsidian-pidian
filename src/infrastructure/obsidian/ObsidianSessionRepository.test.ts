@@ -76,6 +76,18 @@ describe("ObsidianSessionRepository", () => {
     expect(adapter.files.has(`${SESSIONS_DIR}/abc.json`)).toBe(false);
   });
 
+  it("writes new session files as timestamp_id.json without a fence when format is json", async () => {
+    const adapter = new MemoryAdapter();
+    const repository = new ObsidianSessionRepository(appWith(adapter), () => "json");
+    const saved = session("abc", "Hello");
+
+    await repository.save(saved);
+
+    const path = `${SESSIONS_DIR}/2026-01-01T000000.000Z_abc.json`;
+    expect(adapter.files.get(path)).toBe(serializeSessionFile(saved, false));
+    expect([...adapter.files.keys()].some((file) => file.endsWith(".json.md"))).toBe(false);
+  });
+
   it("loads timestamped .json.md, id-only .json.md, and legacy .json session files", async () => {
     const adapter = new MemoryAdapter();
     adapter.files.set(
