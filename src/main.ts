@@ -10,6 +10,11 @@ import { SessionService } from "./application/SessionService";
 import { connectionConfigFingerprint, reconcileModelSelection } from "./application/modelSelection";
 import { bindPluginDirectory } from "./application/notePath";
 import { corsFreeFetch } from "./infrastructure/pi/corsFreeFetch";
+import {
+  createDynamicModelsFile,
+  DynamicModelsStore,
+  shouldRefreshDynamicModels,
+} from "./infrastructure/pi/DynamicModelsStore";
 import { PiAgentAdapter } from "./infrastructure/pi/PiAgentAdapter";
 import { createCredentialResolver, listKnownCredentialProviders } from "./infrastructure/pi/PiCredentials";
 import { PiModelCatalog } from "./infrastructure/pi/PiModelCatalog";
@@ -141,10 +146,16 @@ export default class PidianPlugin extends Plugin {
     const fetchService = createFetchService(corsFreeFetch);
     const credentials = this.credentials ?? createCredentialResolver(() => this.settings);
     this.credentials = credentials;
+    const dynamicModelsFile = createDynamicModelsFile(
+      this.app.vault.adapter,
+      this.manifest.dir ?? `.obsidian/plugins/${this.manifest.id}`,
+    );
     const adapter = new PiAgentAdapter({
       credentials,
       getCustomProviders: () => this.settings.customProviders,
       readAgentsFile: () => new ObsidianInstructionReader(this.app).read(),
+      modelsStore: new DynamicModelsStore(dynamicModelsFile),
+      shouldRefreshDynamicCatalog: async () => shouldRefreshDynamicModels(await dynamicModelsFile.mtimeMs()),
     });
     this.modelCatalog = new PiModelCatalog(
       () => adapter.getRuntime(),

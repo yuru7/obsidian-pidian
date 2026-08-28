@@ -4,6 +4,7 @@
 main.js
 *.map
 data.json
+dynamicModels.json
 .DS_Store
 reference_implement
 

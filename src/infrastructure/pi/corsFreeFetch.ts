@@ -106,6 +106,20 @@ export function injectCorsFreeFetch(
   return runtime;
 }
 
+/** Catalog refresh uses Pi's global `fetch`, so swap it for the duration of `run`. */
+export async function withCorsFreeFetch<T>(
+  run: () => Promise<T>,
+  fetch: FetchFunction = corsFreeFetch,
+): Promise<T> {
+  const original = globalThis.fetch;
+  globalThis.fetch = fetch;
+  try {
+    return await run();
+  } finally {
+    globalThis.fetch = original;
+  }
+}
+
 function requestUrlFrom(input: RequestInfo | URL): URL {
   if (input instanceof URL) {
     return input;

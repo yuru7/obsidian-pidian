@@ -56,6 +56,7 @@ Pi から Obsidian へ直接アクセスする経路は作りません。
 - Pidian Tool だけを `customTools` として渡す
 - Pi の session ファイルは使わず `SessionManager.inMemory()`
 - API キーは `setRuntimeApiKey` で runtime override する（Pidian 設定 → 環境変数 → Pi 既定）
+- 起動時に `{manifest.dir}/dynamicModels.json` が無い、または更新から1日以上経っているときだけ `runtime.refresh({ allowNetwork: true, force: true })` する。新しいときはキャッシュから復元する
 
 ## Obsidian Tool architecture
 

@@ -1,7 +1,7 @@
 import { useEffect, useReducer, useRef, useState } from "react";
 import { t } from "../i18n";
 import type PidianPlugin from "../main";
-import type { CatalogModel, CatalogProvider } from "../domain/agent/ModelCatalog";
+import { sortCatalogModels, type CatalogModel, type CatalogProvider } from "../domain/agent/ModelCatalog";
 
 type MenuItem = { id: string; name: string };
 
@@ -47,7 +47,7 @@ export function ModelSelector({
       setModels([]);
       return;
     }
-    void catalog.listModels(provider).then(setModels).catch(() => setModels([]));
+    void catalog.listModels(provider).then((list) => setModels(sortCatalogModels(list))).catch(() => setModels([]));
   }, [plugin, provider, open, settingsRev]);
 
   useEffect(() => {
@@ -79,7 +79,8 @@ export function ModelSelector({
       return;
     }
     void catalog.listModels(nextProvider).then((nextModels) => {
-      const first = nextModels[0]?.id ?? "";
+      const sorted = sortCatalogModels(nextModels);
+      const first = sorted[0]?.id ?? "";
       return plugin.changeModel(nextProvider, first);
     }).then(onChange);
   };
@@ -123,7 +124,7 @@ export function ModelSelector({
           <div className="pidian-model-row">
             <span>{t("settingsModel")}</span>
             <ChoiceDropdown
-              items={models}
+              items={sortCatalogModels(models)}
               value={model}
               placeholder={t("uiNoModel")}
               open={openList === "model"}

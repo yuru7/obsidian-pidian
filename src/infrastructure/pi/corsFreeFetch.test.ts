@@ -2,7 +2,7 @@ import { createServer, type IncomingHttpHeaders, type Server } from "node:http";
 import type { AddressInfo } from "node:net";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { ModelRuntime } from "@earendil-works/pi-coding-agent";
-import { corsFreeFetch, injectCorsFreeFetch } from "./corsFreeFetch";
+import { corsFreeFetch, injectCorsFreeFetch, withCorsFreeFetch } from "./corsFreeFetch";
 
 function fakeRuntime() {
   return {
@@ -49,6 +49,31 @@ describe("injectCorsFreeFetch", () => {
       apiKey: "k",
       fetch: injected,
     });
+  });
+});
+
+describe("withCorsFreeFetch", () => {
+  it("swaps global fetch for the callback and restores it afterwards", async () => {
+    const original = globalThis.fetch;
+    const injected = vi.fn() as unknown as typeof fetch;
+    const seen: typeof fetch[] = [];
+    await withCorsFreeFetch(async () => {
+      seen.push(globalThis.fetch);
+      return "ok";
+    }, injected);
+    expect(seen).toEqual([injected]);
+    expect(globalThis.fetch).toBe(original);
+  });
+
+  it("restores global fetch when the callback throws", async () => {
+    const original = globalThis.fetch;
+    const injected = vi.fn() as unknown as typeof fetch;
+    await expect(
+      withCorsFreeFetch(async () => {
+        throw new Error("boom");
+      }, injected),
+    ).rejects.toThrow("boom");
+    expect(globalThis.fetch).toBe(original);
   });
 });
 

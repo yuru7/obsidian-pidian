@@ -15,3 +15,10 @@ export interface ModelCatalog {
   listProviders(): Promise<CatalogProvider[]>;
   listModels(providerId: string): Promise<CatalogModel[]>;
 }
+
+export function sortCatalogModels(models: readonly CatalogModel[]): CatalogModel[] {
+  return [...models].sort((a, b) => {
+    const byName = a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: "base" });
+    return byName !== 0 ? byName : a.id.localeCompare(b.id);
+  });
+}

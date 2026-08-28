@@ -5,7 +5,7 @@ import {
   SettingsManager,
   type ResourceLoader,
 } from "@earendil-works/pi-coding-agent";
-import type { Api, Model } from "@earendil-works/pi-ai";
+import type { Api, Model, ModelsStore } from "@earendil-works/pi-ai";
 import type { AgentConversation } from "../../domain/agent/AgentConversation";
 import type { AgentEngine, AgentSessionOptions } from "../../domain/agent/AgentEngine";
 import type { AgentEventListener } from "../../domain/agent/AgentEvent";
@@ -16,17 +16,21 @@ import {
   type CustomOpenAIProvider,
 } from "../../settings/Settings";
 import { CredentialResolver } from "../../application/CredentialResolver";
-import { injectCorsFreeFetch } from "./corsFreeFetch";
+import { injectCorsFreeFetch, withCorsFreeFetch } from "./corsFreeFetch";
 import { PidianResourceLoader } from "./PidianResourceLoader";
 import { normalizeAgentsContent, pidianAgentsFiles } from "./pidianAgentsFiles";
 import { PIDIAN_SYSTEM_PROMPT } from "./PiCredentials";
 import { mapPiEvent } from "./PiEventMapper";
 import { toPiTools } from "./PiToolAdapter";
 
+const MODEL_CATALOG_REFRESH_TIMEOUT_MS = 15_000;
+
 export interface PiAgentAdapterOptions {
   credentials: CredentialResolver;
   getCustomProviders: () => CustomOpenAIProvider[];
   readAgentsFile: () => Promise<string | undefined>;
+  modelsStore?: ModelsStore;
+  shouldRefreshDynamicCatalog?: () => Promise<boolean>;
 }
 
 const EMPTY_USAGE = {
@@ -45,12 +49,47 @@ export class PiAgentAdapter implements AgentEngine {
 
   getRuntime(): Promise<ModelRuntime> {
     if (!this.runtimePromise) {
-      this.runtimePromise = ModelRuntime.create({
-        allowModelNetwork: false,
-        refreshOnCreate: false,
-      }).then(injectCorsFreeFetch);
+      this.runtimePromise = this.createRuntime();
     }
     return this.runtimePromise;
+  }
+
+  private async createRuntime(): Promise<ModelRuntime> {
+    const runtime = injectCorsFreeFetch(
+      await ModelRuntime.create({
+        modelsPath: null,
+        modelsStore: this.options.modelsStore,
+        allowModelNetwork: false,
+        refreshOnCreate: false,
+      }),
+    );
+    this.registerCustomProviders(runtime);
+    await this.applyCredentials(runtime);
+    const allowNetwork = this.options.shouldRefreshDynamicCatalog
+      ? await this.options.shouldRefreshDynamicCatalog()
+      : true;
+    await this.refreshDynamicCatalog(runtime, allowNetwork);
+    return runtime;
+  }
+
+  private async refreshDynamicCatalog(runtime: ModelRuntime, allowNetwork: boolean): Promise<void> {
+    try {
+      const result = await withCorsFreeFetch(() =>
+        runtime.refresh({
+          allowNetwork,
+          force: allowNetwork,
+          signal: AbortSignal.timeout(MODEL_CATALOG_REFRESH_TIMEOUT_MS),
+        }),
+      );
+      if (result.aborted) {
+        console.warn("Pidian: model catalog refresh timed out or was aborted");
+      }
+      for (const [providerId, error] of result.errors) {
+        console.warn(`Pidian: model catalog refresh failed for ${providerId}`, error);
+      }
+    } catch (error) {
+      console.warn("Pidian: model catalog refresh failed", error);
+    }
   }
 
   async createSession(options: AgentSessionOptions): Promise<AgentSession> {

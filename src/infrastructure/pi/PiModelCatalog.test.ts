@@ -7,6 +7,7 @@ import { PiModelCatalog } from "./PiModelCatalog";
 
 function catalog(options: {
   providerIds?: string[];
+  models?: Array<{ id: string; name?: string; provider: string }>;
   custom?: CustomOpenAIProvider[];
   credentials: CredentialResolver;
 }): PiModelCatalog {
@@ -16,7 +17,7 @@ function catalog(options: {
         id,
         name: id,
       })),
-    getModels: () => [],
+    getModels: () => options.models ?? [],
   } as unknown as ModelRuntime;
   return new PiModelCatalog(
     async () => runtime,
@@ -178,5 +179,41 @@ describe("PiModelCatalog.listModels", () => {
       { id: "llama", name: "llama", providerId: "ollama" },
       { id: "mistral", name: "mistral", providerId: "ollama" },
     ]);
+  });
+
+  it("sorts custom model ids by name", async () => {
+    const custom: CustomOpenAIProvider[] = [
+      {
+        id: "ollama",
+        name: "Ollama",
+        baseUrl: "http://localhost:11434/v1",
+        modelIds: ["mistral", "llama"],
+        apiKey: "",
+      },
+    ];
+    const models = await catalog({
+      providerIds: [],
+      custom,
+      credentials: createCredentialResolver(() => ({
+        ...DEFAULT_SETTINGS,
+        customProviders: custom,
+      })),
+    }).listModels("ollama");
+    expect(models.map((model) => model.id)).toEqual(["llama", "mistral"]);
+  });
+
+  it("sorts runtime models by name including dynamic entries", async () => {
+    const models = await catalog({
+      models: [
+        { id: "gpt-x", name: "Zeta", provider: "openai" },
+        { id: "gpt-4.1", name: "Alpha", provider: "openai" },
+        { id: "gpt-4o", name: "Mu", provider: "openai" },
+      ],
+      credentials: createCredentialResolver(() => ({
+        ...DEFAULT_SETTINGS,
+        apiKeys: { openai: "sk-test" },
+      })),
+    }).listModels("openai");
+    expect(models.map((model) => model.name)).toEqual(["Alpha", "Mu", "Zeta"]);
   });
 });

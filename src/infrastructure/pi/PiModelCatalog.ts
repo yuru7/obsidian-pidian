@@ -1,7 +1,7 @@
 import { envVarNamesForProvider } from "./PiCredentials";
 import { ModelRuntime } from "@earendil-works/pi-coding-agent";
 import type { CredentialResolver } from "../../application/CredentialResolver";
-import type { CatalogModel, CatalogProvider, ModelCatalog } from "../../domain/agent/ModelCatalog";
+import { sortCatalogModels, type CatalogModel, type CatalogProvider, type ModelCatalog } from "../../domain/agent/ModelCatalog";
 import {
   customProviderModelIds,
   isConfiguredCustomProvider,
@@ -47,17 +47,21 @@ export class PiModelCatalog implements ModelCatalog {
   async listModels(providerId: string): Promise<CatalogModel[]> {
     const custom = this.getCustomProviders().find((provider) => provider.id === providerId);
     if (custom) {
-      return customProviderModelIds(custom).map((modelId) => ({
-        id: modelId,
-        name: modelId,
-        providerId: custom.id,
-      }));
+      return sortCatalogModels(
+        customProviderModelIds(custom).map((modelId) => ({
+          id: modelId,
+          name: modelId,
+          providerId: custom.id,
+        })),
+      );
     }
     const runtime = await this.getRuntime();
-    return runtime.getModels(providerId).map((model) => ({
-      id: model.id,
-      name: model.name ?? model.id,
-      providerId: model.provider,
-    }));
+    return sortCatalogModels(
+      runtime.getModels(providerId).map((model) => ({
+        id: model.id,
+        name: model.name ?? model.id,
+        providerId: model.provider,
+      })),
+    );
   }
 }
