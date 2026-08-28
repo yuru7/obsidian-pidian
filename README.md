@@ -1,255 +1,111 @@
 # Pidian
 
-Obsidian Desktop から Pi エージェントをサイドバーで使うプラグインです。Vault の操作は Pi 標準のファイルツールではなく、すべて Obsidian API 経由で行います。
+Pi Coding Agent on Obsidian
 
-## User Guide
+**English** | [日本語](README_ja.md)
 
-### Pidianとは
+A plugin that lets you chat with an AI in the Obsidian sidebar to ask about or edit the open note, search notes, and search the web.
 
-Pidian は Obsidian のサイドバーにチャット UI を出し、開いているノートをコンテキストにして会話できるプラグインです。
+Desktop only. Mobile is not supported.
 
-### 初期設定
+## What it can do
 
-1. Settings → Pidian を開く
-2. Provider と Model を選ぶ
-3. API キーを設定する。空欄なら環境変数、それも無ければ Pi 側の既存 credential を使います
-4. Create / Delete / Web search は **デフォルト無効** です。Edit は毎回確認です。必要なときだけ Always allow か Ask every time に変更してください
+The AI agent decides on its own when to read, write, and search notes.
 
-### Provider / Model設定
+- Ask about the note you currently have open
+- Find notes in the vault
+- Edit notes
+- Restrict edits, web search, and similar actions with permissions
 
-サイドバー下部の入力欄横、または Settings の Agent セクションで切り替えます。Pi が認識している Provider / Model をそのまま選択できます。Pidian 本体に Provider 固有実装は持たせません。
+## Install
 
-### APIキー設定
+Pidian is not in the Community Plugins list yet. Use one of the following.
 
-API キーは **Obsidian Plugin data**（`data.json`）に保存されます。チャットセッションファイルには保存しません。
+**From a release**
 
-ローカル保存を避けたい場合は、各 Provider の環境変数を使ってください。設定値が空なら環境変数が使われ、「環境変数 "OPENAI_API_KEY" が設定済み」のように変数名付きでオプション画面に表示されます。値そのものは表示しません。
+1. Download `main.js`, `manifest.json`, and `styles.css` from the GitHub Release
+2. Place them in `.obsidian/plugins/pidian/` in your vault
+3. Enable Pidian under Settings → Community plugins
 
-優先順位:
+**To build from source**, see [CONTRIBUTING.md](CONTRIBUTING.md).
 
-1. Pidian 設定
-2. 環境変数
-3. Pi 側の既定 credential（`~/.pi/agent/auth.json` など）
+## Getting started
 
-### 環境変数
+When you enable the plugin, the Pidian sidebar opens on the right. After you close it, reopen it from the left ribbon, or from the command palette with **Open Pidian**.
 
-例:
+1. Go to Settings → Pidian → **API credentials** and enter an API key for the service you use
+2. Choose a provider and model under **General**, or at the bottom of the sidebar
+3. With a Markdown note open, type a message in the sidebar
+
+If you leave the API key blank, Pidian uses environment variables.
+
+Start a new conversation with **New chat** in the sidebar, or with the **New Pidian chat** command.
+
+## Permissions
+
+To prevent accidental changes, everything except read is restricted by default. Change this under Settings → Pidian → **Permissions**.
+
+| Action | Default | What it covers |
+| --- | --- | --- |
+| Read | Always allow | Read notes, search the vault, list folders, open and switch tabs |
+| Edit | Ask every time | Change an existing note. The target file and a diff are shown before running |
+| Create | Deny | Create a new note |
+| Delete | Deny | Trash a note according to Obsidian's trash settings |
+| Web search | Deny | Search the web and fetch pages |
+
+When set to **Ask every time**, you are prompted to allow or deny before the action runs. Denying stops only that action. The conversation continues.
+
+To let the agent create notes, delete notes, or search the web, change only the permissions you need to **Ask every time** or **Always allow**.
+
+Edits apply to the currently active Markdown editor after you confirm. You can undo them with Obsidian's standard Undo. Newly created notes cannot be undone that way; delete the file instead.
+
+## Context
+
+When you send a message, Pidian includes the path of the active Markdown note, plus the cursor position or selection.
+
+## Saving conversations
+
+Conversations are saved in a plugin folder in the vault (default: `pidian/sessions/`). You can change the location under Settings → Pidian → **Sessions** → Plugin folder.
+
+Automatic deletion of old conversations is off by default. When you turn it on, conversations older than the retention period are deleted on startup.
+
+### Extra instructions (optional)
+
+If you add `pidian/AGENTS.md` (when the plugin folder is the default), it is loaded as extra instructions for conversations. The plugin works without this file.
+
+```markdown
+# Instructions
+
+- Reply in English
+- Keep the note's writing style
+- Always check the content before editing
+```
+
+## API keys
+
+API keys are stored in Obsidian plugin data.
+
+Priority, from highest to lowest:
+
+1. Pidian settings
+2. Environment variables
+3. Existing Pi credentials
+
+Example environment variables:
 
 - `OPENAI_API_KEY`
 - `ANTHROPIC_API_KEY`
 - `GEMINI_API_KEY`
 - `OPENROUTER_API_KEY`
 
-Obsidian を起動しているプロセスから見える環境変数だけが使えます。
+For Chat Completions-compatible endpoints, add Name / Base URL / Model ID / API key under Settings → Pidian → **API credentials** → Custom OpenAI Compatible.
 
-### OpenAI Compatible
+## Limitations
 
-Settings の Custom OpenAI Compatible で、Name / Base URL / Model ID / API key を追加できます。ローカルの Ollama や社内プロキシなど、Chat Completions 互換のエンドポイント向けです。
+- Desktop only (no mobile support)
+- Vault-wide embedding search (RAG), shell, and MCP are out of scope
+- Does not operate on `.obsidian/` or conversation files
 
-### Permissions
+## For developers
 
-| 操作 | 初期値 |
-| --- | --- |
-| Read | Always allow |
-| Edit | Ask every time |
-| Create | Deny |
-| Delete | Deny |
-| Web search | Deny |
-
-Ask every time のときは実行前に確認モーダルが出ます。Edit では対象ファイル、変更箇所数、追加・削除文字数、簡易 diff を表示します。拒否するとエージェントには `Tool execution denied by user` が返ります。
-
-Read にはノート本文の読み取り、Vault 検索 `search_notes`、ディレクトリ一覧 `list_files`、未オープンファイルを開く `open_file`、既存タブの確認・移動 `workspace_tabs` を含みます。
-
-`web_search` / `fetch_url` は Web search 権限を使い、既定は拒否です。検索プロバイダは DuckDuckGo HTML Search です。`fetch_url` は HTML を Markdown に変換して返します。
-
-**Create / Delete / Web search はデフォルト無効です。** Edit は毎回確認です。誤操作を防ぐための初期値です。
-
-### 現在ノートContext
-
-メッセージ送信時点のアクティブな Markdown ノートのパスと、カーソル行または複数行選択の範囲を渡します。本文は渡しません。内容が必要ならエージェントが `read_note` で読みます。送信後に別ノートへ移動しても、そのターンのコンテキストは変わりません。
-
-### Session
-
-会話はプラグイン用フォルダ（既定は `pidian/sessions/`）に Pidian 独自 JSON として保存されます。場所は設定の「プラグイン用フォルダ」で変更できます。既存ファイルは自動では移動しません。タイトルは最初のユーザーメッセージから自動生成し、LLM は呼びません。
-
-古いセッションの自動削除はデフォルト OFF です。有効化すると retention days（7 / 30 / 90 / Custom）より古いセッションを起動時に削除します。利用中のセッションは削除しません。
-
-### pidian/AGENTS.md
-
-プラグイン用フォルダ（既定は Vault ルートの `pidian/AGENTS.md`）がある場合、追加指示として読み込みます。無い場合は何もしません。自動生成もしません。場所は設定の「プラグイン用フォルダ」に合わせます。
-
-```markdown
-# Instructions
-
-- 日本語で回答する
-- ノートの文体を維持する
-- 編集前に必ず内容を確認する
-```
-
-### Undo
-
-`edit_note` は `Vault.modify()` ではなく Markdown editor の transaction で適用します。対象はアクティブな Markdown editor である必要があります。Obsidian 標準の Undo（Ctrl+Z）で戻せます。1 回の tool call 内の複数置換は 1 つの transaction にまとめます。
-
-非アクティブなノートを編集する場合は、先に `open_file` で開いてアクティブにしてから `edit_note` します。チャットのフォーカスは奪いません。
-
-Create は Undo 対象ではありません。取り消す場合は Obsidian 上でファイルを削除してください。
-
-### 安全性
-
-- Pi 標準の `read` / `write` / `edit` / `bash` / `grep` / `find` / `ls` は無効です
-- ノート操作は Pidian の `read_note` / `search_notes` / `list_files` / `create_note` / `edit_note` / `delete_note` だけです
-- Web 検索は `web_search`、ページ取得は `fetch_url` です。権限は独立しており、既定は拒否です
-- エージェントは、ユーザーがノートの作成・編集・削除を明確に依頼したときだけ書き込みツールを使います。試し打ちや提案だけのときはチャットで答えます
-- タブ操作は `open_file` / `workspace_tabs` です。権限は読み取りと同じ設定を使います
-- 編集は exact unique replacement です。曖昧なら実行しません。空ノートは `oldText` を空文字にして初期内容を入れます
-- 編集対象は事前の `read_note` が必須です
-- 非アクティブなノートの編集は、先に `open_file` で開いてアクティブにする必要があります
-- 読み取り後にノートが変わっていたら再 read を要求します
-- `.obsidian/` とプラグイン用フォルダ内の `sessions/`（既定は `pidian/sessions/`）はツール対象外です
-- プラグイン用フォルダの `AGENTS.md`（既定は `pidian/AGENTS.md`）は通常検索から除外します
-
-### 制限事項
-
-- Desktop only（Mobile 非対応）
-- Embedding / Vault 全体 RAG / Shell / MCP は初期版の対象外です
-
-## Developer Guide
-
-### 必要環境
-
-- Node.js（mise 管理を推奨）
-- pnpm 11
-
-### コマンド
-
-```bash
-pnpm install
-pnpm dev
-pnpm build
-pnpm test
-```
-
-`pnpm dev` は `main.js` を監視ビルドします。Vault の `.obsidian/plugins/pidian/` にこのリポジトリを置くか、成果物をコピーして使います。
-
-### Architecture
-
-依存方向は次の通りです。
-
-```text
-Obsidian UI
-    → Application / Domain
-        → AgentEngine / NoteRepository / NoteEditor / SessionRepository
-            → PiAgentAdapter / Obsidian adapters
-```
-
-**Pi 固有 API を `src/infrastructure/pi` の外へ持ち出さない。** UI と Domain は Pidian 独自の `AgentEvent` と Tool 抽象だけを扱います。
-
-編集の必須経路:
-
-```text
-Agent request
-→ Permission
-→ revision check
-→ exact patch validation
-→ Obsidian Editor transaction
-→ Undo history
-```
-
-Pi から Obsidian へ直接アクセスする経路は作りません。
-
-### AgentEngine abstraction
-
-`AgentEngine.createSession()` が `AgentSession` を返します。UI は `prompt` / `abort` / `subscribe` / `dispose` だけを使います。テストでは `FakeAgentEngine` を使えます。
-
-### Pi Adapter
-
-`PiAgentAdapter` が `@earendil-works/pi-coding-agent` の `createAgentSession()` を呼び出します。
-
-- `noTools: "builtin"` で Pi 標準ツールを無効化
-- Pidian Tool だけを `customTools` として渡す
-- Pi の session ファイルは使わず `SessionManager.inMemory()`
-- API キーは `setRuntimeApiKey` で runtime override する（Pidian 設定 → 環境変数 → Pi 既定）
-
-### Obsidian Tool architecture
-
-初期ツールは `read_note` / `search_notes` / `list_files` / `open_file` / `workspace_tabs` / `web_search` / `fetch_url` / `create_note` / `edit_note` / `delete_note` です。Domain の `PidianTool` として定義し、`PiToolAdapter` だけが Pi の `defineTool` に変換します。`search_notes` / `list_files` / `open_file` / `workspace_tabs` は読み取り権限を使います。`web_search` / `fetch_url` は Web search 権限を使い、検索・取得処理は Pi / Obsidian に依存させません。`delete_note` は削除権限を使い、Obsidian のゴミ箱設定に従ってファイルを捨てます。
-
-ツール追加手順:
-
-1. `src/tools/` に `PidianTool` を追加する
-2. 必要なら Permission category を足す
-3. `createPidianTools()` に登録する
-4. Pi の型や `defineTool` は tools 配下に書かない
-
-### Permission architecture
-
-`PermissionService` が allow / ask / deny を解釈します。確認 UI は `PermissionPrompter` の後ろに置き、Adapter には置きません。
-
-### Undo architecture
-
-`ObsidianNoteEditor` はアクティブな Markdown editor に対してだけ transaction を適用します。対象がアクティブでない場合は `open_file` を先に要求します。Private API には依存しません。
-
-### Session format
-
-```ts
-interface PidianSession {
-  version: 1;
-  id: string;
-  title: string;
-  createdAt: string;
-  updatedAt: string;
-  provider: string;
-  model: string;
-  messages: PidianMessage[];
-}
-```
-
-Pi 固有の session/event オブジェクトはシリアライズしません。再開時は `PidianSession → AgentConversation → PiAgentAdapter` で復元します。未知バージョンは migration で失敗させます。
-
-### Adding a Provider-specific configuration
-
-Pidian 本体に Provider 分岐を増やさないでください。Pi の catalog に載るものは `PiModelCatalog` 経由で UI に出します。OpenAI Compatible だけは Settings の custom provider として `ModelRuntime.registerProvider` します。
-
-### Testing strategy
-
-Vitest で Domain / Application を Fake 実装に対して厚くテストします。Obsidian ItemView や Pi SDK 内部はユニットテストしません。
-
-```bash
-pnpm test
-pnpm test --watch
-```
-
-特に CredentialResolver、PermissionService、ContextService、SessionCleanupService、PiEventMapper、revision / replacements、session serialization / migration をカバーします。
-
-### Manual smoke checklist
-
-README のこの節をリリース前に手で確認します。
-
-- [ ] Sidebar 起動
-- [ ] Chat 送信
-- [ ] Streaming 表示
-- [ ] Model 切替
-- [ ] 現在ノート Context
-- [ ] Selection Context
-- [ ] read_note
-- [ ] search_notes
-- [ ] list_files
-- [ ] open_file
-- [ ] workspace_tabs
-- [ ] web_search / fetch_url / Web search permission
-- [ ] create permission
-- [ ] edit permission
-- [ ] delete permission / delete_note
-- [ ] Undo（アクティブノート）
-- [ ] 非アクティブノートは open_file してから edit_note
-- [ ] Session 再起動復元
-- [ ] AGENTS.md 反映
-- [ ] 古い Session 削除
-
-### Release procedure
-
-1. `manifest.json` と `package.json` の version を上げる
-2. `versions.json` に `"plugin-version": "min-obsidian-version"` を追加する
-3. `pnpm test` と `pnpm build` と `pnpm lint` を通す
-4. `main.js` / `manifest.json` / `styles.css` を GitHub Release に添付する
-5. [Plugin guidelines](https://docs.obsidian.md/Plugins/Releasing/Plugin+guidelines) を確認する
+Build, architecture, testing, and release steps are in [CONTRIBUTING.md](CONTRIBUTING.md). Agent execution uses [Pi](https://github.com/badlogic/pi-mono).
