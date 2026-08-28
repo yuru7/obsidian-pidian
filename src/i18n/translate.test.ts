@@ -25,6 +25,12 @@ describe("lookup", () => {
   it("interpolates placeholders", () => {
     expect(lookup("en", "noticeError", { error: "timeout" })).toBe("Pidian: timeout");
     expect(lookup("ja", "noticeError", { error: "timeout" })).toBe("Pidian: timeout");
+    expect(lookup("en", "settingsUsingEnv", { name: "OPENAI_API_KEY" })).toBe(
+      'Using environment variable "OPENAI_API_KEY"',
+    );
+    expect(lookup("ja", "settingsUsingEnv", { name: "OPENAI_API_KEY" })).toBe(
+      '環境変数 "OPENAI_API_KEY" を使用中',
+    );
   });
 
   it("leaves the template unchanged when vars are omitted", () => {

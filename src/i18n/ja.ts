@@ -22,7 +22,7 @@ export const ja: { [K in keyof typeof en]: string } = {
   settingsCredentials: "認証情報",
   settingsCredentialsHelp:
     "API キーはこのプラグインの Obsidian データに保存されます。空欄なら環境変数、それもなければ Pi の既存 credential を使います。",
-  settingsUsingEnv: "環境変数を使用中",
+  settingsUsingEnv: '環境変数 "{name}" を使用中',
   settingsApiKey: "API キー",
   settingsPermissions: "権限",
   settingsPermissionRead: "読み取り",

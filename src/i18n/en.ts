@@ -20,7 +20,7 @@ export const en = {
   settingsCredentials: "Credentials",
   settingsCredentialsHelp:
     "API keys are stored in this plugin's Obsidian data. Leave a field empty to use an environment variable or Pi's existing credentials.",
-  settingsUsingEnv: "Using environment variable",
+  settingsUsingEnv: 'Using environment variable "{name}"',
   settingsApiKey: "API key",
   settingsPermissions: "Permissions",
   settingsPermissionRead: "Read",

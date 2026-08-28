@@ -31,7 +31,7 @@ Pidian は Obsidian の右サイドバーにチャット UI を出し、開い�
 
 API キーは **Obsidian Plugin data**（`data.json`）に保存されます。チャットセッションファイルには保存しません。
 
-ローカル保存を避けたい場合は、各 Provider の環境変数を使ってください。設定値が空なら環境変数が使われ、「Using environment variable」と表示されます。値そのものは表示しません。
+ローカル保存を避けたい場合は、各 Provider の環境変数を使ってください。設定値が空なら環境変数が使われ、「Using environment variable "OPENAI_API_KEY"」のように変数名付きで表示されます。値そのものは表示しません。
 
 優先順位:
 

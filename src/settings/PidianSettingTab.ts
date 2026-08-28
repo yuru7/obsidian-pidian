@@ -207,11 +207,15 @@ export class PidianSettingTab extends PluginSettingTab {
     });
     for (const provider of sortProviders(providers.filter((item) => !item.isCustom))) {
       const envNames = provider.envVarNames;
-      const usingEnv =
-        !this.plugin.settings.apiKeys[provider.id]?.trim() && envNames.some((name) => Boolean(process.env[name]));
+      const usedEnvName = envNames.find((name) => Boolean(process.env[name]?.trim()));
+      const usingEnv = !this.plugin.settings.apiKeys[provider.id]?.trim() && Boolean(usedEnvName);
       new Setting(containerEl)
         .setName(provider.name)
-        .setDesc(usingEnv ? t("settingsUsingEnv") : envNames.join(", ") || t("settingsApiKey"))
+        .setDesc(
+          usingEnv && usedEnvName
+            ? t("settingsUsingEnv", { name: usedEnvName })
+            : envNames.join(", ") || t("settingsApiKey"),
+        )
         .addText((text) => {
           text.inputEl.type = "password";
           text.setPlaceholder(t("settingsApiKey")).setValue(this.plugin.settings.apiKeys[provider.id] ?? "");
