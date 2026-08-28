@@ -69,6 +69,11 @@
   justify-content: center;
 }
 
+.pidian-view .pidian-send-button {
+  width: 28px;
+  height: 28px;
+}
+
 .pidian-view .pidian-icon-button {
   border: none;
 }
@@ -83,9 +88,19 @@
 }
 
 .pidian-view .pidian-button-primary {
-  background-color: transparent;
-  color: var(--text-normal);
+  background-color: var(--text-normal);
+  color: var(--background-primary);
   border-color: transparent;
+  border-radius: 50%;
+}
+
+.pidian-view .pidian-button-primary:hover,
+.pidian-view .pidian-button-primary:disabled {
+  background-color: var(--text-normal);
+}
+
+.pidian-view .pidian-button-primary:disabled {
+  opacity: 0.4;
 }
 
 .pidian-model-selector {
