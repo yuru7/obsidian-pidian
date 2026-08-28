@@ -36,7 +36,7 @@ describe("search_notes", () => {
     const tool = createSearchNotesTool({
       notes: new MemoryNotes([{ path: "a.md", matchType: "filename", snippet: "a.md" }]),
       permissions: new PermissionService(
-        () => ({ read: "deny", create: "allow", edit: "allow", delete: "allow" }),
+        () => ({ read: "deny", create: "allow", edit: "allow", delete: "allow", webSearch: "deny" }),
         { confirm: async () => true },
       ),
     });
@@ -51,7 +51,7 @@ describe("search_notes", () => {
     const tool = createSearchNotesTool({
       notes: new MemoryNotes(hits),
       permissions: new PermissionService(
-        () => ({ read: "allow", create: "deny", edit: "deny", delete: "deny" }),
+        () => ({ read: "allow", create: "deny", edit: "deny", delete: "deny", webSearch: "deny" }),
         { confirm: async () => true },
       ),
     });

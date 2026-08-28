@@ -46,7 +46,7 @@ describe("delete_note", () => {
     const tool = createDeleteNoteTool({
       notes: new MemoryNotes(files),
       permissions: new PermissionService(
-        () => ({ read: "allow", create: "deny", edit: "deny", delete: "deny" }),
+        () => ({ read: "allow", create: "deny", edit: "deny", delete: "deny", webSearch: "deny" }),
         { confirm: async () => true },
       ),
     });
@@ -62,7 +62,7 @@ describe("delete_note", () => {
     const tool = createDeleteNoteTool({
       notes: new MemoryNotes(files),
       permissions: new PermissionService(
-        () => ({ read: "allow", create: "deny", edit: "deny", delete: "allow" }),
+        () => ({ read: "allow", create: "deny", edit: "deny", delete: "allow", webSearch: "deny" }),
         { confirm: async () => true },
       ),
     });
@@ -77,7 +77,7 @@ describe("delete_note", () => {
     const tool = createDeleteNoteTool({
       notes: new MemoryNotes(new Map()),
       permissions: new PermissionService(
-        () => ({ read: "allow", create: "deny", edit: "deny", delete: "allow" }),
+        () => ({ read: "allow", create: "deny", edit: "deny", delete: "allow", webSearch: "deny" }),
         { confirm: async () => true },
       ),
     });

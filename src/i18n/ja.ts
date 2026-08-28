@@ -29,6 +29,7 @@ export const ja: { [K in keyof typeof en]: string } = {
   settingsPermissionEdit: "編集",
   settingsPermissionCreate: "作成",
   settingsPermissionDelete: "削除",
+  settingsPermissionWebSearch: "Web検索",
   settingsPermissionAllow: "常に許可",
   settingsPermissionAsk: "毎回確認",
   settingsPermissionDeny: "拒否",

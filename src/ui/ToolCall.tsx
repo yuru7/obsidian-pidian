@@ -6,7 +6,9 @@ export function ToolCall({ toolCall }: { toolCall: PidianToolCall }): JSX.Elemen
   const args = toolCall.args && typeof toolCall.args === "object" ? (toolCall.args as Record<string, unknown>) : {};
   const path = typeof args.path === "string" ? args.path : "";
   const tabId = typeof args.tabId === "string" ? args.tabId : "";
-  const detail = path || tabId;
+  const query = typeof args.query === "string" ? args.query : "";
+  const url = typeof args.url === "string" ? args.url : "";
+  const detail = path || tabId || query || url;
 
   return (
     <div className={`pidian-tool${toolCall.isError ? " is-error" : ""}`}>

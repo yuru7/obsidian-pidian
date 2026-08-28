@@ -17,8 +17,14 @@ describe("mergeSettings", () => {
       edit: "ask",
       create: "allow",
       delete: "deny",
+      webSearch: "deny",
     });
     expect("maxEditableNotes" in merged).toBe(false);
+  });
+
+  it("defaults webSearch to deny and keeps an explicit value", () => {
+    expect(mergeSettings({}).permissions.webSearch).toBe("deny");
+    expect(mergeSettings({ permissions: { webSearch: "allow" } }).permissions.webSearch).toBe("allow");
   });
 
   it("drops the former selection context setting", () => {

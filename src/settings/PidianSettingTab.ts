@@ -195,6 +195,7 @@ export class PidianSettingTab extends PluginSettingTab {
     this.permissionSetting(containerEl, t("settingsPermissionEdit"), "edit");
     this.permissionSetting(containerEl, t("settingsPermissionCreate"), "create");
     this.permissionSetting(containerEl, t("settingsPermissionDelete"), "delete");
+    this.permissionSetting(containerEl, t("settingsPermissionWebSearch"), "webSearch");
   }
 
   private renderSession(containerEl: HTMLElement): void {

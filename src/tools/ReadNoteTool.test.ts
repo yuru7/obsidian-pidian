@@ -39,7 +39,7 @@ class MemoryNotes implements NoteRepository {
 
 function allowRead() {
   return new PermissionService(
-    () => ({ read: "allow", create: "deny", edit: "deny", delete: "deny" }),
+    () => ({ read: "allow", create: "deny", edit: "deny", delete: "deny", webSearch: "deny" }),
     { confirm: async () => true },
   );
 }
@@ -51,7 +51,7 @@ describe("read_note", () => {
       notes: new MemoryNotes(new Map([["a.md", "hello"]])),
       tracker: new ReadRevisionTracker(),
       permissions: new PermissionService(
-        () => ({ read: "deny", create: "allow", edit: "allow", delete: "allow" }),
+        () => ({ read: "deny", create: "allow", edit: "allow", delete: "allow", webSearch: "deny" }),
         { confirm: async () => true },
       ),
     });

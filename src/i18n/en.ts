@@ -27,6 +27,7 @@ export const en = {
   settingsPermissionEdit: "Edit",
   settingsPermissionCreate: "Create",
   settingsPermissionDelete: "Delete",
+  settingsPermissionWebSearch: "Web search",
   settingsPermissionAllow: "Always allow",
   settingsPermissionAsk: "Ask every time",
   settingsPermissionDeny: "Deny",

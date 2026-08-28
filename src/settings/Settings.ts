@@ -28,6 +28,7 @@ export const DEFAULT_SETTINGS: PidianSettings = {
     edit: "deny",
     create: "deny",
     delete: "deny",
+    webSearch: "deny",
   },
   autoDeleteSessions: false,
   retentionDays: 30,
@@ -48,6 +49,7 @@ export function mergeSettings(raw: unknown): PidianSettings {
       edit: input.permissions?.edit ?? DEFAULT_SETTINGS.permissions.edit,
       create: input.permissions?.create ?? DEFAULT_SETTINGS.permissions.create,
       delete: input.permissions?.delete ?? DEFAULT_SETTINGS.permissions.delete,
+      webSearch: input.permissions?.webSearch ?? DEFAULT_SETTINGS.permissions.webSearch,
     },
   };
 }

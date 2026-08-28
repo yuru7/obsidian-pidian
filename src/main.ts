@@ -7,9 +7,12 @@ import { PermissionService } from "./application/PermissionService";
 import { ReadRevisionTracker } from "./application/ReadRevisionTracker";
 import { SessionCleanupService } from "./application/SessionCleanupService";
 import { SessionService } from "./application/SessionService";
+import { corsFreeFetch } from "./infrastructure/pi/corsFreeFetch";
 import { PiAgentAdapter } from "./infrastructure/pi/PiAgentAdapter";
 import { createCredentialResolver } from "./infrastructure/pi/PiCredentials";
 import { PiModelCatalog } from "./infrastructure/pi/PiModelCatalog";
+import { createSearchService } from "./infrastructure/search/createSearchService";
+import { createFetchService } from "./infrastructure/fetch/createFetchService";
 import { editorContextExtension } from "./infrastructure/obsidian/editorContextExtension";
 import { ObsidianContextProvider } from "./infrastructure/obsidian/ObsidianContextProvider";
 import { ObsidianInstructionReader } from "./infrastructure/obsidian/ObsidianInstructionReader";
@@ -110,6 +113,8 @@ export default class PidianPlugin extends Plugin {
       () => this.settings.permissions,
       new ObsidianPermissionPrompter(this.app),
     );
+    const search = createSearchService(corsFreeFetch);
+    const fetchService = createFetchService(corsFreeFetch);
     const credentials = this.credentials ?? createCredentialResolver(() => this.settings);
     this.credentials = credentials;
     const adapter = new PiAgentAdapter({
@@ -153,6 +158,8 @@ export default class PidianPlugin extends Plugin {
           workspace,
           permissions,
           tracker,
+          search,
+          fetchService,
         }),
     );
   }

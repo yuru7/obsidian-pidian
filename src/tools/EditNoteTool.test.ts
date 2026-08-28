@@ -6,6 +6,9 @@ import type { Note, NoteRepository, SearchHit } from "../domain/notes/NoteReposi
 import { NOTE_NOT_ACTIVE_EDITOR, type NoteEditor, type Replacement } from "../domain/notes/NoteEditor";
 import type { OpenFileResult, WorkspaceNavigator, WorkspaceTab } from "../domain/workspace/WorkspaceNavigator";
 import { applyReplacementsToText } from "../application/replacements";
+import { SearchProviderRegistry, SearchService } from "../application/search/SearchService";
+import { FetchService } from "../application/fetch/FetchService";
+import { SsrfGuard } from "../infrastructure/fetch/ssrfGuard";
 import { createEditNoteTool } from "./EditNoteTool";
 import { createPidianTools } from "./createPidianTools";
 
@@ -97,7 +100,7 @@ describe("edit_note", () => {
       editor,
       tracker,
       permissions: new PermissionService(
-        () => ({ read: "allow", create: "deny", edit: "deny", delete: "deny" }),
+        () => ({ read: "allow", create: "deny", edit: "deny", delete: "deny", webSearch: "deny" }),
         { confirm: async () => true },
       ),
     });
@@ -125,7 +128,7 @@ describe("edit_note", () => {
       editor,
       tracker,
       permissions: new PermissionService(
-        () => ({ read: "allow", create: "deny", edit: "allow", delete: "deny" }),
+        () => ({ read: "allow", create: "deny", edit: "allow", delete: "deny", webSearch: "deny" }),
         { confirm: async () => true },
       ),
     });
@@ -154,7 +157,7 @@ describe("edit_note", () => {
       editor,
       tracker,
       permissions: new PermissionService(
-        () => ({ read: "allow", create: "deny", edit: "allow", delete: "deny" }),
+        () => ({ read: "allow", create: "deny", edit: "allow", delete: "deny", webSearch: "deny" }),
         { confirm: async () => true },
       ),
     });
@@ -184,8 +187,10 @@ describe("read then edit flow", () => {
       editor,
       workspace: new MemoryWorkspace(),
       tracker,
+      search: new SearchService(new SearchProviderRegistry(), []),
+      fetchService: new FetchService(async () => new Response(""), new SsrfGuard(async () => [])),
       permissions: new PermissionService(
-        () => ({ read: "allow", create: "allow", edit: "allow", delete: "deny" }),
+        () => ({ read: "allow", create: "allow", edit: "allow", delete: "deny", webSearch: "deny" }),
         { confirm },
       ),
     });
@@ -220,8 +225,10 @@ describe("read then edit flow", () => {
       editor,
       workspace: new MemoryWorkspace(),
       tracker,
+      search: new SearchService(new SearchProviderRegistry(), []),
+      fetchService: new FetchService(async () => new Response(""), new SsrfGuard(async () => [])),
       permissions: new PermissionService(
-        () => ({ read: "allow", create: "allow", edit: "allow", delete: "deny" }),
+        () => ({ read: "allow", create: "allow", edit: "allow", delete: "deny", webSearch: "deny" }),
         { confirm: async () => true },
       ),
     });

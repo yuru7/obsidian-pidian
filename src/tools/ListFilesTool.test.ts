@@ -40,7 +40,7 @@ describe("list_files", () => {
     const tool = createListFilesTool({
       notes: new MemoryNotes(new Map([["notes", []]])),
       permissions: new PermissionService(
-        () => ({ read: "deny", create: "allow", edit: "allow", delete: "allow" }),
+        () => ({ read: "deny", create: "allow", edit: "allow", delete: "allow", webSearch: "deny" }),
         { confirm: async () => true },
       ),
     });
@@ -58,7 +58,7 @@ describe("list_files", () => {
     const tool = createListFilesTool({
       notes: new MemoryNotes(new Map([["notes", entries]])),
       permissions: new PermissionService(
-        () => ({ read: "allow", create: "deny", edit: "deny", delete: "deny" }),
+        () => ({ read: "allow", create: "deny", edit: "deny", delete: "deny", webSearch: "deny" }),
         { confirm: async () => true },
       ),
     });
@@ -73,7 +73,7 @@ describe("list_files", () => {
     const tool = createListFilesTool({
       notes: new MemoryNotes(new Map([["", entries]])),
       permissions: new PermissionService(
-        () => ({ read: "allow", create: "deny", edit: "deny", delete: "deny" }),
+        () => ({ read: "allow", create: "deny", edit: "deny", delete: "deny", webSearch: "deny" }),
         { confirm: async () => true },
       ),
     });

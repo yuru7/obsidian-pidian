@@ -21,7 +21,7 @@ Pidian は Obsidian の右サイドバーにチャット UI を出し、開い�
 1. Settings → Pidian を開く
 2. Provider と Model を選ぶ
 3. API キーを設定する。空欄なら環境変数、それも無ければ Pi 側の既存 credential を使います
-4. Create / Edit は **デフォルト無効** です。必要なときだけ Always allow か Ask every time に変更してください
+4. Create / Edit / Delete / Web search は **デフォルト無効** です。必要なときだけ Always allow か Ask every time に変更してください
 
 ### Provider / Model設定
 
@@ -62,12 +62,15 @@ Settings の Custom OpenAI Compatible で、Name / Base URL / Model ID / API key
 | Edit | Deny |
 | Create | Deny |
 | Delete | Deny |
+| Web search | Deny |
 
 Ask every time のときは実行前に確認モーダルが出ます。Edit では対象ファイル、変更箇所数、追加・削除文字数、簡易 diff を表示します。拒否するとエージェントには `Tool execution denied by user` が返ります。
 
 Read にはノート本文の読み取り、Vault 検索 `search_notes`、ディレクトリ一覧 `list_files`、未オープンファイルを開く `open_file`、既存タブの確認・移動 `workspace_tabs` を含みます。
 
-**Create / Edit / Delete はデフォルト無効です。** 誤操作を防ぐための初期値です。
+`web_search` / `fetch_url` は Web search 権限を使い、既定は拒否です。検索プロバイダは DuckDuckGo HTML Search です。`fetch_url` は HTML を Markdown に変換して返します。
+
+**Create / Edit / Delete / Web search はデフォルト無効です。** 誤操作を防ぐための初期値です。
 
 ### 現在ノートContext
 
@@ -103,6 +106,7 @@ Create は Undo 対象ではありません。取り消す場合は Obsidian 上
 
 - Pi 標準の `read` / `write` / `edit` / `bash` / `grep` / `find` / `ls` は無効です
 - ノート操作は Pidian の `read_note` / `search_notes` / `list_files` / `create_note` / `edit_note` / `delete_note` だけです
+- Web 検索は `web_search`、ページ取得は `fetch_url` です。権限は独立しており、既定は拒否です
 - エージェントは、ユーザーがノートの作成・編集・削除を明確に依頼したときだけ書き込みツールを使います。試し打ちや提案だけのときはチャットで答えます
 - タブ操作は `open_file` / `workspace_tabs` です。権限は読み取りと同じ設定を使います
 - 編集は exact unique replacement です。曖昧なら実行しません。空ノートは `oldText` を空文字にして初期内容を入れます
@@ -115,7 +119,7 @@ Create は Undo 対象ではありません。取り消す場合は Obsidian 上
 ### 制限事項
 
 - Desktop only（Mobile 非対応）
-- Embedding / Vault 全体 RAG / Web 検索 / Shell / MCP は初期版の対象外です
+- Embedding / Vault 全体 RAG / Shell / MCP は初期版の対象外です
 
 ## Developer Guide
 
@@ -176,7 +180,7 @@ Pi から Obsidian へ直接アクセスする経路は作りません。
 
 ### Obsidian Tool architecture
 
-初期ツールは `read_note` / `search_notes` / `list_files` / `open_file` / `workspace_tabs` / `create_note` / `edit_note` / `delete_note` です。Domain の `PidianTool` として定義し、`PiToolAdapter` だけが Pi の `defineTool` に変換します。`search_notes` / `list_files` / `open_file` / `workspace_tabs` は読み取り権限を使います。`delete_note` は削除権限を使い、Obsidian のゴミ箱設定に従ってファイルを捨てます。
+初期ツールは `read_note` / `search_notes` / `list_files` / `open_file` / `workspace_tabs` / `web_search` / `fetch_url` / `create_note` / `edit_note` / `delete_note` です。Domain の `PidianTool` として定義し、`PiToolAdapter` だけが Pi の `defineTool` に変換します。`search_notes` / `list_files` / `open_file` / `workspace_tabs` は読み取り権限を使います。`web_search` / `fetch_url` は Web search 権限を使い、検索・取得処理は Pi / Obsidian に依存させません。`delete_note` は削除権限を使い、Obsidian のゴミ箱設定に従ってファイルを捨てます。
 
 ツール追加手順:
 
@@ -240,6 +244,7 @@ README のこの節をリリース前に手で確認します。
 - [ ] list_files
 - [ ] open_file
 - [ ] workspace_tabs
+- [ ] web_search / fetch_url / Web search permission
 - [ ] create permission
 - [ ] edit permission
 - [ ] delete permission / delete_note
