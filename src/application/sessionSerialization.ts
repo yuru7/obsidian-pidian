@@ -116,3 +116,18 @@ export function parsePidianSession(raw: unknown): PidianSession {
 export function serializePidianSession(session: PidianSession): string {
   return JSON.stringify(parsePidianSession(session), null, 2);
 }
+
+export function unwrapSessionFileText(raw: string): string {
+  const trimmed = raw.trim();
+  const fenced = /^```json[ \t]*\r?\n([\s\S]*?)\r?\n```$/.exec(trimmed);
+  return fenced ? fenced[1]! : trimmed;
+}
+
+export function serializeSessionFile(session: PidianSession, markdown: boolean): string {
+  const json = serializePidianSession(session);
+  return markdown ? `\`\`\`json\n${json}\n\`\`\`\n` : json;
+}
+
+export function parseSessionFile(raw: string): PidianSession {
+  return parsePidianSession(JSON.parse(unwrapSessionFileText(raw)));
+}

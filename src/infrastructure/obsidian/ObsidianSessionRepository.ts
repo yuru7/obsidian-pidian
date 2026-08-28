@@ -1,61 +1,77 @@
 import type { App } from "obsidian";
 import type { PidianSession, SessionRepository, SessionSummary } from "../../domain/sessions/PidianSession";
 import { SESSIONS_DIR } from "../../application/notePath";
-import { parsePidianSession, serializePidianSession } from "../../application/sessionSerialization";
+import {
+  isSessionFilePath,
+  newSessionFilePath,
+  SESSION_FILE_EXTENSION,
+  sessionIdFromFilePath,
+} from "../../application/sessionFilePath";
+import { parseSessionFile, serializeSessionFile } from "../../application/sessionSerialization";
 
 export class ObsidianSessionRepository implements SessionRepository {
   constructor(private readonly app: App) {}
 
   async save(session: PidianSession): Promise<void> {
     await this.ensureDir();
-    await this.app.vault.adapter.write(this.filePath(session.id), serializePidianSession(session));
+    const path = (await this.resolveExistingPath(session.id)) ?? newSessionFilePath(session);
+    await this.app.vault.adapter.write(
+      path,
+      serializeSessionFile(session, path.endsWith(SESSION_FILE_EXTENSION)),
+    );
   }
 
   async load(id: string): Promise<PidianSession | undefined> {
-    const path = this.filePath(id);
-    if (!(await this.app.vault.adapter.exists(path))) {
+    const path = await this.resolveExistingPath(id);
+    if (!path) {
       return undefined;
     }
     const raw = await this.app.vault.adapter.read(path);
-    return parsePidianSession(JSON.parse(raw));
+    return parseSessionFile(raw);
   }
 
   async list(): Promise<SessionSummary[]> {
-    if (!(await this.app.vault.adapter.exists(SESSIONS_DIR))) {
-      return [];
-    }
-    const listed = await this.app.vault.adapter.list(SESSIONS_DIR);
-    const summaries: SessionSummary[] = [];
-    for (const file of listed.files) {
-      if (!file.endsWith(".json")) {
-        continue;
-      }
+    const byId = new Map<string, SessionSummary>();
+    for (const file of await this.listSessionPaths()) {
       try {
         const raw = await this.app.vault.adapter.read(file);
-        const session = parsePidianSession(JSON.parse(raw));
-        summaries.push({
-          id: session.id,
-          title: session.title,
-          updatedAt: session.updatedAt,
-          model: session.model,
-          provider: session.provider,
-        });
+        const session = parseSessionFile(raw);
+        const existing = byId.get(session.id);
+        if (!existing || file.endsWith(SESSION_FILE_EXTENSION)) {
+          byId.set(session.id, {
+            id: session.id,
+            title: session.title,
+            updatedAt: session.updatedAt,
+            model: session.model,
+            provider: session.provider,
+          });
+        }
       } catch {
         // Skip corrupt session files.
       }
     }
-    return summaries.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+    return [...byId.values()].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
   }
 
   async delete(id: string): Promise<void> {
-    const path = this.filePath(id);
-    if (await this.app.vault.adapter.exists(path)) {
-      await this.app.vault.adapter.remove(path);
+    for (const path of await this.listSessionPaths()) {
+      if (sessionIdFromFilePath(path) === id) {
+        await this.app.vault.adapter.remove(path);
+      }
     }
   }
 
-  private filePath(id: string): string {
-    return `${SESSIONS_DIR}/${id}.json`;
+  private async listSessionPaths(): Promise<string[]> {
+    if (!(await this.app.vault.adapter.exists(SESSIONS_DIR))) {
+      return [];
+    }
+    const listed = await this.app.vault.adapter.list(SESSIONS_DIR);
+    return listed.files.filter(isSessionFilePath);
+  }
+
+  private async resolveExistingPath(id: string): Promise<string | undefined> {
+    const matches = (await this.listSessionPaths()).filter((file) => sessionIdFromFilePath(file) === id);
+    return matches.find((file) => file.endsWith(SESSION_FILE_EXTENSION)) ?? matches[0];
   }
 
   private async ensureDir(): Promise<void> {

@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { migratePidianSession, parsePidianSession, serializePidianSession } from "./sessionSerialization";
+import {
+  migratePidianSession,
+  parsePidianSession,
+  parseSessionFile,
+  serializePidianSession,
+  serializeSessionFile,
+} from "./sessionSerialization";
 import { sumTokenUsage, type PidianSession } from "../domain/sessions/PidianSession";
 
 const sample: PidianSession = {
@@ -90,5 +96,18 @@ describe("session serialization", () => {
 
   it("rejects unknown versions", () => {
     expect(() => migratePidianSession({ ...sample, version: 99 })).toThrow(/Unsupported session version/);
+  });
+
+  it("wraps .json.md sessions in a json code fence", () => {
+    const json = serializePidianSession(sample);
+    expect(serializeSessionFile(sample, true)).toBe("```json\n" + json + "\n```\n");
+    expect(parseSessionFile(serializeSessionFile(sample, true))).toEqual(sample);
+  });
+
+  it("reads fenced json.md and raw json session files", () => {
+    const json = serializePidianSession(sample);
+    expect(parseSessionFile("```json\n" + json + "\n```")).toEqual(sample);
+    expect(parseSessionFile(json)).toEqual(sample);
+    expect(serializeSessionFile(sample, false)).toBe(json);
   });
 });
