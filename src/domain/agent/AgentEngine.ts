@@ -7,7 +7,6 @@ export interface AgentSessionOptions {
   provider: string;
   model: string;
   conversation?: AgentConversation;
-  instructions?: string;
   tools: PidianTool[];
 }
 

@@ -4,7 +4,6 @@ import type { AgentEventListener } from "./AgentEvent";
 export interface AgentPrompt {
   text: string;
   context?: ContextSnapshot;
-  instructions?: string;
 }
 
 export interface AgentSession {

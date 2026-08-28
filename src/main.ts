@@ -3,7 +3,6 @@ import { AgentService } from "./application/AgentService";
 import { t } from "./i18n";
 import { ContextService } from "./application/ContextService";
 import type { CredentialResolver } from "./application/CredentialResolver";
-import { InstructionProvider } from "./application/InstructionProvider";
 import { PermissionService } from "./application/PermissionService";
 import { ReadRevisionTracker } from "./application/ReadRevisionTracker";
 import { SessionCleanupService } from "./application/SessionCleanupService";
@@ -116,6 +115,7 @@ export default class PidianPlugin extends Plugin {
     const adapter = new PiAgentAdapter({
       credentials,
       getCustomProviders: () => this.settings.customProviders,
+      readAgentsFile: () => new ObsidianInstructionReader(this.app).read(),
     });
     this.modelCatalog = new PiModelCatalog(
       () => adapter.getRuntime(),
@@ -145,7 +145,6 @@ export default class PidianPlugin extends Plugin {
       adapter,
       sessions,
       new ContextService(contextProvider),
-      new InstructionProvider(() => new ObsidianInstructionReader(this.app).read()),
       (sessionId) =>
         createPidianTools({
           sessionId,

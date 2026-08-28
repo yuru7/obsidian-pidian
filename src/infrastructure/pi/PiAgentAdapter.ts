@@ -13,6 +13,7 @@ import type { AgentPrompt, AgentSession } from "../../domain/agent/AgentSession"
 import type { CustomOpenAIProvider } from "../../settings/Settings";
 import { CredentialResolver } from "../../application/CredentialResolver";
 import { injectCorsFreeFetch } from "./corsFreeFetch";
+import { normalizeAgentsContent, pidianAgentsFiles } from "./pidianAgentsFiles";
 import { PIDIAN_SYSTEM_PROMPT } from "./PiCredentials";
 import { mapPiEvent } from "./PiEventMapper";
 import { toPiTools } from "./PiToolAdapter";
@@ -20,6 +21,7 @@ import { toPiTools } from "./PiToolAdapter";
 export interface PiAgentAdapterOptions {
   credentials: CredentialResolver;
   getCustomProviders: () => CustomOpenAIProvider[];
+  readAgentsFile: () => Promise<string | undefined>;
 }
 
 const EMPTY_USAGE = {
@@ -56,6 +58,7 @@ export class PiAgentAdapter implements AgentEngine {
       throw new Error(`Unknown model ${options.provider}/${options.model}. Check Settings.`);
     }
 
+    const agents = { content: normalizeAgentsContent(await this.options.readAgentsFile()) };
     const loader = new DefaultResourceLoader({
       cwd: process.cwd(),
       agentDir: process.cwd(),
@@ -67,9 +70,7 @@ export class PiAgentAdapter implements AgentEngine {
       noContextFiles: true,
       systemPromptOverride: () => PIDIAN_SYSTEM_PROMPT,
       agentsFilesOverride: () => ({
-        agentsFiles: options.instructions
-          ? [{ path: "pidian/AGENTS.md", content: options.instructions }]
-          : [],
+        agentsFiles: pidianAgentsFiles(agents.content),
       }),
     });
     await loader.reload();
@@ -91,7 +92,7 @@ export class PiAgentAdapter implements AgentEngine {
       ) as unknown as typeof session.agent.state.messages;
     }
 
-    return new PiWrappedSession(session);
+    return new PiWrappedSession(session, loader, agents, this.options.readAgentsFile);
   }
 
   private async applyCredentials(runtime: ModelRuntime): Promise<void> {
@@ -140,18 +141,33 @@ export class PiAgentAdapter implements AgentEngine {
   }
 }
 
+type PiSession = Awaited<ReturnType<typeof createAgentSession>>["session"];
+
 class PiWrappedSession implements AgentSession {
-  constructor(private readonly session: Awaited<ReturnType<typeof createAgentSession>>["session"]) {}
+  constructor(
+    private readonly session: PiSession,
+    private readonly loader: DefaultResourceLoader,
+    private readonly agents: { content: string | undefined },
+    private readonly readAgentsFile: () => Promise<string | undefined>,
+  ) {}
 
   async prompt(request: AgentPrompt): Promise<void> {
-    if (request.instructions) {
-      this.session.agent.state.systemPrompt = `${PIDIAN_SYSTEM_PROMPT}\n\nAdditional instructions:\n${request.instructions}`;
-    }
+    await this.syncAgentsFile();
     await this.session.prompt(request.text, { expandPromptTemplates: false });
     const errorMessage = this.session.agent.state.errorMessage;
     if (errorMessage) {
       throw new Error(errorMessage);
     }
+  }
+
+  private async syncAgentsFile(): Promise<void> {
+    const next = normalizeAgentsContent(await this.readAgentsFile());
+    if (next === this.agents.content) {
+      return;
+    }
+    this.agents.content = next;
+    await this.loader.reload();
+    this.session.setActiveToolsByName(this.session.getActiveToolNames());
   }
 
   async abort(): Promise<void> {

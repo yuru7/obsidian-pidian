@@ -4,7 +4,6 @@ import type { AgentSession } from "../domain/agent/AgentSession";
 import type { PidianTool } from "../domain/tools/PidianTool";
 import type { PidianMessage, PidianSession } from "../domain/sessions/PidianSession";
 import { ContextService, formatAgentPrompt } from "./ContextService";
-import { InstructionProvider } from "./InstructionProvider";
 import { SessionService } from "./SessionService";
 
 export interface ChatListener {
@@ -26,7 +25,6 @@ export class AgentService {
     private readonly engine: AgentEngine,
     private readonly sessions: SessionService,
     private readonly context: ContextService,
-    private readonly instructions: InstructionProvider,
     createTools: (sessionId: string) => PidianTool[],
   ) {
     this.createTools = createTools;
@@ -140,7 +138,6 @@ export class AgentService {
       await agent.prompt({
         text: formatAgentPrompt(trimmed, snapshot),
         context: snapshot,
-        instructions: await this.instructions.getInstructions(),
       });
     } catch (error) {
       this.error = error instanceof Error ? error.message : String(error);
@@ -200,7 +197,6 @@ export class AgentService {
       provider: session.provider,
       model: session.model,
       conversation: this.sessions.toConversation(session),
-      instructions: await this.instructions.getInstructions(),
       tools: this.createTools(session.id),
     });
   }
