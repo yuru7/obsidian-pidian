@@ -74,7 +74,7 @@ export function PidianApp({ plugin }: { plugin: PidianPlugin }): JSX.Element {
           </div>
         </div>
       </header>
-      <Chat app={plugin.app} messages={session?.messages ?? []} />
+      <Chat app={plugin.app} messages={session?.messages ?? []} streaming={streaming} />
       {error ? <div className="pidian-error">{error}</div> : null}
       <footer className="pidian-footer">
         <div className="pidian-footer-meta">

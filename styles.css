@@ -303,6 +303,17 @@
   margin: 4px 0;
 }
 
+.pidian-thinking-wait {
+  color: var(--text-muted);
+  padding: 4px 8px;
+  margin: 4px 0;
+}
+
+.pidian-thinking-dots {
+  display: inline-block;
+  min-width: 5ch;
+}
+
 .pidian-tool-path {
   color: var(--text-faint);
 }

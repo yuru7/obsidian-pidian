@@ -4,7 +4,15 @@ import { t } from "../i18n";
 import type { PidianMessage } from "../domain/sessions/PidianSession";
 import { Message } from "./Message";
 
-export function Chat({ app, messages }: { app: App; messages: PidianMessage[] }): JSX.Element {
+export function Chat({
+  app,
+  messages,
+  streaming,
+}: {
+  app: App;
+  messages: PidianMessage[];
+  streaming?: boolean;
+}): JSX.Element {
   const endRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -17,8 +25,13 @@ export function Chat({ app, messages }: { app: App; messages: PidianMessage[] })
 
   return (
     <div className="pidian-chat">
-      {messages.map((message) => (
-        <Message key={message.id} app={app} message={message} />
+      {messages.map((message, index) => (
+        <Message
+          key={message.id}
+          app={app}
+          message={message}
+          streaming={streaming && index === messages.length - 1}
+        />
       ))}
       <div ref={endRef} />
     </div>
