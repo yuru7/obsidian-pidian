@@ -7,6 +7,7 @@ import { PermissionService } from "./application/PermissionService";
 import { ReadRevisionTracker } from "./application/ReadRevisionTracker";
 import { SessionCleanupService } from "./application/SessionCleanupService";
 import { SessionService } from "./application/SessionService";
+import { bindPluginDirectory } from "./application/notePath";
 import { corsFreeFetch } from "./infrastructure/pi/corsFreeFetch";
 import { PiAgentAdapter } from "./infrastructure/pi/PiAgentAdapter";
 import { createCredentialResolver } from "./infrastructure/pi/PiCredentials";
@@ -107,7 +108,11 @@ export default class PidianPlugin extends Plugin {
     const editor = new ObsidianNoteEditor(this.app);
     const workspace = new ObsidianWorkspaceNavigator(this.app);
     const sessions = new SessionService(
-      new ObsidianSessionRepository(this.app, () => this.settings.sessionFileFormat),
+      new ObsidianSessionRepository(
+        this.app,
+        () => this.settings.sessionFileFormat,
+        () => this.settings.pluginDirectory,
+      ),
     );
     this.sessionService = sessions;
     const tracker = new ReadRevisionTracker();
@@ -262,6 +267,7 @@ export default class PidianPlugin extends Plugin {
   async loadSettings(): Promise<void> {
     this.settings = mergeSettings(await this.loadData());
     this.syncCustomProviderKeys();
+    bindPluginDirectory(() => this.settings.pluginDirectory);
   }
 
   async saveSettings(): Promise<void> {
@@ -282,7 +288,11 @@ export default class PidianPlugin extends Plugin {
       return;
     }
     const cleanup = new SessionCleanupService(
-      new ObsidianSessionRepository(this.app, () => this.settings.sessionFileFormat),
+      new ObsidianSessionRepository(
+        this.app,
+        () => this.settings.sessionFileFormat,
+        () => this.settings.pluginDirectory,
+      ),
     );
     await cleanup.cleanup({
       enabled: this.settings.autoDeleteSessions,

@@ -32,6 +32,9 @@ export const en = {
   settingsPermissionAsk: "Ask every time",
   settingsPermissionDeny: "Deny",
   settingsSession: "Session",
+  settingsPluginDirectory: "Plugin folder",
+  settingsPluginDirectoryDesc:
+    "Vault-relative folder for sessions and AGENTS.md. Existing files are not moved. Default: pidian",
   settingsSessionFileFormat: "Session file format",
   settingsSessionFileFormatDesc:
     ".json.md files appear in Obsidian's built-in file explorer.",

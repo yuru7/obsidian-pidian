@@ -1,5 +1,5 @@
 import type { SessionFileFormat } from "../settings/Settings";
-import { SESSIONS_DIR } from "./notePath";
+import { sessionsDir } from "./notePath";
 
 /** `.json.md` so session files appear in Obsidian's file explorer. */
 export const SESSION_FILE_EXTENSION = ".json.md";
@@ -16,8 +16,9 @@ export function sessionFileTimestamp(createdAt: string): string {
 export function newSessionFilePath(
   session: { id: string; createdAt: string },
   format: SessionFileFormat = "json.md",
+  pluginDirectory?: string,
 ): string {
-  return `${SESSIONS_DIR}/${sessionFileTimestamp(session.createdAt)}_${session.id}${sessionFileExtension(format)}`;
+  return `${sessionsDir(pluginDirectory)}/${sessionFileTimestamp(session.createdAt)}_${session.id}${sessionFileExtension(format)}`;
 }
 
 export function isSessionFilePath(path: string): boolean {

@@ -3,6 +3,7 @@ import { t } from "../i18n";
 import type PidianPlugin from "../main";
 import type { CatalogModel, CatalogProvider } from "../domain/agent/ModelCatalog";
 import type { Permission } from "../domain/permissions/Permission";
+import { DEFAULT_PLUGIN_DIRECTORY, isValidPluginDirectory, normalizeNotePath } from "../application/notePath";
 import { listKnownCredentialProviders } from "../infrastructure/pi/PiCredentials";
 import { parseSessionFileFormat, type CustomOpenAIProvider } from "./Settings";
 
@@ -242,6 +243,24 @@ export class PidianSettingTab extends PluginSettingTab {
 
   private renderSession(containerEl: HTMLElement): void {
     containerEl.createEl("h3", { text: t("settingsSession") });
+    new Setting(containerEl)
+      .setName(t("settingsPluginDirectory"))
+      .setDesc(t("settingsPluginDirectoryDesc"))
+      .addText((text) => {
+        text.setPlaceholder(DEFAULT_PLUGIN_DIRECTORY);
+        text.setValue(this.plugin.settings.pluginDirectory);
+        text.onChange(async (value) => {
+          const normalized = normalizeNotePath(value).replace(/\/+$/, "");
+          if (!isValidPluginDirectory(normalized)) {
+            return;
+          }
+          this.plugin.settings.pluginDirectory = normalized;
+          await this.plugin.saveSettings();
+        });
+        text.inputEl.addEventListener("blur", () => {
+          text.setValue(this.plugin.settings.pluginDirectory);
+        });
+      });
     new Setting(containerEl)
       .setName(t("settingsSessionFileFormat"))
       .setDesc(t("settingsSessionFileFormatDesc"))

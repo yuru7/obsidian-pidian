@@ -1,6 +1,6 @@
 import type { App } from "obsidian";
 import type { PidianSession, SessionRepository, SessionSummary } from "../../domain/sessions/PidianSession";
-import { SESSIONS_DIR } from "../../application/notePath";
+import { getPluginDirectory, parsePluginDirectory, sessionsDir } from "../../application/notePath";
 import {
   isSessionFilePath,
   newSessionFilePath,
@@ -15,11 +15,12 @@ export class ObsidianSessionRepository implements SessionRepository {
   constructor(
     private readonly app: App,
     private readonly getSessionFileFormat: () => SessionFileFormat = () => "json.md",
+    private readonly resolvePluginDirectory: () => string = getPluginDirectory,
   ) {}
 
   async save(session: PidianSession): Promise<void> {
     await this.ensureDir();
-    const path = (await this.resolveExistingPath(session.id)) ?? newSessionFilePath(session, this.getSessionFileFormat());
+    const path = (await this.resolveExistingPath(session.id)) ?? newSessionFilePath(session, this.getSessionFileFormat(), this.pluginDirectory());
     await this.app.vault.adapter.write(
       path,
       serializeSessionFile(session, path.endsWith(SESSION_FILE_EXTENSION)),
@@ -66,11 +67,20 @@ export class ObsidianSessionRepository implements SessionRepository {
     }
   }
 
+  private pluginDirectory(): string {
+    return parsePluginDirectory(this.resolvePluginDirectory());
+  }
+
+  private sessionsPath(): string {
+    return sessionsDir(this.pluginDirectory());
+  }
+
   private async listSessionPaths(): Promise<string[]> {
-    if (!(await this.app.vault.adapter.exists(SESSIONS_DIR))) {
+    const directory = this.sessionsPath();
+    if (!(await this.app.vault.adapter.exists(directory))) {
       return [];
     }
-    const listed = await this.app.vault.adapter.list(SESSIONS_DIR);
+    const listed = await this.app.vault.adapter.list(directory);
     return listed.files.filter(isSessionFilePath);
   }
 
@@ -81,11 +91,18 @@ export class ObsidianSessionRepository implements SessionRepository {
   }
 
   private async ensureDir(): Promise<void> {
-    if (!(await this.app.vault.adapter.exists("pidian"))) {
-      await this.app.vault.adapter.mkdir("pidian");
-    }
-    if (!(await this.app.vault.adapter.exists(SESSIONS_DIR))) {
-      await this.app.vault.adapter.mkdir(SESSIONS_DIR);
+    await this.ensureFolder(this.pluginDirectory());
+    await this.ensureFolder(this.sessionsPath());
+  }
+
+  private async ensureFolder(path: string): Promise<void> {
+    const parts = path.split("/").filter(Boolean);
+    let current = "";
+    for (const part of parts) {
+      current = current ? `${current}/${part}` : part;
+      if (!(await this.app.vault.adapter.exists(current))) {
+        await this.app.vault.adapter.mkdir(current);
+      }
     }
   }
 }

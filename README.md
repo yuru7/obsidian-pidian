@@ -78,13 +78,13 @@ Read にはノート本文の読み取り、Vault 検索 `search_notes`、ディ
 
 ### Session
 
-会話は `pidian/sessions/` に Pidian 独自 JSON として保存されます。タイトルは最初のユーザーメッセージから自動生成し、LLM は呼びません。
+会話はプラグイン用フォルダ（既定は `pidian/sessions/`）に Pidian 独自 JSON として保存されます。場所は設定の「プラグイン用フォルダ」で変更できます。既存ファイルは自動では移動しません。タイトルは最初のユーザーメッセージから自動生成し、LLM は呼びません。
 
 古いセッションの自動削除はデフォルト OFF です。有効化すると retention days（7 / 30 / 90 / Custom）より古いセッションを起動時に削除します。利用中のセッションは削除しません。
 
 ### pidian/AGENTS.md
 
-Vault ルートの `pidian/AGENTS.md` がある場合、追加指示として読み込みます。無い場合は何もしません。自動生成もしません。
+プラグイン用フォルダ（既定は Vault ルートの `pidian/AGENTS.md`）がある場合、追加指示として読み込みます。無い場合は何もしません。自動生成もしません。場所は設定の「プラグイン用フォルダ」に合わせます。
 
 ```markdown
 # Instructions
@@ -113,8 +113,8 @@ Create は Undo 対象ではありません。取り消す場合は Obsidian 上
 - 編集対象は事前の `read_note` が必須です
 - 非アクティブなノートの編集は、先に `open_file` で開いてアクティブにする必要があります
 - 読み取り後にノートが変わっていたら再 read を要求します
-- `.obsidian/` と `pidian/sessions/` はツール対象外です
-- `pidian/AGENTS.md` は通常検索から除外します
+- `.obsidian/` とプラグイン用フォルダ内の `sessions/`（既定は `pidian/sessions/`）はツール対象外です
+- プラグイン用フォルダの `AGENTS.md`（既定は `pidian/AGENTS.md`）は通常検索から除外します
 
 ### 制限事項
 

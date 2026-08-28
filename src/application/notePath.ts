@@ -1,5 +1,6 @@
-export const AGENTS_FILE_PATH = "pidian/AGENTS.md";
-export const SESSIONS_DIR = "pidian/sessions";
+export const DEFAULT_PLUGIN_DIRECTORY = "pidian";
+
+let resolvePluginDirectory: () => string = () => DEFAULT_PLUGIN_DIRECTORY;
 
 export class UnsafeNotePathError extends Error {
   constructor(message: string) {
@@ -12,7 +13,47 @@ export function normalizeNotePath(path: string): string {
   return path.replaceAll("\\", "/").replace(/^\/+/, "").trim();
 }
 
-export function assertSafeNotePath(path: string): string {
+/** Live plugin directory. Bound from plugin settings in main.ts. */
+export function bindPluginDirectory(resolve: () => string): void {
+  resolvePluginDirectory = resolve;
+}
+
+export function getPluginDirectory(): string {
+  return parsePluginDirectory(resolvePluginDirectory());
+}
+
+export function isValidPluginDirectory(path: string): boolean {
+  const normalized = normalizeNotePath(path).replace(/\/+$/, "");
+  if (!normalized) {
+    return false;
+  }
+  const parts = normalized.split("/");
+  if (parts.some((part) => part === ".." || part === "." || part === "")) {
+    return false;
+  }
+  if (normalized === ".obsidian" || normalized.startsWith(".obsidian/")) {
+    return false;
+  }
+  return true;
+}
+
+export function parsePluginDirectory(value: unknown): string {
+  if (typeof value !== "string") {
+    return DEFAULT_PLUGIN_DIRECTORY;
+  }
+  const normalized = normalizeNotePath(value).replace(/\/+$/, "");
+  return isValidPluginDirectory(normalized) ? normalized : DEFAULT_PLUGIN_DIRECTORY;
+}
+
+export function agentsFilePath(pluginDirectory = getPluginDirectory()): string {
+  return `${parsePluginDirectory(pluginDirectory)}/AGENTS.md`;
+}
+
+export function sessionsDir(pluginDirectory = getPluginDirectory()): string {
+  return `${parsePluginDirectory(pluginDirectory)}/sessions`;
+}
+
+export function assertSafeNotePath(path: string, pluginDirectory = getPluginDirectory()): string {
   const normalized = normalizeNotePath(path);
   if (!normalized) {
     throw new UnsafeNotePathError("Note path must not be empty.");
@@ -21,7 +62,7 @@ export function assertSafeNotePath(path: string): string {
   if (parts.some((part) => part === ".." || part === ".")) {
     throw new UnsafeNotePathError("Note path must not contain parent segments.");
   }
-  if (isRestrictedVaultPath(normalized)) {
+  if (isRestrictedVaultPath(normalized, pluginDirectory)) {
     throw new UnsafeNotePathError(
       normalized === ".obsidian" || normalized.startsWith(".obsidian/")
         ? "Notes inside .obsidian/ cannot be accessed."
@@ -31,30 +72,31 @@ export function assertSafeNotePath(path: string): string {
   return normalized;
 }
 
-export function assertSafeDirectoryPath(path: string): string {
+export function assertSafeDirectoryPath(path: string, pluginDirectory = getPluginDirectory()): string {
   const normalized = normalizeNotePath(path).replace(/\/+$/, "");
   if (!normalized || normalized === ".") {
     return "";
   }
-  return assertSafeNotePath(normalized);
+  return assertSafeNotePath(normalized, pluginDirectory);
 }
 
-export function isRestrictedVaultPath(path: string): boolean {
+export function isRestrictedVaultPath(path: string, pluginDirectory = getPluginDirectory()): boolean {
   const normalized = normalizeNotePath(path);
   if (normalized === ".obsidian" || normalized.startsWith(".obsidian/")) {
     return true;
   }
-  if (normalized === SESSIONS_DIR || normalized.startsWith(`${SESSIONS_DIR}/`)) {
+  const sessions = sessionsDir(pluginDirectory);
+  if (normalized === sessions || normalized.startsWith(`${sessions}/`)) {
     return true;
   }
   return false;
 }
 
-export function isExcludedFromSearch(path: string): boolean {
-  if (isRestrictedVaultPath(path)) {
+export function isExcludedFromSearch(path: string, pluginDirectory = getPluginDirectory()): boolean {
+  if (isRestrictedVaultPath(path, pluginDirectory)) {
     return true;
   }
-  if (normalizeNotePath(path) === AGENTS_FILE_PATH) {
+  if (normalizeNotePath(path) === agentsFilePath(pluginDirectory)) {
     return true;
   }
   return false;

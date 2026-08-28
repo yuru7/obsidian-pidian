@@ -1,3 +1,4 @@
+import { DEFAULT_PLUGIN_DIRECTORY, parsePluginDirectory } from "../application/notePath";
 import type { PermissionSettings } from "../domain/permissions/Permission";
 
 export interface CustomOpenAIProvider {
@@ -17,6 +18,7 @@ export interface PidianSettings {
   customProviders: CustomOpenAIProvider[];
   permissions: PermissionSettings;
   sessionFileFormat: SessionFileFormat;
+  pluginDirectory: string;
   autoDeleteSessions: boolean;
   retentionDays: number;
 }
@@ -34,6 +36,7 @@ export const DEFAULT_SETTINGS: PidianSettings = {
     webSearch: "deny",
   },
   sessionFileFormat: "json.md",
+  pluginDirectory: DEFAULT_PLUGIN_DIRECTORY,
   autoDeleteSessions: false,
   retentionDays: 30,
 };
@@ -53,6 +56,7 @@ export function mergeSettings(raw: unknown): PidianSettings {
     apiKeys: { ...DEFAULT_SETTINGS.apiKeys, ...(input.apiKeys ?? {}) },
     customProviders: input.customProviders ?? [],
     sessionFileFormat: parseSessionFileFormat(input.sessionFileFormat),
+    pluginDirectory: parsePluginDirectory(input.pluginDirectory),
     permissions: {
       read: input.permissions?.read ?? DEFAULT_SETTINGS.permissions.read,
       edit: input.permissions?.edit ?? DEFAULT_SETTINGS.permissions.edit,

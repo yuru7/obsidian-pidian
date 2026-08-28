@@ -1,11 +1,11 @@
 import { normalizePath, type App } from "obsidian";
-import { AGENTS_FILE_PATH } from "../../application/notePath";
+import { agentsFilePath } from "../../application/notePath";
 
 export class ObsidianInstructionReader {
   constructor(private readonly app: App) {}
 
   async read(): Promise<string | undefined> {
-    const path = normalizePath(AGENTS_FILE_PATH);
+    const path = normalizePath(agentsFilePath());
     const file = this.app.vault.getFileByPath(path);
     if (file) {
       return this.app.vault.read(file);

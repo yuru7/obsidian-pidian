@@ -22,6 +22,12 @@ describe("sessionFilePath", () => {
     );
   });
 
+  it("places session files under a custom plugin directory", () => {
+    expect(newSessionFilePath({ id: "abc", createdAt: "2026-01-01T00:00:00.000Z" }, "json.md", "agent-data")).toBe(
+      "agent-data/sessions/2026-01-01T000000.000Z_abc.json.md",
+    );
+  });
+
   it("accepts timestamped, id-only, and legacy session files", () => {
     expect(isSessionFilePath("pidian/sessions/2026-01-01T000000.000Z_abc.json.md")).toBe(true);
     expect(isSessionFilePath("pidian/sessions/abc.json.md")).toBe(true);

@@ -1,6 +1,7 @@
 import type { NoteRepository } from "../domain/notes/NoteRepository";
 import type { PidianTool } from "../domain/tools/PidianTool";
 import { PermissionService } from "../application/PermissionService";
+import { agentsFilePath, sessionsDir } from "../application/notePath";
 
 export function createSearchNotesTool(options: {
   notes: NoteRepository;
@@ -10,7 +11,7 @@ export function createSearchNotesTool(options: {
     name: "search_notes",
     label: "Search notes",
     description:
-      "Search Markdown notes in the Obsidian vault by file name and note body. File names are matched exactly first; if none match, a partial match is used (substring, ignoring whitespace differences). Excludes .obsidian/, pidian/sessions/, and pidian/AGENTS.md.",
+      `Search Markdown notes in the Obsidian vault by file name and note body. File names are matched exactly first; if none match, a partial match is used (substring, ignoring whitespace differences). Excludes .obsidian/, ${sessionsDir()}/, and ${agentsFilePath()}.`,
     parameters: {
       type: "object",
       properties: {

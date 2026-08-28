@@ -39,4 +39,11 @@ describe("mergeSettings", () => {
     expect(mergeSettings({ sessionFileFormat: "json" }).sessionFileFormat).toBe("json");
     expect(mergeSettings({ sessionFileFormat: "nope" } as Record<string, unknown>).sessionFileFormat).toBe("json.md");
   });
+
+  it("defaults the plugin directory to pidian and keeps a valid custom folder", () => {
+    expect(mergeSettings({}).pluginDirectory).toBe("pidian");
+    expect(mergeSettings({ pluginDirectory: "agent-data" }).pluginDirectory).toBe("agent-data");
+    expect(mergeSettings({ pluginDirectory: "../secret" }).pluginDirectory).toBe("pidian");
+    expect(mergeSettings({ pluginDirectory: ".obsidian" }).pluginDirectory).toBe("pidian");
+  });
 });

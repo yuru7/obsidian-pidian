@@ -22,4 +22,10 @@ describe("pidianAgentsFiles", () => {
       { path: "pidian/AGENTS.md", content: "be concise" },
     ]);
   });
+
+  it("uses a custom AGENTS.md path when provided", () => {
+    expect(pidianAgentsFiles("be concise", "agent-data/AGENTS.md")).toEqual([
+      { path: "agent-data/AGENTS.md", content: "be concise" },
+    ]);
+  });
 });

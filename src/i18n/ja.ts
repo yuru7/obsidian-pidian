@@ -34,6 +34,9 @@ export const ja: { [K in keyof typeof en]: string } = {
   settingsPermissionAsk: "毎回確認",
   settingsPermissionDeny: "拒否",
   settingsSession: "セッション",
+  settingsPluginDirectory: "プラグイン用フォルダ",
+  settingsPluginDirectoryDesc:
+    "セッションと AGENTS.md を置く Vault 相対フォルダです。既存ファイルは移動しません。既定は pidian です。",
   settingsSessionFileFormat: "セッションファイルの記録方式",
   settingsSessionFileFormatDesc:
     ".json.md は Obsidian の内蔵エクスプローラーに表示されます。",

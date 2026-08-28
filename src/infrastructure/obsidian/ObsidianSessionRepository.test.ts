@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 import type { App } from "obsidian";
 import type { PidianSession } from "../../domain/sessions/PidianSession";
-import { SESSIONS_DIR } from "../../application/notePath";
+import { sessionsDir } from "../../application/notePath";
 import { serializePidianSession, serializeSessionFile } from "../../application/sessionSerialization";
 import { ObsidianSessionRepository } from "./ObsidianSessionRepository";
+
+const SESSIONS_DIR = sessionsDir();
 
 class MemoryAdapter {
   readonly files = new Map<string, string>();
@@ -147,5 +149,20 @@ describe("ObsidianSessionRepository", () => {
     await repository.delete("abc");
 
     expect(adapter.files.size).toBe(0);
+  });
+
+  it("writes session files under a custom nested plugin directory", async () => {
+    const adapter = new MemoryAdapter();
+    const repository = new ObsidianSessionRepository(appWith(adapter), () => "json.md", () => "AI/pidian");
+    const saved = session("abc", "Hello");
+
+    await repository.save(saved);
+
+    expect(adapter.dirs.has("AI")).toBe(true);
+    expect(adapter.dirs.has("AI/pidian")).toBe(true);
+    expect(adapter.dirs.has("AI/pidian/sessions")).toBe(true);
+    const path = "AI/pidian/sessions/2026-01-01T000000.000Z_abc.json.md";
+    expect(adapter.files.get(path)).toBe(serializeSessionFile(saved, true));
+    await expect(repository.load("abc")).resolves.toMatchObject({ id: "abc", title: "Hello" });
   });
 });
