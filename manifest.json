@@ -2,8 +2,9 @@
   "id": "pidian",
   "name": "Pidian",
   "version": "0.1.0",
-  "minAppVersion": "1.8.0",
-  "description": "Use a Pi coding agent from the Obsidian sidebar, with vault tools that go through the Obsidian API.",
-  "author": "Pidian",
+  "minAppVersion": "1.8.7",
+  "description": "A plugin for using Pi Agent with Obsidian",
+  "author": "yuru7",
+  "authorUrl": "https://github.com/yuru7",
   "isDesktopOnly": true
 }
