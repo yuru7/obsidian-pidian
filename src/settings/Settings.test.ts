@@ -46,4 +46,20 @@ describe("mergeSettings", () => {
     expect(mergeSettings({ pluginDirectory: "../secret" }).pluginDirectory).toBe("pidian");
     expect(mergeSettings({ pluginDirectory: ".obsidian" }).pluginDirectory).toBe("pidian");
   });
+
+  it("builds a fresh copy so a settings reset does not mutate defaults", () => {
+    const restored = mergeSettings({});
+    restored.apiKeys.openai = "mutated";
+    restored.permissions.read = "deny";
+    restored.customProviders.push({
+      id: "custom-2",
+      name: "Other",
+      baseUrl: "http://localhost",
+      modelId: "",
+      apiKey: "",
+    });
+    expect(mergeSettings({}).apiKeys).toEqual({});
+    expect(mergeSettings({}).permissions.read).toBe("allow");
+    expect(mergeSettings({}).customProviders).toEqual([]);
+  });
 });

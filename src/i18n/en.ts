@@ -9,6 +9,10 @@ export const en = {
   settingsCatalogMissing:
     "Agent catalog is not initialized. Provider and model can still be typed from the lists above after reload.",
   settingsCatalogError: "Could not load the model catalog: {message}",
+  settingsTabGeneral: "General",
+  settingsTabPermissions: "Permissions",
+  settingsTabApiAuth: "API authentication",
+  settingsTabSession: "Session",
   settingsAgent: "Agent",
   settingsProvider: "Provider",
   settingsProviderDesc: "Default provider for new chats.",
@@ -17,12 +21,10 @@ export const en = {
   settingsCustomProviders: "Custom OpenAI Compatible",
   settingsAddProvider: "Add provider",
   settingsCustomProviderDefaultName: "Custom OpenAI Compatible",
-  settingsCredentials: "Credentials",
   settingsCredentialsHelp:
     "API keys are stored in this plugin's Obsidian data. Leave a field empty to use an environment variable or Pi's existing credentials.",
   settingsUsingEnv: 'Using environment variable "{name}"',
   settingsApiKey: "API key",
-  settingsPermissions: "Permissions",
   settingsPermissionRead: "Read",
   settingsPermissionEdit: "Edit",
   settingsPermissionCreate: "Create",
@@ -31,7 +33,6 @@ export const en = {
   settingsPermissionAllow: "Always allow",
   settingsPermissionAsk: "Ask every time",
   settingsPermissionDeny: "Deny",
-  settingsSession: "Session",
   settingsPluginDirectory: "Plugin folder",
   settingsPluginDirectoryDesc:
     "Vault-relative folder for sessions and AGENTS.md. Existing files are not moved. Default: pidian",
@@ -49,6 +50,9 @@ export const en = {
   settingsModelId: "Model ID",
   settingsRemove: "Remove",
   settingsRemovedProvider: "Removed custom provider",
+  settingsReset: "Reset permissions",
+  settingsResetDesc: "Restore permission settings to their defaults.",
+  settingsResetDone: "Permissions were reset to defaults.",
 
   uiNotInitialized: "Pidian is not fully initialized. Check the developer console.",
   uiNewChat: "New chat",

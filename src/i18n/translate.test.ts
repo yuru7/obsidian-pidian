@@ -20,6 +20,10 @@ describe("resolveLocale", () => {
 describe("lookup", () => {
   it("returns Japanese strings for ja", () => {
     expect(lookup("ja", "uiSend")).toBe("送信");
+    expect(lookup("ja", "settingsTabGeneral")).toBe("全般");
+    expect(lookup("ja", "settingsTabPermissions")).toBe("権限");
+    expect(lookup("ja", "settingsTabApiAuth")).toBe("API認証");
+    expect(lookup("ja", "settingsTabSession")).toBe("セッション");
   });
 
   it("interpolates placeholders", () => {

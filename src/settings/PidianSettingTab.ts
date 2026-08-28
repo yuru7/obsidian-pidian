@@ -5,9 +5,11 @@ import type { CatalogModel, CatalogProvider } from "../domain/agent/ModelCatalog
 import type { Permission } from "../domain/permissions/Permission";
 import { DEFAULT_PLUGIN_DIRECTORY, isValidPluginDirectory, normalizeNotePath } from "../application/notePath";
 import { listKnownCredentialProviders } from "../infrastructure/pi/PiCredentials";
-import { parseSessionFileFormat, type CustomOpenAIProvider } from "./Settings";
+import { DEFAULT_SETTINGS, parseSessionFileFormat, type CustomOpenAIProvider } from "./Settings";
 
 const RETENTION_PRESETS = new Set(["7", "30", "90"]);
+
+type SettingsTabId = "general" | "permissions" | "apiAuth" | "session";
 
 function permissionOptions(): Array<{ value: Permission; label: string }> {
   return [
@@ -24,8 +26,19 @@ function sortProviders(providers: CatalogProvider[]): CatalogProvider[] {
   });
 }
 
+function settingsTabs(): Array<{ id: SettingsTabId; label: string }> {
+  return [
+    { id: "general", label: t("settingsTabGeneral") },
+    { id: "permissions", label: t("settingsTabPermissions") },
+    { id: "apiAuth", label: t("settingsTabApiAuth") },
+    { id: "session", label: t("settingsTabSession") },
+  ];
+}
+
 export class PidianSettingTab extends PluginSettingTab {
   private customRetentionSelected = false;
+  private selectedTab: SettingsTabId = "general";
+  private lastRenderedTab: SettingsTabId | null = null;
 
   constructor(
     app: App,
@@ -36,27 +49,80 @@ export class PidianSettingTab extends PluginSettingTab {
 
   display(): void {
     const { containerEl } = this;
-    const scrollTop = this.readSettingsScroll();
+    const sameTab = this.lastRenderedTab === this.selectedTab;
+    const scrollTop = sameTab ? this.readSettingsScroll() : 0;
     containerEl.empty();
-    containerEl.createEl("h2", { text: "Pidian" });
+    this.renderTabs(containerEl);
 
-    const agentEl = containerEl.createDiv();
-    const fallbackProviders = this.fallbackProviders();
-    const fallbackModels = this.fallbackModels(this.plugin.settings.model);
-    this.renderAgent(agentEl, this.selectableProviders(fallbackProviders), fallbackModels);
+    const panel = containerEl.createDiv({ cls: "pidian-settings-panel" });
+    panel.setAttr("role", "tabpanel");
+    panel.id = "pidian-settings-panel";
+    panel.setAttr("aria-labelledby", `pidian-settings-tab-${this.selectedTab}`);
 
-    this.renderPermissions(containerEl);
-    this.renderCustomProviders(containerEl);
-    this.renderCredentials(containerEl, fallbackProviders);
-    this.renderSession(containerEl);
+    switch (this.selectedTab) {
+      case "general":
+        this.renderGeneral(panel);
+        break;
+      case "permissions":
+        this.renderPermissions(panel);
+        break;
+      case "apiAuth":
+        this.renderApiAuth(panel);
+        break;
+      case "session":
+        this.renderSession(panel);
+        break;
+    }
 
-    void this.enrichAgentFromCatalog(agentEl);
-    this.writeSettingsScroll(scrollTop);
+    this.lastRenderedTab = this.selectedTab;
+    if (sameTab) {
+      this.writeSettingsScroll(scrollTop);
+    }
   }
 
   hide(): void {
     this.customRetentionSelected = false;
     super.hide();
+  }
+
+  private renderTabs(containerEl: HTMLElement): void {
+    const tablist = containerEl.createDiv({ cls: "pidian-settings-tablist" });
+    tablist.setAttr("role", "tablist");
+    for (const tab of settingsTabs()) {
+      const selected = tab.id === this.selectedTab;
+      const button = tablist.createEl("button", {
+        cls: selected ? "pidian-settings-tab is-active" : "pidian-settings-tab",
+        text: tab.label,
+        attr: {
+          type: "button",
+          role: "tab",
+          id: `pidian-settings-tab-${tab.id}`,
+          "aria-selected": selected ? "true" : "false",
+          "aria-controls": "pidian-settings-panel",
+        },
+      });
+      button.addEventListener("click", () => {
+        if (this.selectedTab === tab.id) {
+          return;
+        }
+        this.selectedTab = tab.id;
+        this.display();
+      });
+    }
+  }
+
+  private renderGeneral(containerEl: HTMLElement): void {
+    const agentEl = containerEl.createDiv();
+    const fallbackProviders = this.fallbackProviders();
+    const fallbackModels = this.fallbackModels(this.plugin.settings.model);
+    this.renderAgent(agentEl, this.selectableProviders(fallbackProviders), fallbackModels);
+    this.renderPluginDirectory(containerEl);
+    void this.enrichAgentFromCatalog(agentEl);
+  }
+
+  private renderApiAuth(containerEl: HTMLElement): void {
+    this.renderCredentials(containerEl, this.fallbackProviders());
+    this.renderCustomProviders(containerEl);
   }
 
   private readSettingsScroll(): number {
@@ -202,7 +268,6 @@ export class PidianSettingTab extends PluginSettingTab {
   }
 
   private renderCredentials(containerEl: HTMLElement, providers: CatalogProvider[]): void {
-    containerEl.createEl("h3", { text: t("settingsCredentials") });
     containerEl.createEl("p", {
       text: t("settingsCredentialsHelp"),
     });
@@ -229,20 +294,38 @@ export class PidianSettingTab extends PluginSettingTab {
   }
 
   private renderPermissions(containerEl: HTMLElement): void {
-    containerEl.createEl("h3", { text: t("settingsPermissions") });
     this.permissionSetting(containerEl, t("settingsPermissionRead"), "read");
     this.permissionSetting(containerEl, t("settingsPermissionEdit"), "edit");
     this.permissionSetting(containerEl, t("settingsPermissionCreate"), "create");
     this.permissionSetting(containerEl, t("settingsPermissionDelete"), "delete");
     this.permissionSetting(containerEl, t("settingsPermissionWebSearch"), "webSearch");
+    this.renderReset(containerEl);
+  }
+
+  private renderReset(containerEl: HTMLElement): void {
+    const wrap = containerEl.createDiv({ cls: "pidian-settings-reset" });
+    new Setting(wrap)
+      .setName(t("settingsReset"))
+      .setDesc(t("settingsResetDesc"))
+      .addButton((button) => {
+        button.setButtonText(t("settingsReset")).onClick(() => {
+          void this.resetPermissions();
+        });
+      });
+  }
+
+  private async resetPermissions(): Promise<void> {
+    this.plugin.settings.permissions = { ...DEFAULT_SETTINGS.permissions };
+    await this.plugin.saveSettings();
+    this.display();
+    new Notice(t("settingsResetDone"));
   }
 
   private isCustomRetention(): boolean {
     return this.customRetentionSelected || !RETENTION_PRESETS.has(String(this.plugin.settings.retentionDays));
   }
 
-  private renderSession(containerEl: HTMLElement): void {
-    containerEl.createEl("h3", { text: t("settingsSession") });
+  private renderPluginDirectory(containerEl: HTMLElement): void {
     new Setting(containerEl)
       .setName(t("settingsPluginDirectory"))
       .setDesc(t("settingsPluginDirectoryDesc"))
@@ -261,6 +344,9 @@ export class PidianSettingTab extends PluginSettingTab {
           text.setValue(this.plugin.settings.pluginDirectory);
         });
       });
+  }
+
+  private renderSession(containerEl: HTMLElement): void {
     new Setting(containerEl)
       .setName(t("settingsSessionFileFormat"))
       .setDesc(t("settingsSessionFileFormatDesc"))

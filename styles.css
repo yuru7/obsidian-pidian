@@ -592,3 +592,50 @@
   border: 1px solid var(--background-modifier-border);
   border-radius: var(--radius-s);
 }
+
+.pidian-settings-tablist {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+button.pidian-settings-tab {
+  display: inline-flex;
+  align-items: center;
+  height: 32px;
+  padding: 4px 10px;
+  margin: 0;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--radius-s) var(--radius-s) 2px 2px;
+  background-color: var(--background-primary);
+  box-shadow: none;
+  color: var(--text-muted);
+  font-size: var(--font-ui-small);
+  font-weight: var(--font-medium, 500);
+  cursor: pointer;
+}
+
+button.pidian-settings-tab:hover {
+  background-color: var(--background-primary);
+  border-color: var(--interactive-accent);
+  box-shadow: none;
+}
+
+button.pidian-settings-tab.is-active {
+  background-color: var(--interactive-accent);
+  border-color: var(--interactive-accent);
+  color: var(--text-on-accent);
+  box-shadow: none;
+}
+
+.pidian-settings-panel {
+  margin-top: 12px;
+  padding-top: 16px;
+  border-top: 1px solid var(--background-modifier-border);
+}
+
+.pidian-settings-reset {
+  margin-top: 24px;
+  padding-top: 8px;
+  border-top: 1px solid var(--background-modifier-border);
+}

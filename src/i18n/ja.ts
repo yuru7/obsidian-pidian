@@ -11,6 +11,10 @@ export const ja: { [K in keyof typeof en]: string } = {
   settingsCatalogMissing:
     "エージェントのカタログが初期化されていません。リロード後も、上のリストからプロバイダとモデルを選べます。",
   settingsCatalogError: "モデルカタログを読み込めませんでした: {message}",
+  settingsTabGeneral: "全般",
+  settingsTabPermissions: "権限",
+  settingsTabApiAuth: "API認証",
+  settingsTabSession: "セッション",
   settingsAgent: "エージェント",
   settingsProvider: "プロバイダ",
   settingsProviderDesc: "新しいチャットの既定プロバイダです。",
@@ -19,12 +23,10 @@ export const ja: { [K in keyof typeof en]: string } = {
   settingsCustomProviders: "カスタム OpenAI Compatible",
   settingsAddProvider: "プロバイダを追加",
   settingsCustomProviderDefaultName: "カスタム OpenAI Compatible",
-  settingsCredentials: "認証情報",
   settingsCredentialsHelp:
     "API キーはこのプラグインの Obsidian データに保存されます。空欄なら環境変数、それもなければ Pi の既存 credential を使います。",
   settingsUsingEnv: '環境変数 "{name}" を使用中',
   settingsApiKey: "API キー",
-  settingsPermissions: "権限",
   settingsPermissionRead: "読み取り",
   settingsPermissionEdit: "編集",
   settingsPermissionCreate: "作成",
@@ -33,7 +35,6 @@ export const ja: { [K in keyof typeof en]: string } = {
   settingsPermissionAllow: "常に許可",
   settingsPermissionAsk: "毎回確認",
   settingsPermissionDeny: "拒否",
-  settingsSession: "セッション",
   settingsPluginDirectory: "プラグイン用フォルダ",
   settingsPluginDirectoryDesc:
     "セッションと AGENTS.md を置く Vault 相対フォルダです。既存ファイルは移動しません。既定は pidian です。",
@@ -50,6 +51,9 @@ export const ja: { [K in keyof typeof en]: string } = {
   settingsModelId: "モデル ID",
   settingsRemove: "削除",
   settingsRemovedProvider: "カスタムプロバイダを削除しました",
+  settingsReset: "権限をリセット",
+  settingsResetDesc: "権限設定を既定値に戻します。",
+  settingsResetDone: "権限設定を既定値に戻しました。",
 
   uiNotInitialized: "Pidian の初期化が完了していません。開発者コンソールを確認してください。",
   uiNewChat: "新しいチャット",
