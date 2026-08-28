@@ -62,14 +62,14 @@ describe("PiModelCatalog.listProviders", () => {
         id: "ollama",
         name: "Ollama",
         baseUrl: "http://localhost:11434/v1",
-        modelId: "llama",
+        modelIds: ["llama"],
         apiKey: "",
       },
       {
         id: "incomplete",
         name: "Incomplete",
         baseUrl: "http://localhost:1234/v1",
-        modelId: "",
+        modelIds: [""],
         apiKey: "x",
       },
     ];
@@ -90,7 +90,7 @@ describe("PiModelCatalog.listProviders", () => {
         id: "custom-1",
         name: "Local",
         baseUrl: "http://localhost:11434/v1",
-        modelId: "llama",
+        modelIds: ["llama"],
         apiKey: "local-key",
       },
     ];
@@ -111,7 +111,7 @@ describe("PiModelCatalog.listProviders", () => {
         id: "custom-1",
         name: "XXXカスタム",
         baseUrl: "http://localhost:11434/v1",
-        modelId: "bbb aaaaa",
+        modelIds: ["bbb aaaaa"],
         apiKey: "",
       },
     ];
@@ -141,7 +141,7 @@ describe("PiModelCatalog.listModels", () => {
         id: "ollama",
         name: "Ollama",
         baseUrl: "http://localhost:11434/v1",
-        modelId: "llama",
+        modelIds: ["llama"],
         apiKey: "",
       },
     ];
@@ -154,5 +154,29 @@ describe("PiModelCatalog.listModels", () => {
       })),
     }).listModels("ollama");
     expect(models).toEqual([{ id: "llama", name: "llama", providerId: "ollama" }]);
+  });
+
+  it("returns every configured custom model id", async () => {
+    const custom: CustomOpenAIProvider[] = [
+      {
+        id: "ollama",
+        name: "Ollama",
+        baseUrl: "http://localhost:11434/v1",
+        modelIds: ["llama", "mistral", "llama"],
+        apiKey: "",
+      },
+    ];
+    const models = await catalog({
+      providerIds: [],
+      custom,
+      credentials: createCredentialResolver(() => ({
+        ...DEFAULT_SETTINGS,
+        customProviders: custom,
+      })),
+    }).listModels("ollama");
+    expect(models).toEqual([
+      { id: "llama", name: "llama", providerId: "ollama" },
+      { id: "mistral", name: "mistral", providerId: "ollama" },
+    ]);
   });
 });

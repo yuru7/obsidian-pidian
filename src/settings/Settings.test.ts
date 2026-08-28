@@ -61,11 +61,55 @@ describe("mergeSettings", () => {
       id: "custom-2",
       name: "Other",
       baseUrl: "http://localhost",
-      modelId: "",
+      modelIds: [""],
       apiKey: "",
     });
     expect(mergeSettings({}).apiKeys).toEqual({});
     expect(mergeSettings({}).permissions.read).toBe("allow");
     expect(mergeSettings({}).customProviders).toEqual([]);
+  });
+
+  it("migrates a custom provider modelId into modelIds", () => {
+    expect(
+      mergeSettings({
+        customProviders: [
+          {
+            id: "custom-1",
+            name: "Ollama",
+            baseUrl: "http://localhost:11434/v1",
+            modelId: "llama",
+            apiKey: "",
+          },
+        ],
+      }),
+    ).toEqual(
+      expect.objectContaining({
+        customProviders: [
+          {
+            id: "custom-1",
+            name: "Ollama",
+            baseUrl: "http://localhost:11434/v1",
+            modelIds: ["llama"],
+            apiKey: "",
+          },
+        ],
+      }),
+    );
+  });
+
+  it("keeps custom provider modelIds when already present", () => {
+    expect(
+      mergeSettings({
+        customProviders: [
+          {
+            id: "custom-1",
+            name: "Ollama",
+            baseUrl: "http://localhost:11434/v1",
+            modelIds: ["llama", "mistral"],
+            apiKey: "",
+          },
+        ],
+      }).customProviders[0]?.modelIds,
+    ).toEqual(["llama", "mistral"]);
   });
 });

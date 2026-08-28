@@ -10,7 +10,11 @@ import type { AgentConversation } from "../../domain/agent/AgentConversation";
 import type { AgentEngine, AgentSessionOptions } from "../../domain/agent/AgentEngine";
 import type { AgentEventListener } from "../../domain/agent/AgentEvent";
 import type { AgentPrompt, AgentSession } from "../../domain/agent/AgentSession";
-import type { CustomOpenAIProvider } from "../../settings/Settings";
+import {
+  customProviderModelIds,
+  isConfiguredCustomProvider,
+  type CustomOpenAIProvider,
+} from "../../settings/Settings";
 import { CredentialResolver } from "../../application/CredentialResolver";
 import { injectCorsFreeFetch } from "./corsFreeFetch";
 import { PidianResourceLoader } from "./PidianResourceLoader";
@@ -110,7 +114,7 @@ export class PiAgentAdapter implements AgentEngine {
 
   private registerCustomProviders(runtime: ModelRuntime): void {
     for (const provider of this.options.getCustomProviders()) {
-      if (!provider.baseUrl.trim() || !provider.modelId.trim()) {
+      if (!isConfiguredCustomProvider(provider)) {
         continue;
       }
       try {
@@ -123,17 +127,15 @@ export class PiAgentAdapter implements AgentEngine {
         baseUrl: provider.baseUrl.trim(),
         apiKey: customApiKey(provider),
         api: "openai-completions",
-        models: [
-          {
-            id: provider.modelId.trim(),
-            name: provider.modelId.trim(),
-            reasoning: false,
-            input: ["text"],
-            contextWindow: 128000,
-            maxTokens: 8192,
-            cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
-          },
-        ],
+        models: customProviderModelIds(provider).map((modelId) => ({
+          id: modelId,
+          name: modelId,
+          reasoning: false,
+          input: ["text"],
+          contextWindow: 128000,
+          maxTokens: 8192,
+          cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+        })),
       });
     }
   }

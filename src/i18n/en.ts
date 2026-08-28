@@ -49,6 +49,8 @@ export const en = {
   settingsName: "Name",
   settingsBaseUrl: "Base URL",
   settingsModelId: "Model ID",
+  settingsAddModel: "Add model",
+  settingsRemoveModel: "Remove model",
   settingsRemove: "Remove",
   settingsRemovedProvider: "Removed custom provider",
   settingsReset: "Reset permissions",

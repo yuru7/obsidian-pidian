@@ -2,7 +2,11 @@ import { envVarNamesForProvider } from "./PiCredentials";
 import { ModelRuntime } from "@earendil-works/pi-coding-agent";
 import type { CredentialResolver } from "../../application/CredentialResolver";
 import type { CatalogModel, CatalogProvider, ModelCatalog } from "../../domain/agent/ModelCatalog";
-import type { CustomOpenAIProvider } from "../../settings/Settings";
+import {
+  customProviderModelIds,
+  isConfiguredCustomProvider,
+  type CustomOpenAIProvider,
+} from "../../settings/Settings";
 
 export class PiModelCatalog implements ModelCatalog {
   constructor(
@@ -24,7 +28,7 @@ export class PiModelCatalog implements ModelCatalog {
       providers = [];
     }
     const custom = this.getCustomProviders()
-      .filter((provider) => provider.baseUrl.trim() && provider.modelId.trim())
+      .filter(isConfiguredCustomProvider)
       .map((provider) => ({
         id: provider.id,
         name: provider.name.trim() || provider.id,
@@ -43,17 +47,11 @@ export class PiModelCatalog implements ModelCatalog {
   async listModels(providerId: string): Promise<CatalogModel[]> {
     const custom = this.getCustomProviders().find((provider) => provider.id === providerId);
     if (custom) {
-      const modelId = custom.modelId.trim();
-      if (!modelId) {
-        return [];
-      }
-      return [
-        {
-          id: modelId,
-          name: modelId,
-          providerId: custom.id,
-        },
-      ];
+      return customProviderModelIds(custom).map((modelId) => ({
+        id: modelId,
+        name: modelId,
+        providerId: custom.id,
+      }));
     }
     const runtime = await this.getRuntime();
     return runtime.getModels(providerId).map((model) => ({

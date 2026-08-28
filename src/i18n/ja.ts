@@ -50,6 +50,8 @@ export const ja: { [K in keyof typeof en]: string } = {
   settingsName: "名前",
   settingsBaseUrl: "Base URL",
   settingsModelId: "モデル ID",
+  settingsAddModel: "モデルを追加",
+  settingsRemoveModel: "モデルを削除",
   settingsRemove: "削除",
   settingsRemovedProvider: "カスタムプロバイダを削除しました",
   settingsReset: "権限をリセット",

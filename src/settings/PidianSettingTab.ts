@@ -272,7 +272,7 @@ export class PidianSettingTab extends PluginSettingTab {
           id: `custom-${crypto.randomUUID()}`,
           name: t("settingsCustomProviderDefaultName"),
           baseUrl: "http://localhost:11434/v1",
-          modelId: "",
+          modelIds: [""],
           apiKey: "",
         });
         await this.plugin.saveSettings();
@@ -457,11 +457,32 @@ export class PidianSettingTab extends PluginSettingTab {
         await this.plugin.saveSettings();
       });
     });
-    new Setting(wrap).setName(t("settingsModelId")).addText((text) => {
-      text.setValue(provider.modelId);
-      text.onChange(async (value) => {
-        provider.modelId = value;
+    if (provider.modelIds.length === 0) {
+      provider.modelIds.push("");
+    }
+    provider.modelIds.forEach((modelId, index) => {
+      const setting = new Setting(wrap).setName(t("settingsModelId")).addText((text) => {
+        text.setValue(modelId);
+        text.onChange(async (value) => {
+          provider.modelIds[index] = value;
+          await this.plugin.saveSettings();
+        });
+      });
+      if (provider.modelIds.length > 1) {
+        setting.addExtraButton((button) => {
+          button.setIcon("minus").setTooltip(t("settingsRemoveModel")).onClick(async () => {
+            provider.modelIds.splice(index, 1);
+            await this.plugin.saveSettings();
+            this.display();
+          });
+        });
+      }
+    });
+    new Setting(wrap).setClass("pidian-custom-provider-add-model").addButton((button) => {
+      button.setButtonText("+").setTooltip(t("settingsAddModel")).onClick(async () => {
+        provider.modelIds.push("");
         await this.plugin.saveSettings();
+        this.display();
       });
     });
     new Setting(wrap).setName(t("settingsApiKey")).addText((text) => {
@@ -473,7 +494,7 @@ export class PidianSettingTab extends PluginSettingTab {
         await this.plugin.saveSettings();
       });
     });
-    new Setting(wrap).addButton((button) => {
+    new Setting(wrap).setClass("pidian-custom-provider-remove").addButton((button) => {
       button.setButtonText(t("settingsRemove")).setWarning().onClick(async () => {
         this.plugin.settings.customProviders = this.plugin.settings.customProviders.filter(
           (item) => item.id !== provider.id,

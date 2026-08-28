@@ -8,7 +8,7 @@ const ollama: CustomOpenAIProvider = {
   id: "custom-1",
   name: "Ollama",
   baseUrl: "http://localhost:11434/v1",
-  modelId: "llama",
+  modelIds: ["llama"],
   apiKey: "",
 };
 
@@ -20,9 +20,19 @@ describe("reconcileModelSelection", () => {
     });
   });
 
-  it("uses the custom provider's current model id", () => {
+  it("keeps a selected custom model that is still listed", () => {
     expect(
-      reconcileModelSelection({ provider: "custom-1", model: "old" }, [{ ...ollama, modelId: "llama3" }], known),
+      reconcileModelSelection(
+        { provider: "custom-1", model: "mistral" },
+        [{ ...ollama, modelIds: ["llama", "mistral"] }],
+        known,
+      ),
+    ).toEqual({ provider: "custom-1", model: "mistral" });
+  });
+
+  it("falls back to the first custom model when the selected one is gone", () => {
+    expect(
+      reconcileModelSelection({ provider: "custom-1", model: "old" }, [{ ...ollama, modelIds: ["llama3"] }], known),
     ).toEqual({ provider: "custom-1", model: "llama3" });
   });
 
@@ -35,7 +45,7 @@ describe("reconcileModelSelection", () => {
 
   it("clears selection when the custom provider is no longer usable", () => {
     expect(
-      reconcileModelSelection({ provider: "custom-1", model: "llama" }, [{ ...ollama, modelId: "" }], known),
+      reconcileModelSelection({ provider: "custom-1", model: "llama" }, [{ ...ollama, modelIds: [""] }], known),
     ).toEqual({ provider: "", model: "" });
   });
 
@@ -55,7 +65,7 @@ describe("connectionConfigFingerprint", () => {
       connectionConfigFingerprint({ ...base, customProviders: [{ ...ollama, baseUrl: "http://127.0.0.1:11434/v1" }] }),
     );
     expect(connectionConfigFingerprint(base)).not.toBe(
-      connectionConfigFingerprint({ ...base, customProviders: [{ ...ollama, modelId: "other" }] }),
+      connectionConfigFingerprint({ ...base, customProviders: [{ ...ollama, modelIds: ["other"] }] }),
     );
     expect(connectionConfigFingerprint(base)).not.toBe(
       connectionConfigFingerprint({ ...base, customProviders: [{ ...ollama, apiKey: "k" }] }),

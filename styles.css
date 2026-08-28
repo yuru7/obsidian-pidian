@@ -593,6 +593,33 @@
   border-radius: var(--radius-s);
 }
 
+.pidian-custom-provider .setting-item:not(.pidian-custom-provider-add-model):not(.pidian-custom-provider-remove) .setting-item-control {
+  flex: 0 0 50%;
+  max-width: 50%;
+}
+
+.pidian-custom-provider .setting-item:not(.pidian-custom-provider-add-model):not(.pidian-custom-provider-remove) .setting-item-control input[type="text"],
+.pidian-custom-provider .setting-item:not(.pidian-custom-provider-add-model):not(.pidian-custom-provider-remove) .setting-item-control input[type="password"] {
+  flex: 1 1 auto;
+  width: 100%;
+  min-width: 0;
+}
+
+.pidian-custom-provider-add-model .setting-item-info,
+.pidian-custom-provider-remove .setting-item-info {
+  display: none;
+}
+
+.pidian-custom-provider-add-model .setting-item-control {
+  flex: 1 1 auto;
+  justify-content: flex-end;
+}
+
+.pidian-custom-provider-remove .setting-item-control {
+  flex: 1 1 auto;
+  justify-content: flex-end;
+}
+
 .pidian-settings-using-env {
   display: inline-flex;
   align-items: center;
