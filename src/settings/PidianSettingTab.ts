@@ -464,6 +464,15 @@ export class PidianSettingTab extends PluginSettingTab {
         await this.plugin.saveSettings();
       });
     });
+    new Setting(wrap).setName(t("settingsApiKey")).addText((text) => {
+      text.inputEl.type = "password";
+      text.setValue(provider.apiKey);
+      text.onChange(async (value) => {
+        provider.apiKey = value;
+        this.plugin.settings.apiKeys[provider.id] = value;
+        await this.plugin.saveSettings();
+      });
+    });
     if (provider.modelIds.length === 0) {
       provider.modelIds.push("");
     }
@@ -490,15 +499,6 @@ export class PidianSettingTab extends PluginSettingTab {
         provider.modelIds.push("");
         await this.plugin.saveSettings();
         this.refreshSettings();
-      });
-    });
-    new Setting(wrap).setName(t("settingsApiKey")).addText((text) => {
-      text.inputEl.type = "password";
-      text.setValue(provider.apiKey);
-      text.onChange(async (value) => {
-        provider.apiKey = value;
-        this.plugin.settings.apiKeys[provider.id] = value;
-        await this.plugin.saveSettings();
       });
     });
     new Setting(wrap).setClass("pidian-custom-provider-remove").addButton((button) => {
