@@ -925,6 +925,7 @@ button.pidian-favorite-item-title:hover {
 }
 
 .pidian-custom-provider .setting-item.pidian-custom-model .setting-item-control {
+  display: flex;
   flex: 1 1 auto;
   max-width: none;
   flex-direction: column;
@@ -994,12 +995,17 @@ button.pidian-favorite-item-title:hover {
   border-color: var(--text-error);
 }
 
+.pidian-custom-model-json-header {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
 button.pidian-custom-model-json-toggle {
   display: inline-flex;
   align-items: center;
   justify-content: flex-start;
   gap: 8px;
-  align-self: flex-start;
   height: auto;
   margin: 0;
   padding: 4px 0;
@@ -1024,6 +1030,65 @@ button.pidian-custom-model-json-toggle:hover {
 
 .pidian-custom-model-json-toggle[aria-expanded="true"] .pidian-caret {
   transform: rotate(45deg);
+}
+
+button.pidian-custom-model-json-help {
+  flex-shrink: 0;
+  --icon-size: 22px;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  color: var(--text-muted);
+}
+
+button.pidian-custom-model-json-help:hover,
+button.pidian-custom-model-json-help[aria-expanded="true"] {
+  color: var(--text-normal);
+}
+
+.pidian-custom-model-json-help .pidian-icon {
+  width: 100%;
+  height: 100%;
+}
+
+.pidian-custom-model-json-help-panel {
+  display: none;
+  align-self: stretch;
+  box-sizing: border-box;
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--radius-s);
+  background: var(--background-secondary);
+  color: var(--text-muted);
+  font-size: var(--font-ui-smaller);
+  text-align: start;
+}
+
+.pidian-custom-model-json-help-panel.is-open {
+  display: block;
+}
+
+.pidian-custom-model-json-help-panel p {
+  margin: 0;
+  text-align: start;
+}
+
+.pidian-custom-model-json-help-example {
+  box-sizing: border-box;
+  width: 100%;
+  margin: 8px 0 0;
+  padding: 8px;
+  overflow: auto;
+  border-radius: var(--radius-s);
+  background: var(--background-primary);
+  font-family: var(--font-monospace);
+  font-size: var(--font-ui-smaller);
+  text-align: start;
+}
+
+.pidian-custom-model-json-help-example code {
+  font-family: inherit;
 }
 
 .pidian-custom-model-json {

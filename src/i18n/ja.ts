@@ -60,6 +60,9 @@ export const ja: { [K in keyof typeof en]: string } = {
   settingsModelSettingName: "モデル設定名",
   settingsExtraJsonParams: "追加の json パラメーター",
   settingsExtraJsonInvalid: "JSON オブジェクトを入力してください",
+  settingsExtraJsonHelpAria: "追加の json パラメーターの説明",
+  settingsExtraJsonHelp:
+    "次のような JSON オブジェクトを設定すると、リクエストに任意のパラメーターを追加できます。キーと値は、接続先プロバイダーの仕様に合わせて設定してください。",
   settingsDuplicateModelSettingName: "このモデル設定名は、同じプロバイダ内で既に使われています",
   settingsDuplicateProviderName: "この名前は、他のプロバイダと重複しています",
   settingsAddModel: "モデルを追加",

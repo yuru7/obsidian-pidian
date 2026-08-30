@@ -1066,7 +1066,8 @@ export class PidianSettingTab extends PluginSettingTab {
 
     const jsonKey = customModelJsonKey(provider, model, index);
     const expanded = this.expandedCustomModelJson.has(jsonKey);
-    const toggle = fields.createEl("button", {
+    const jsonHeader = fields.createDiv({ cls: "pidian-custom-model-json-header" });
+    const toggle = jsonHeader.createEl("button", {
       cls: "pidian-custom-model-json-toggle",
       attr: {
         type: "button",
@@ -1075,6 +1076,31 @@ export class PidianSettingTab extends PluginSettingTab {
     });
     toggle.createSpan({ cls: "pidian-caret", attr: { "aria-hidden": "true" } });
     toggle.createSpan({ text: t("settingsExtraJsonParams") });
+
+    const help = fields.createDiv({ cls: "pidian-custom-model-json-help-panel" });
+    help.id = `pidian-extra-json-help-${jsonKey.replace(/[^A-Za-z0-9_-]/g, "-")}`;
+    help.createEl("p", { text: t("settingsExtraJsonHelp") });
+    help.createEl("pre", { cls: "pidian-custom-model-json-help-example" }).createEl("code", {
+      text: EXTRA_JSON_HELP_EXAMPLE,
+    });
+
+    const helpButton = jsonHeader.createEl("button", {
+      cls: "clickable-icon pidian-custom-model-json-help",
+      attr: {
+        type: "button",
+        "aria-label": t("settingsExtraJsonHelpAria"),
+        "aria-expanded": "false",
+        "aria-controls": help.id,
+      },
+    });
+    appendCircleQuestionIcon(helpButton);
+    helpButton.addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      const nextOpen = !help.hasClass("is-open");
+      help.toggleClass("is-open", nextOpen);
+      helpButton.setAttr("aria-expanded", nextOpen ? "true" : "false");
+    });
 
     const jsonWrap = fields.createDiv({ cls: "pidian-custom-model-json" });
     jsonWrap.toggleClass("is-open", expanded);
@@ -1222,4 +1248,32 @@ function setFieldError(input: Element | null, error: Element | null, message: st
   if (error) {
     error.textContent = message;
   }
+}
+
+const EXTRA_JSON_HELP_EXAMPLE = `{
+  "reasoning": {
+    "effort": "medium"
+  }
+}`;
+
+function appendCircleQuestionIcon(parent: HTMLElement): void {
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svg.setAttribute("class", "pidian-icon");
+  svg.setAttribute("viewBox", "0 0 24 24");
+  svg.setAttribute("fill", "none");
+  svg.setAttribute("stroke", "currentColor");
+  svg.setAttribute("stroke-width", "2");
+  svg.setAttribute("stroke-linecap", "round");
+  svg.setAttribute("stroke-linejoin", "round");
+  svg.setAttribute("aria-hidden", "true");
+  const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+  circle.setAttribute("cx", "12");
+  circle.setAttribute("cy", "12");
+  circle.setAttribute("r", "10");
+  const curve = document.createElementNS("http://www.w3.org/2000/svg", "path");
+  curve.setAttribute("d", "M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3");
+  const dot = document.createElementNS("http://www.w3.org/2000/svg", "path");
+  dot.setAttribute("d", "M12 17h.01");
+  svg.append(circle, curve, dot);
+  parent.append(svg);
 }

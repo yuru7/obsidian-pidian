@@ -59,6 +59,9 @@ export const en = {
   settingsModelSettingName: "Model setting name",
   settingsExtraJsonParams: "Additional JSON parameters",
   settingsExtraJsonInvalid: "Enter a JSON object",
+  settingsExtraJsonHelpAria: "Help for additional JSON parameters",
+  settingsExtraJsonHelp:
+    "Set a JSON object like the example below to add extra fields to the request body. Use the parameter names and values required by the provider.",
   settingsDuplicateModelSettingName: "This name is already used by another model in this provider",
   settingsDuplicateProviderName: "This name is already used by another provider",
   settingsAddModel: "Add model",
