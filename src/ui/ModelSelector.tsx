@@ -338,7 +338,7 @@ function MarqueeMenuItem({
     <button
       type="button"
       role="menuitem"
-      className={`pidian-model-menu-item pidian-favorite-menu-item${selected ? " is-selected" : ""}`}
+      className={`pidian-model-menu-item${selected ? " is-selected" : ""}`}
       title={name}
       onClick={() => onSelect(id)}
       onPointerEnter={marquee.onPointerEnter}
@@ -396,6 +396,7 @@ function ChoiceDropdown({
   onSelect: (id: string) => void;
 }): JSX.Element {
   const selected = items.find((item) => item.id === value)?.name ?? (value || placeholder);
+  const marquee = useOverflowMarquee(selected);
   return (
     <span className={`pidian-select${open ? " is-open" : ""}`}>
       <button
@@ -403,23 +404,26 @@ function ChoiceDropdown({
         className="pidian-select-trigger"
         aria-expanded={open}
         aria-haspopup="menu"
+        title={selected}
         onClick={onToggle}
+        onPointerEnter={marquee.onPointerEnter}
+        onPointerLeave={marquee.onPointerLeave}
       >
-        <span className="pidian-select-label">{selected}</span>
+        <span ref={marquee.viewportRef} className="pidian-model-trigger-label">
+          <span ref={marquee.textRef} className="pidian-model-trigger-text">{selected}</span>
+        </span>
         <span className="pidian-caret" aria-hidden="true" />
       </button>
       {open ? (
         <div className="pidian-model-menu" role="menu">
           {items.map((item) => (
-            <button
+            <MarqueeMenuItem
               key={item.id}
-              type="button"
-              role="menuitem"
-              className={`pidian-model-menu-item${item.id === value ? " is-selected" : ""}`}
-              onClick={() => onSelect(item.id)}
-            >
-              {item.name}
-            </button>
+              id={item.id}
+              name={item.name}
+              selected={item.id === value}
+              onSelect={onSelect}
+            />
           ))}
         </div>
       ) : null}
