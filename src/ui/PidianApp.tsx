@@ -74,6 +74,7 @@ export function PidianApp({ plugin }: { plugin: PidianPlugin }): JSX.Element {
         </div>
       </header>
       <Chat
+        key={session?.id}
         app={plugin.app}
         messages={session?.messages ?? []}
         forkedMessageCount={session?.forkedMessageCount}
