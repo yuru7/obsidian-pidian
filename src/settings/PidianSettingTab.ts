@@ -1,4 +1,4 @@
-import { Notice, PluginSettingTab, Setting, setIcon, type App, type SettingDefinitionItem } from "obsidian";
+import { Notice, PluginSettingTab, Setting, setIcon, type App } from "obsidian";
 import { t } from "../i18n";
 import type PidianPlugin from "../main";
 import type { CatalogModel, CatalogProvider } from "../domain/agent/ModelCatalog";
@@ -59,27 +59,6 @@ export class PidianSettingTab extends PluginSettingTab {
     private readonly plugin: PidianPlugin,
   ) {
     super(app, plugin);
-  }
-
-  getSettingDefinitions(): SettingDefinitionItem[] {
-    return settingsTabs().map((tab) => ({
-      type: "group" as const,
-      heading: tab.label,
-      items: [
-        {
-          name: tab.label,
-          render: (setting) => {
-            const parent = setting.settingEl.parentElement;
-            if (!parent) {
-              this.renderSelected(tab.id, setting.settingEl);
-              return;
-            }
-            setting.settingEl.remove();
-            this.renderSelected(tab.id, parent);
-          },
-        },
-      ],
-    }));
   }
 
   display(): void {
@@ -163,11 +142,6 @@ export class PidianSettingTab extends PluginSettingTab {
   }
 
   private refreshSettings(): void {
-    const update = (this as { update?: () => void }).update;
-    if (typeof update === "function") {
-      update.call(this);
-      return;
-    }
     this.display();
   }
 
