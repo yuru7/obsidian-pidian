@@ -1,6 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { bindConfigDir } from "../application/notePath";
-import { mergeSettings } from "./Settings";
+import {
+  fillModelSettingNameFromId,
+  isDuplicateCustomProviderName,
+  isDuplicateModelSettingName,
+  mergeSettings,
+  uniqueCustomProviderName,
+  type CustomProviderModel,
+} from "./Settings";
 
 const TEST_CONFIG_DIR = "vault-config";
 
@@ -88,7 +95,7 @@ describe("mergeSettings", () => {
       id: "custom-2",
       name: "Other",
       baseUrl: "http://localhost",
-      modelIds: [""],
+      models: [{ id: "", name: "", modelId: "", extraRequestBody: "" }],
       apiKey: "",
     });
     restored.modelFavorites.push({ id: "fav-1", provider: "openai", model: "gpt-5" });
@@ -98,7 +105,7 @@ describe("mergeSettings", () => {
     expect(mergeSettings({}).modelFavorites).toEqual([]);
   });
 
-  it("migrates a custom provider modelId into modelIds", () => {
+  it("migrates a custom provider modelId into models", () => {
     expect(
       mergeSettings({
         customProviders: [
@@ -118,7 +125,7 @@ describe("mergeSettings", () => {
             id: "custom-1",
             name: "Ollama",
             baseUrl: "http://localhost:11434/v1",
-            modelIds: ["llama"],
+            models: [{ id: "llama", name: "llama", modelId: "llama", extraRequestBody: "" }],
             apiKey: "",
           },
         ],
@@ -126,7 +133,7 @@ describe("mergeSettings", () => {
     );
   });
 
-  it("keeps custom provider modelIds when already present", () => {
+  it("migrates custom provider modelIds into models", () => {
     expect(
       mergeSettings({
         customProviders: [
@@ -138,7 +145,105 @@ describe("mergeSettings", () => {
             apiKey: "",
           },
         ],
-      }).customProviders[0]?.modelIds,
-    ).toEqual(["llama", "mistral"]);
+      }).customProviders[0]?.models,
+    ).toEqual([
+      { id: "llama", name: "llama", modelId: "llama", extraRequestBody: "" },
+      { id: "mistral", name: "mistral", modelId: "mistral", extraRequestBody: "" },
+    ]);
+  });
+
+  it("keeps custom provider models when already present", () => {
+    expect(
+      mergeSettings({
+        customProviders: [
+          {
+            id: "custom-1",
+            name: "Ollama",
+            baseUrl: "http://localhost:11434/v1",
+            models: [
+              {
+                id: "foo-high",
+                name: "foo high",
+                modelId: "foo",
+                extraRequestBody: '{"reasoning_effort":"high"}',
+              },
+            ],
+            apiKey: "",
+          },
+        ],
+      }).customProviders[0]?.models,
+    ).toEqual([
+      {
+        id: "foo-high",
+        name: "foo high",
+        modelId: "foo",
+        extraRequestBody: '{"reasoning_effort":"high"}',
+      },
+    ]);
+  });
+});
+
+describe("isDuplicateModelSettingName", () => {
+  const models = (names: string[]): CustomProviderModel[] =>
+    names.map((name, index) => ({
+      id: `id-${index}`,
+      name,
+      modelId: "foo",
+      extraRequestBody: "",
+    }));
+
+  it("treats the same trimmed name in one provider as a duplicate", () => {
+    expect(isDuplicateModelSettingName(models(["foo high", "foo high"]), 0)).toBe(true);
+    expect(isDuplicateModelSettingName(models(["foo high", " foo high "]), 1)).toBe(true);
+  });
+
+  it("allows the same name in different casing or when empty", () => {
+    expect(isDuplicateModelSettingName(models(["foo", "Foo"]), 0)).toBe(false);
+    expect(isDuplicateModelSettingName(models(["", ""]), 0)).toBe(false);
+  });
+});
+
+describe("isDuplicateCustomProviderName", () => {
+  const custom = [
+    { id: "custom-1", name: "Ollama", baseUrl: "", models: [], apiKey: "" },
+    { id: "custom-2", name: "Local", baseUrl: "", models: [], apiKey: "" },
+  ];
+
+  it("rejects built-in provider names and ids", () => {
+    expect(isDuplicateCustomProviderName("OpenAI", "custom-1", custom, ["OpenAI", "openai"])).toBe(true);
+    expect(isDuplicateCustomProviderName("openai", "custom-1", custom, ["OpenAI", "openai"])).toBe(true);
+  });
+
+  it("rejects another custom provider's name", () => {
+    expect(isDuplicateCustomProviderName("Local", "custom-1", custom, ["OpenAI"])).toBe(true);
+  });
+
+  it("allows a provider to keep its own name", () => {
+    expect(isDuplicateCustomProviderName("Ollama", "custom-1", custom, ["OpenAI"])).toBe(false);
+  });
+});
+
+describe("uniqueCustomProviderName", () => {
+  it("appends a suffix when the base name is taken", () => {
+    expect(uniqueCustomProviderName("Custom", [], ["Custom"])).toBe("Custom 2");
+    expect(
+      uniqueCustomProviderName("Custom", [{ id: "c", name: "Custom 2", baseUrl: "", models: [], apiKey: "" }], ["Custom"]),
+    ).toBe("Custom 3");
+  });
+});
+
+describe("fillModelSettingNameFromId", () => {
+  it("fills an empty name and keeps syncing while the name still matches the previous id", () => {
+    const model: CustomProviderModel = { id: "1", name: "", modelId: "", extraRequestBody: "" };
+    expect(fillModelSettingNameFromId(model, "", "foo")).toBe(true);
+    expect(model.name).toBe("foo");
+    expect(fillModelSettingNameFromId(model, "foo", "foo-high")).toBe(true);
+    expect(model.name).toBe("foo-high");
+  });
+
+  it("does not overwrite a name the user already set", () => {
+    const model: CustomProviderModel = { id: "1", name: "foo high", modelId: "foo", extraRequestBody: "" };
+    expect(fillModelSettingNameFromId(model, "foo", "foo-bar")).toBe(false);
+    expect(model.name).toBe("foo high");
   });
 });

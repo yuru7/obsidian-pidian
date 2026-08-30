@@ -64,7 +64,7 @@ describe("OpenCode credentials", () => {
           id: "custom-1",
           name: "Local",
           baseUrl: "http://localhost:11434/v1",
-          modelIds: ["llama"],
+          models: [{ id: "llama", name: "llama", modelId: "llama", extraRequestBody: "" }],
           apiKey: "local-key",
         },
       ],

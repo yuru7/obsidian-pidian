@@ -4,7 +4,8 @@ import type { CredentialResolver } from "../../application/CredentialResolver";
 import { sortCatalogModels, type CatalogModel, type CatalogProvider, type ModelCatalog } from "../../domain/agent/ModelCatalog";
 import { envVarNamesForProvider } from "./PiCredentials";
 import {
-  customProviderModelIds,
+  customModelDisplayName,
+  customProviderModels,
   isConfiguredCustomProvider,
   type CustomOpenAIProvider,
 } from "../../settings/Settings";
@@ -49,9 +50,9 @@ export class PiModelCatalog implements ModelCatalog {
     const custom = this.getCustomProviders().find((provider) => provider.id === providerId);
     if (custom) {
       return sortCatalogModels(
-        customProviderModelIds(custom).map((modelId) => ({
-          id: modelId,
-          name: modelId,
+        customProviderModels(custom).map((model) => ({
+          id: model.id,
+          name: customModelDisplayName(model),
           providerId: custom.id,
           thinkingLevels: [],
         })),

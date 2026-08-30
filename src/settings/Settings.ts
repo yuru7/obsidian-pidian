@@ -5,30 +5,119 @@ import { parseModelFavorites, type ModelFavorite } from "./modelFavorites";
 
 export type { ModelFavorite };
 
+export interface CustomProviderModel {
+  id: string;
+  name: string;
+  modelId: string;
+  extraRequestBody: string;
+}
+
 export interface CustomOpenAIProvider {
   id: string;
   name: string;
   baseUrl: string;
-  modelIds: string[];
+  models: CustomProviderModel[];
   apiKey: string;
 }
 
-export function customProviderModelIds(provider: CustomOpenAIProvider): string[] {
+export function createEmptyCustomProviderModel(): CustomProviderModel {
+  return {
+    id: crypto.randomUUID(),
+    name: "",
+    modelId: "",
+    extraRequestBody: "",
+  };
+}
+
+export function customModelDisplayName(model: CustomProviderModel): string {
+  return model.name.trim() || model.modelId.trim();
+}
+
+export function customProviderModels(provider: CustomOpenAIProvider): CustomProviderModel[] {
   const seen = new Set<string>();
-  const ids: string[] = [];
-  for (const raw of provider.modelIds) {
-    const id = raw.trim();
-    if (!id || seen.has(id)) {
+  const models: CustomProviderModel[] = [];
+  for (const raw of provider.models) {
+    const modelId = raw.modelId.trim();
+    if (!modelId) {
+      continue;
+    }
+    const id = raw.id.trim() || modelId;
+    if (seen.has(id)) {
       continue;
     }
     seen.add(id);
-    ids.push(id);
+    models.push({
+      id,
+      name: raw.name,
+      modelId,
+      extraRequestBody: raw.extraRequestBody,
+    });
   }
-  return ids;
+  return models;
+}
+
+export function customProviderModelIds(provider: CustomOpenAIProvider): string[] {
+  return customProviderModels(provider).map((model) => model.id);
 }
 
 export function isConfiguredCustomProvider(provider: CustomOpenAIProvider): boolean {
-  return Boolean(provider.baseUrl.trim()) && customProviderModelIds(provider).length > 0;
+  return Boolean(provider.baseUrl.trim()) && customProviderModels(provider).length > 0;
+}
+
+function displayNameKey(value: string): string {
+  return value.trim();
+}
+
+function displayNameKeyIgnoreCase(value: string): string {
+  return value.trim().toLocaleLowerCase();
+}
+
+export function isDuplicateModelSettingName(models: readonly CustomProviderModel[], index: number): boolean {
+  const name = displayNameKey(models[index]?.name ?? "");
+  if (!name) {
+    return false;
+  }
+  return models.some((model, current) => current !== index && displayNameKey(model.name) === name);
+}
+
+export function isDuplicateCustomProviderName(
+  name: string,
+  providerId: string,
+  customProviders: readonly CustomOpenAIProvider[],
+  reservedNames: readonly string[],
+): boolean {
+  const key = displayNameKeyIgnoreCase(name);
+  if (!key) {
+    return false;
+  }
+  if (reservedNames.some((reserved) => displayNameKeyIgnoreCase(reserved) === key)) {
+    return true;
+  }
+  return customProviders.some((provider) => provider.id !== providerId && displayNameKeyIgnoreCase(provider.name) === key);
+}
+
+export function uniqueCustomProviderName(
+  base: string,
+  customProviders: readonly CustomOpenAIProvider[],
+  reservedNames: readonly string[],
+): string {
+  if (!isDuplicateCustomProviderName(base, "", customProviders, reservedNames)) {
+    return base;
+  }
+  for (let suffix = 2; ; suffix += 1) {
+    const candidate = `${base} ${suffix}`;
+    if (!isDuplicateCustomProviderName(candidate, "", customProviders, reservedNames)) {
+      return candidate;
+    }
+  }
+}
+
+export function fillModelSettingNameFromId(model: CustomProviderModel, previousModelId: string, nextModelId: string): boolean {
+  if (model.name.trim() && model.name !== previousModelId) {
+    return false;
+  }
+  model.name = nextModelId;
+  return true;
 }
 
 export type SessionFileFormat = "json.md" | "json";
@@ -94,20 +183,70 @@ function parseCustomProvider(raw: unknown): CustomOpenAIProvider | null {
     id: typeof item.id === "string" ? item.id : "",
     name: typeof item.name === "string" ? item.name : "",
     baseUrl: typeof item.baseUrl === "string" ? item.baseUrl : "",
-    modelIds: parseModelIds(item),
+    models: parseCustomProviderModels(item),
     apiKey: typeof item.apiKey === "string" ? item.apiKey : "",
   };
 }
 
-function parseModelIds(item: Record<string, unknown>): string[] {
+function parseCustomProviderModels(item: Record<string, unknown>): CustomProviderModel[] {
+  if (Array.isArray(item.models)) {
+    const models = item.models
+      .map(parseCustomProviderModel)
+      .filter((model): model is CustomProviderModel => model !== null);
+    return models.length > 0 ? models : [emptyPlaceholderModel()];
+  }
   if (Array.isArray(item.modelIds)) {
-    const ids = item.modelIds.filter((value): value is string => typeof value === "string");
-    return ids.length > 0 ? ids : [""];
+    const models = item.modelIds
+      .filter((value): value is string => typeof value === "string")
+      .map(modelFromLegacyId);
+    return models.length > 0 ? models : [emptyPlaceholderModel()];
   }
   if (typeof item.modelId === "string") {
-    return [item.modelId];
+    return [modelFromLegacyId(item.modelId)];
   }
-  return [""];
+  return [emptyPlaceholderModel()];
+}
+
+function parseCustomProviderModel(raw: unknown): CustomProviderModel | null {
+  if (!raw || typeof raw !== "object") {
+    return null;
+  }
+  const item = raw as Record<string, unknown>;
+  const modelId = typeof item.modelId === "string" ? item.modelId : "";
+  const id = typeof item.id === "string" ? item.id : modelId;
+  return {
+    id,
+    name: typeof item.name === "string" ? item.name : "",
+    modelId,
+    extraRequestBody: parseExtraRequestBodySetting(item.extraRequestBody),
+  };
+}
+
+function parseExtraRequestBodySetting(raw: unknown): string {
+  if (typeof raw === "string") {
+    return raw;
+  }
+  if (raw && typeof raw === "object") {
+    try {
+      return JSON.stringify(raw);
+    } catch {
+      return "";
+    }
+  }
+  return "";
+}
+
+function modelFromLegacyId(modelId: string): CustomProviderModel {
+  return {
+    id: modelId,
+    name: modelId,
+    modelId,
+    extraRequestBody: "",
+  };
+}
+
+function emptyPlaceholderModel(): CustomProviderModel {
+  return { id: "", name: "", modelId: "", extraRequestBody: "" };
 }
 
 export function mergeSettings(raw: unknown): PidianSettings {

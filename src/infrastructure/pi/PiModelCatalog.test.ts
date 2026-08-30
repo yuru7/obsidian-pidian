@@ -5,6 +5,34 @@ import { DEFAULT_SETTINGS, type CustomOpenAIProvider } from "../../settings/Sett
 import { createCredentialResolver } from "./PiCredentials";
 import { PiModelCatalog } from "./PiModelCatalog";
 
+function customModel(
+  modelId: string,
+  extras: Partial<{ id: string; name: string; extraRequestBody: string }> = {},
+): CustomOpenAIProvider["models"][number] {
+  return {
+    id: extras.id ?? modelId,
+    name: extras.name ?? modelId,
+    modelId,
+    extraRequestBody: extras.extraRequestBody ?? "",
+  };
+}
+
+function customProvider(
+  id: string,
+  name: string,
+  modelIds: string[],
+  extras: Partial<CustomOpenAIProvider> = {},
+): CustomOpenAIProvider {
+  return {
+    id,
+    name,
+    baseUrl: "http://localhost:11434/v1",
+    models: modelIds.map((modelId) => customModel(modelId)),
+    apiKey: "",
+    ...extras,
+  };
+}
+
 function catalog(options: {
   providerIds?: string[];
   models?: Array<{
@@ -65,20 +93,11 @@ describe("PiModelCatalog.listProviders", () => {
 
   it("includes a configured custom provider even without an API key", async () => {
     const custom: CustomOpenAIProvider[] = [
-      {
-        id: "ollama",
-        name: "Ollama",
-        baseUrl: "http://localhost:11434/v1",
-        modelIds: ["llama"],
-        apiKey: "",
-      },
-      {
-        id: "incomplete",
-        name: "Incomplete",
+      customProvider("ollama", "Ollama", ["llama"]),
+      customProvider("incomplete", "Incomplete", [""], {
         baseUrl: "http://localhost:1234/v1",
-        modelIds: [""],
         apiKey: "x",
-      },
+      }),
     ];
     const listed = await catalog({
       providerIds: [],
@@ -92,15 +111,7 @@ describe("PiModelCatalog.listProviders", () => {
   });
 
   it("includes a custom provider whose key is stored only on the provider entry", async () => {
-    const custom: CustomOpenAIProvider[] = [
-      {
-        id: "custom-1",
-        name: "Local",
-        baseUrl: "http://localhost:11434/v1",
-        modelIds: ["llama"],
-        apiKey: "local-key",
-      },
-    ];
+    const custom: CustomOpenAIProvider[] = [customProvider("custom-1", "Local", ["llama"], { apiKey: "local-key" })];
     const listed = await catalog({
       providerIds: [],
       custom,
@@ -113,15 +124,7 @@ describe("PiModelCatalog.listProviders", () => {
   });
 
   it("uses the settings name when the runtime already registered the custom provider", async () => {
-    const custom: CustomOpenAIProvider[] = [
-      {
-        id: "custom-1",
-        name: "XXXカスタム",
-        baseUrl: "http://localhost:11434/v1",
-        modelIds: ["bbb aaaaa"],
-        apiKey: "",
-      },
-    ];
+    const custom: CustomOpenAIProvider[] = [customProvider("custom-1", "XXXカスタム", ["bbb aaaaa"])];
     const listed = await catalog({
       providerIds: ["custom-1"],
       custom,
@@ -143,15 +146,7 @@ describe("PiModelCatalog.listProviders", () => {
 
 describe("PiModelCatalog.listModels", () => {
   it("returns the configured custom model id", async () => {
-    const custom: CustomOpenAIProvider[] = [
-      {
-        id: "ollama",
-        name: "Ollama",
-        baseUrl: "http://localhost:11434/v1",
-        modelIds: ["llama"],
-        apiKey: "",
-      },
-    ];
+    const custom: CustomOpenAIProvider[] = [customProvider("ollama", "Ollama", ["llama"])];
     const models = await catalog({
       providerIds: [],
       custom,
@@ -164,15 +159,7 @@ describe("PiModelCatalog.listModels", () => {
   });
 
   it("returns every configured custom model id", async () => {
-    const custom: CustomOpenAIProvider[] = [
-      {
-        id: "ollama",
-        name: "Ollama",
-        baseUrl: "http://localhost:11434/v1",
-        modelIds: ["llama", "mistral", "llama"],
-        apiKey: "",
-      },
-    ];
+    const custom: CustomOpenAIProvider[] = [customProvider("ollama", "Ollama", ["llama", "mistral", "llama"])];
     const models = await catalog({
       providerIds: [],
       custom,
@@ -188,12 +175,28 @@ describe("PiModelCatalog.listModels", () => {
   });
 
   it("sorts custom model ids by name", async () => {
+    const custom: CustomOpenAIProvider[] = [customProvider("ollama", "Ollama", ["mistral", "llama"])];
+    const models = await catalog({
+      providerIds: [],
+      custom,
+      credentials: createCredentialResolver(() => ({
+        ...DEFAULT_SETTINGS,
+        customProviders: custom,
+      })),
+    }).listModels("ollama");
+    expect(models.map((model) => model.id)).toEqual(["llama", "mistral"]);
+  });
+
+  it("uses the model setting name and keeps duplicate API model ids as separate entries", async () => {
     const custom: CustomOpenAIProvider[] = [
       {
         id: "ollama",
         name: "Ollama",
         baseUrl: "http://localhost:11434/v1",
-        modelIds: ["mistral", "llama"],
+        models: [
+          customModel("foo", { id: "foo-high", name: "foo high" }),
+          customModel("foo", { id: "foo-medium", name: "foo medium" }),
+        ],
         apiKey: "",
       },
     ];
@@ -205,7 +208,10 @@ describe("PiModelCatalog.listModels", () => {
         customProviders: custom,
       })),
     }).listModels("ollama");
-    expect(models.map((model) => model.id)).toEqual(["llama", "mistral"]);
+    expect(models).toEqual([
+      { id: "foo-high", name: "foo high", providerId: "ollama", thinkingLevels: [] },
+      { id: "foo-medium", name: "foo medium", providerId: "ollama", thinkingLevels: [] },
+    ]);
   });
 
   it("sorts runtime models by name including dynamic entries", async () => {

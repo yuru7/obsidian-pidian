@@ -13,12 +13,14 @@ import type { AgentEventListener } from "../../domain/agent/AgentEvent";
 import type { AgentPrompt, AgentSession } from "../../domain/agent/AgentSession";
 import { isThinkingLevel } from "../../domain/agent/thinkingLevel";
 import {
-  customProviderModelIds,
+  customModelDisplayName,
+  customProviderModels,
   isConfiguredCustomProvider,
   type CustomOpenAIProvider,
 } from "../../settings/Settings";
 import { CredentialResolver } from "../../application/CredentialResolver";
 import { injectCorsFreeFetch, withCorsFreeFetch } from "./corsFreeFetch";
+import { createCustomRequestBodyFetch } from "./customRequestBody";
 import { PidianResourceLoader } from "./PidianResourceLoader";
 import { normalizeAgentsContent, pidianAgentsFiles } from "./pidianAgentsFiles";
 import { PIDIAN_SYSTEM_PROMPT } from "./PiCredentials";
@@ -57,6 +59,7 @@ export class PiAgentAdapter implements AgentEngine {
   }
 
   private async createRuntime(): Promise<ModelRuntime> {
+    const fetch = createCustomRequestBodyFetch(this.options.getCustomProviders);
     const runtime = injectCorsFreeFetch(
       await ModelRuntime.create({
         modelsPath: null,
@@ -66,24 +69,31 @@ export class PiAgentAdapter implements AgentEngine {
         allowModelNetwork: false,
         refreshOnCreate: false,
       }),
+      fetch,
     );
     this.registerCustomProviders(runtime);
     await this.applyCredentials(runtime);
     const allowNetwork = this.options.shouldRefreshDynamicCatalog
       ? await this.options.shouldRefreshDynamicCatalog()
       : true;
-    await this.refreshDynamicCatalog(runtime, allowNetwork);
+    await this.refreshDynamicCatalog(runtime, allowNetwork, fetch);
     return runtime;
   }
 
-  private async refreshDynamicCatalog(runtime: ModelRuntime, allowNetwork: boolean): Promise<void> {
+  private async refreshDynamicCatalog(
+    runtime: ModelRuntime,
+    allowNetwork: boolean,
+    fetch = createCustomRequestBodyFetch(this.options.getCustomProviders),
+  ): Promise<void> {
     try {
-      const result = await withCorsFreeFetch(() =>
-        runtime.refresh({
-          allowNetwork,
-          force: allowNetwork,
-          signal: AbortSignal.timeout(MODEL_CATALOG_REFRESH_TIMEOUT_MS),
-        }),
+      const result = await withCorsFreeFetch(
+        () =>
+          runtime.refresh({
+            allowNetwork,
+            force: allowNetwork,
+            signal: AbortSignal.timeout(MODEL_CATALOG_REFRESH_TIMEOUT_MS),
+          }),
+        fetch,
       );
       if (result.aborted) {
         console.warn("Pidian: model catalog refresh timed out or was aborted");
@@ -174,9 +184,9 @@ export class PiAgentAdapter implements AgentEngine {
         baseUrl: provider.baseUrl.trim(),
         apiKey: customApiKey(provider),
         api: "openai-completions",
-        models: customProviderModelIds(provider).map((modelId) => ({
-          id: modelId,
-          name: modelId,
+        models: customProviderModels(provider).map((model) => ({
+          id: model.id,
+          name: customModelDisplayName(model),
           reasoning: false,
           input: ["text"],
           contextWindow: 128000,

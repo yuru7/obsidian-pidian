@@ -8,7 +8,18 @@ import { DEFAULT_PLUGIN_DIRECTORY, agentsFilePath, isValidPluginDirectory, norma
 import { listKnownCredentialProviders } from "../infrastructure/pi/PiCredentials";
 import { ObsidianWorkspaceNavigator } from "../infrastructure/obsidian/ObsidianWorkspaceNavigator";
 import { addFavorite, moveFavorite, removeFavoriteById, type ModelFavorite } from "./modelFavorites";
-import { DEFAULT_SETTINGS, parseSessionFileFormat, type CustomOpenAIProvider } from "./Settings";
+import { parseExtraRequestBody } from "../infrastructure/pi/customRequestBody";
+import {
+  createEmptyCustomProviderModel,
+  fillModelSettingNameFromId,
+  isDuplicateCustomProviderName,
+  isDuplicateModelSettingName,
+  uniqueCustomProviderName,
+  DEFAULT_SETTINGS,
+  parseSessionFileFormat,
+  type CustomOpenAIProvider,
+  type CustomProviderModel,
+} from "./Settings";
 
 const RETENTION_PRESETS = new Set(["7", "30", "90"]);
 
@@ -63,6 +74,7 @@ export class PidianSettingTab extends PluginSettingTab {
   private favoriteDraftOpen = false;
   private favoriteDragFrom: number | null = null;
   private expandedFavoriteIds = new Set<string>();
+  private expandedCustomModelJson = new Set<string>();
 
   constructor(
     app: App,
@@ -96,6 +108,7 @@ export class PidianSettingTab extends PluginSettingTab {
     this.favoriteDraftOpen = false;
     this.favoriteDragFrom = null;
     this.expandedFavoriteIds.clear();
+    this.expandedCustomModelJson.clear();
     super.hide();
   }
 
@@ -777,9 +790,13 @@ export class PidianSettingTab extends PluginSettingTab {
       button.setButtonText(t("settingsAddProvider")).onClick(async () => {
         this.plugin.settings.customProviders.push({
           id: `custom-${crypto.randomUUID()}`,
-          name: t("settingsCustomProviderDefaultName"),
+          name: uniqueCustomProviderName(
+            t("settingsCustomProviderDefaultName"),
+            this.plugin.settings.customProviders,
+            reservedProviderNames(),
+          ),
           baseUrl: "http://localhost:11434/v1",
-          modelIds: [""],
+          models: [createEmptyCustomProviderModel()],
           apiKey: "",
         });
         await this.plugin.saveSettings();
@@ -955,13 +972,19 @@ export class PidianSettingTab extends PluginSettingTab {
 
   private renderCustomProvider(containerEl: HTMLElement, provider: CustomOpenAIProvider): void {
     const wrap = containerEl.createDiv({ cls: "pidian-custom-provider" });
-    new Setting(wrap).setName(t("settingsName")).addText((text) => {
+    wrap.dataset.providerId = provider.id;
+    const nameSetting = new Setting(wrap).setName(t("settingsName")).setClass("pidian-custom-provider-name");
+    nameSetting.addText((text) => {
       text.setValue(provider.name);
+      text.inputEl.addClass("pidian-custom-provider-name-input");
       text.onChange(async (value) => {
         provider.name = value;
+        this.refreshProviderNameErrors(containerEl);
         await this.plugin.saveSettings();
       });
     });
+    const nameError = nameSetting.controlEl.createDiv({ cls: "pidian-settings-field-error pidian-custom-provider-name-error" });
+    this.setProviderNameError(nameSetting.controlEl.querySelector("input"), nameError, provider);
     new Setting(wrap).setName(t("settingsBaseUrl")).addText((text) => {
       text.setValue(provider.baseUrl);
       text.onChange(async (value) => {
@@ -978,30 +1001,15 @@ export class PidianSettingTab extends PluginSettingTab {
         await this.plugin.saveSettings();
       });
     });
-    if (provider.modelIds.length === 0) {
-      provider.modelIds.push("");
+    if (provider.models.length === 0) {
+      provider.models.push(createEmptyCustomProviderModel());
     }
-    provider.modelIds.forEach((modelId, index) => {
-      const setting = new Setting(wrap).setName(t("settingsModelId")).addText((text) => {
-        text.setValue(modelId);
-        text.onChange(async (value) => {
-          provider.modelIds[index] = value;
-          await this.plugin.saveSettings();
-        });
-      });
-      if (provider.modelIds.length > 1) {
-        setting.addExtraButton((button) => {
-          button.setIcon("minus").setTooltip(t("settingsRemoveModel")).onClick(async () => {
-            provider.modelIds.splice(index, 1);
-            await this.plugin.saveSettings();
-            this.refreshSettings();
-          });
-        });
-      }
+    provider.models.forEach((model, index) => {
+      this.renderCustomModel(wrap, provider, model, index);
     });
     new Setting(wrap).setClass("pidian-custom-provider-add-model").addButton((button) => {
       button.setButtonText(t("settingsAddModel")).onClick(async () => {
-        provider.modelIds.push("");
+        provider.models.push(createEmptyCustomProviderModel());
         await this.plugin.saveSettings();
         this.refreshSettings();
       });
@@ -1017,5 +1025,201 @@ export class PidianSettingTab extends PluginSettingTab {
         new Notice(t("settingsRemovedProvider"));
       });
     });
+  }
+
+  private renderCustomModel(
+    containerEl: HTMLElement,
+    provider: CustomOpenAIProvider,
+    model: CustomProviderModel,
+    index: number,
+  ): void {
+    if (!model.name.trim() && model.modelId.trim()) {
+      model.name = model.modelId;
+    }
+    const setting = new Setting(containerEl).setClass("pidian-custom-model");
+    const fields = setting.controlEl;
+    fields.empty();
+
+    const nameRow = this.addCustomModelTextRow(fields, t("settingsModelSettingName"), model.name, async (value) => {
+      model.name = value;
+      this.refreshModelNameErrors(containerEl, provider);
+      await this.plugin.saveSettings();
+    });
+    nameRow.input.addClass("pidian-custom-model-name-input");
+    nameRow.input.dataset.modelIndex = String(index);
+    const nameError = nameRow.row.createDiv({ cls: "pidian-settings-field-error pidian-custom-model-name-error" });
+    nameError.dataset.modelIndex = String(index);
+    this.setModelNameError(nameRow.input, nameError, provider, index);
+
+    this.addCustomModelTextRow(fields, t("settingsModelId"), model.modelId, async (value) => {
+      const previousId = model.modelId;
+      model.modelId = value;
+      if (!model.id.trim()) {
+        model.id = value;
+      }
+      if (fillModelSettingNameFromId(model, previousId, value)) {
+        nameRow.input.value = model.name;
+        this.refreshModelNameErrors(containerEl, provider);
+      }
+      await this.plugin.saveSettings();
+    });
+
+    const jsonKey = customModelJsonKey(provider, model, index);
+    const expanded = this.expandedCustomModelJson.has(jsonKey);
+    const toggle = fields.createEl("button", {
+      cls: "pidian-custom-model-json-toggle",
+      attr: {
+        type: "button",
+        "aria-expanded": expanded ? "true" : "false",
+      },
+    });
+    toggle.createSpan({ cls: "pidian-caret", attr: { "aria-hidden": "true" } });
+    toggle.createSpan({ text: t("settingsExtraJsonParams") });
+
+    const jsonWrap = fields.createDiv({ cls: "pidian-custom-model-json" });
+    jsonWrap.toggleClass("is-open", expanded);
+    const textarea = jsonWrap.createEl("textarea", {
+      attr: {
+        spellcheck: "false",
+        placeholder: "{}",
+        "aria-label": t("settingsExtraJsonParams"),
+      },
+    });
+    textarea.value = model.extraRequestBody;
+    const jsonError = jsonWrap.createDiv({ cls: "pidian-settings-field-error" });
+    const refreshJsonValidity = (): void => {
+      const invalid = extraRequestBodyInvalid(model.extraRequestBody);
+      textarea.toggleClass("is-invalid", invalid);
+      jsonError.setText(invalid ? t("settingsExtraJsonInvalid") : "");
+    };
+    refreshJsonValidity();
+    textarea.addEventListener("input", () => {
+      model.extraRequestBody = textarea.value;
+      refreshJsonValidity();
+      void this.plugin.saveSettings();
+    });
+
+    toggle.addEventListener("click", () => {
+      if (this.expandedCustomModelJson.has(jsonKey)) {
+        this.expandedCustomModelJson.delete(jsonKey);
+      } else {
+        this.expandedCustomModelJson.add(jsonKey);
+      }
+      const nextExpanded = this.expandedCustomModelJson.has(jsonKey);
+      jsonWrap.toggleClass("is-open", nextExpanded);
+      toggle.setAttr("aria-expanded", nextExpanded ? "true" : "false");
+    });
+
+    if (provider.models.length > 1) {
+      const removeRow = fields.createDiv({ cls: "pidian-custom-model-remove" });
+      const remove = removeRow.createEl("button", {
+        cls: "mod-warning",
+        text: t("settingsRemoveModel"),
+        attr: { type: "button" },
+      });
+      remove.addEventListener("click", async () => {
+        this.expandedCustomModelJson.delete(jsonKey);
+        provider.models.splice(index, 1);
+        await this.plugin.saveSettings();
+        this.refreshSettings();
+      });
+    }
+  }
+
+  private addCustomModelTextRow(
+    parent: HTMLElement,
+    label: string,
+    value: string,
+    onChange: (value: string) => void | Promise<void>,
+  ): { row: HTMLElement; control: HTMLElement; input: HTMLInputElement } {
+    const row = parent.createDiv({ cls: "pidian-custom-model-row" });
+    row.createDiv({ cls: "pidian-custom-model-label", text: label });
+    const control = row.createDiv({ cls: "pidian-custom-model-control" });
+    const input = control.createEl("input", { type: "text" });
+    input.value = value;
+    input.addEventListener("input", () => {
+      void onChange(input.value);
+    });
+    return { row, control, input };
+  }
+
+  private refreshProviderNameErrors(containerEl: HTMLElement): void {
+    for (const wrap of Array.from(containerEl.querySelectorAll(".pidian-custom-provider"))) {
+      const id = wrap.getAttribute("data-provider-id");
+      const provider = this.plugin.settings.customProviders.find((item) => item.id === id);
+      if (!provider) {
+        continue;
+      }
+      this.setProviderNameError(
+        wrap.querySelector(".pidian-custom-provider-name-input"),
+        wrap.querySelector(".pidian-custom-provider-name-error"),
+        provider,
+      );
+    }
+  }
+
+  private setProviderNameError(
+    input: Element | null,
+    error: Element | null,
+    provider: CustomOpenAIProvider,
+  ): void {
+    const duplicate = isDuplicateCustomProviderName(
+      provider.name,
+      provider.id,
+      this.plugin.settings.customProviders,
+      reservedProviderNames(),
+    );
+    setFieldError(input, error, duplicate ? t("settingsDuplicateProviderName") : "");
+  }
+
+  private refreshModelNameErrors(containerEl: HTMLElement, provider: CustomOpenAIProvider): void {
+    for (const input of Array.from(containerEl.querySelectorAll(".pidian-custom-model-name-input"))) {
+      if (!(input instanceof HTMLInputElement)) {
+        continue;
+      }
+      const index = Number(input.dataset.modelIndex);
+      if (!Number.isInteger(index)) {
+        continue;
+      }
+      const error =
+        containerEl.querySelector(`.pidian-custom-model-name-error[data-model-index="${index}"]`) ??
+        input.closest(".pidian-custom-model-row")?.querySelector(".pidian-custom-model-name-error") ??
+        null;
+      this.setModelNameError(input, error, provider, index);
+    }
+  }
+
+  private setModelNameError(
+    input: Element,
+    error: Element | null,
+    provider: CustomOpenAIProvider,
+    index: number,
+  ): void {
+    const duplicate = isDuplicateModelSettingName(provider.models, index);
+    setFieldError(input, error, duplicate ? t("settingsDuplicateModelSettingName") : "");
+  }
+}
+
+function customModelJsonKey(provider: CustomOpenAIProvider, model: CustomProviderModel, index: number): string {
+  return `${provider.id}:${model.id || `index-${index}`}`;
+}
+
+function extraRequestBodyInvalid(raw: string): boolean {
+  try {
+    parseExtraRequestBody(raw);
+    return false;
+  } catch {
+    return true;
+  }
+}
+
+function reservedProviderNames(): string[] {
+  return listKnownCredentialProviders().flatMap((provider) => [provider.name, provider.id]);
+}
+
+function setFieldError(input: Element | null, error: Element | null, message: string): void {
+  input?.classList.toggle("is-invalid", Boolean(message));
+  if (error) {
+    error.textContent = message;
   }
 }

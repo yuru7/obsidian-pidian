@@ -902,16 +902,150 @@ button.pidian-favorite-item-title:hover {
   justify-content: flex-end;
 }
 
-.pidian-custom-provider .setting-item:not(.pidian-custom-provider-add-model):not(.pidian-custom-provider-remove) .setting-item-control {
+.pidian-custom-provider .setting-item:not(.pidian-custom-provider-add-model):not(.pidian-custom-provider-remove):not(.pidian-custom-model) .setting-item-control {
   flex: 0 0 50%;
   max-width: 50%;
 }
 
-.pidian-custom-provider .setting-item:not(.pidian-custom-provider-add-model):not(.pidian-custom-provider-remove) .setting-item-control input[type="text"],
-.pidian-custom-provider .setting-item:not(.pidian-custom-provider-add-model):not(.pidian-custom-provider-remove) .setting-item-control input[type="password"] {
+.pidian-custom-provider .setting-item:not(.pidian-custom-provider-add-model):not(.pidian-custom-provider-remove):not(.pidian-custom-model) .setting-item-control input[type="text"],
+.pidian-custom-provider .setting-item:not(.pidian-custom-provider-add-model):not(.pidian-custom-provider-remove):not(.pidian-custom-model) .setting-item-control input[type="password"] {
   flex: 1 1 auto;
   width: 100%;
   min-width: 0;
+}
+
+.pidian-custom-provider .setting-item.pidian-custom-model {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+}
+
+.pidian-custom-provider .setting-item.pidian-custom-model .setting-item-info {
+  display: none;
+}
+
+.pidian-custom-provider .setting-item.pidian-custom-model .setting-item-control {
+  flex: 1 1 auto;
+  max-width: none;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+  gap: 8px;
+}
+
+.pidian-custom-model-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  column-gap: 12px;
+  row-gap: 4px;
+}
+
+.pidian-custom-model-label {
+  min-width: 0;
+  color: var(--text-normal);
+  font-size: var(--font-ui-small);
+}
+
+.pidian-custom-model-control {
+  display: flex;
+  align-items: center;
+  flex: 0 0 50%;
+  max-width: 50%;
+  min-width: 0;
+}
+
+.pidian-custom-model-control input[type="text"] {
+  flex: 1 1 auto;
+  width: 100%;
+  min-width: 0;
+}
+
+.pidian-custom-model-name-error {
+  flex: 0 0 50%;
+  max-width: 50%;
+  margin-left: auto;
+}
+
+.pidian-custom-provider-name .setting-item-control {
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+  gap: 4px;
+}
+
+.pidian-custom-model-remove {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.pidian-settings-field-error {
+  color: var(--text-error);
+  font-size: var(--font-ui-smaller);
+}
+
+.pidian-settings-field-error:empty {
+  display: none;
+}
+
+.pidian-custom-provider input.is-invalid,
+.pidian-custom-provider textarea.is-invalid {
+  border-color: var(--text-error);
+}
+
+button.pidian-custom-model-json-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 8px;
+  align-self: flex-start;
+  height: auto;
+  margin: 0;
+  padding: 4px 0;
+  border: none;
+  background: transparent;
+  box-shadow: none;
+  color: var(--text-muted);
+  font-size: var(--font-ui-small);
+  cursor: pointer;
+}
+
+button.pidian-custom-model-json-toggle:hover {
+  color: var(--text-normal);
+  background: transparent;
+  box-shadow: none;
+}
+
+.pidian-custom-model-json-toggle .pidian-caret {
+  margin: 0;
+  transform: rotate(-45deg);
+}
+
+.pidian-custom-model-json-toggle[aria-expanded="true"] .pidian-caret {
+  transform: rotate(45deg);
+}
+
+.pidian-custom-model-json {
+  display: none;
+}
+
+.pidian-custom-model-json.is-open {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.pidian-custom-model-json textarea {
+  width: 100%;
+  min-height: 8em;
+  resize: vertical;
+  font-family: var(--font-monospace);
+  font-size: var(--font-ui-smaller);
+}
+
+.pidian-custom-model-json textarea.is-invalid {
+  border-color: var(--text-error);
 }
 
 .pidian-custom-provider-add-model .setting-item-info,
