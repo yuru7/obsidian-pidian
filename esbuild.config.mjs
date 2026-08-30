@@ -143,6 +143,32 @@ const obsidianCompatPlugin = {
     build.onResolve({ filter: /^@silvia-odwyer\/photon-node/ }, () => ({ path: stubPaths.photon }));
     build.onResolve({ filter: /^@earendil-works\/pi-tui/ }, () => ({ path: stubPaths.tui }));
     build.onResolve({ filter: /^grok-mermaid/ }, () => ({ path: stubPaths.mermaid }));
+
+    // React 19 hoistable resources (preinit / <script>) call createElement("script")
+    // in three places. Pidian only uses createRoot for the sidebar and never
+    // preloads scripts; Obsidian review rejects the literal anyway. Replace the
+    // DOM injection with a throw so the API cannot load external code.
+    const expectedReactDomScriptSites = 3;
+    build.onLoad(
+      { filter: /[\\/]react-dom[\\/]cjs[\\/]react-dom-client\.(production|development)\.js$/ },
+      async (args) => {
+        const contents = await readFile(args.path, "utf8");
+        const reactDomScriptCreate = /\w+\.createElement\("script"\)/g;
+        const sites = contents.match(reactDomScriptCreate);
+        if (sites?.length !== expectedReactDomScriptSites) {
+          throw new Error(
+            `Expected ${expectedReactDomScriptSites} createElement("script") sites in ${args.path}, found ${sites?.length ?? 0}`,
+          );
+        }
+        return {
+          contents: contents.replace(
+            /\w+\.createElement\("script"\)/g,
+            '(() => { throw new Error("Pidian does not inject script elements"); })()',
+          ),
+          loader: "js",
+        };
+      },
+    );
   },
 };
 
@@ -160,6 +186,7 @@ const FORBIDDEN_BUNDLE_PATTERNS = [
   { pattern: /\bos\.hostname\b/, label: "os.hostname" },
   { pattern: /\bos\.userInfo\b/, label: "os.userInfo" },
   { pattern: /\bos\.networkInterfaces\b/, label: "os.networkInterfaces" },
+  { pattern: /createElement\(\s*["'`]script["'`]\s*\)/i, label: "dynamic <script> element creation" },
 ];
 
 async function assertBundleSurface() {
