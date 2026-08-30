@@ -43,6 +43,8 @@ export default class PidianPlugin extends Plugin {
   credentials?: CredentialResolver;
   private readonly editorContextListeners = new Set<() => void>();
   private readonly settingsListeners = new Set<() => void>();
+  private readonly composerFocusListeners = new Set<() => boolean>();
+  private composerFocusPending = false;
   private connectionFingerprint = "";
 
   async onload(): Promise<void> {
@@ -80,6 +82,7 @@ export default class PidianPlugin extends Plugin {
       id: "new-chat",
       name: t("commandNewChat"),
       icon: PIDIAN_ICON_ID,
+      hotkeys: [{ modifiers: ["Alt"], key: "n" }],
       callback: () => {
         void this.activateView().then(() => this.startNewChat());
       },
@@ -98,6 +101,7 @@ export default class PidianPlugin extends Plugin {
   onunload(): void {
     this.editorContextListeners.clear();
     this.settingsListeners.clear();
+    this.composerFocusListeners.clear();
   }
 
   subscribeEditorContext(listener: () => void): () => void {
@@ -112,6 +116,34 @@ export default class PidianPlugin extends Plugin {
     return () => {
       this.settingsListeners.delete(listener);
     };
+  }
+
+  subscribeComposerFocus(listener: () => boolean): () => void {
+    this.composerFocusListeners.add(listener);
+    this.flushComposerFocus();
+    return () => {
+      this.composerFocusListeners.delete(listener);
+    };
+  }
+
+  private requestComposerFocus(): void {
+    this.composerFocusPending = true;
+    this.flushComposerFocus();
+    if (this.composerFocusPending) {
+      requestAnimationFrame(() => this.flushComposerFocus());
+    }
+  }
+
+  private flushComposerFocus(): void {
+    if (!this.composerFocusPending) {
+      return;
+    }
+    for (const listener of this.composerFocusListeners) {
+      if (listener()) {
+        this.composerFocusPending = false;
+        return;
+      }
+    }
   }
 
   private notifyEditorContext(): void {
@@ -210,7 +242,7 @@ export default class PidianPlugin extends Plugin {
 
   private async bootstrap(): Promise<void> {
     await this.resolveDefaultModel();
-    await this.startNewChat();
+    await this.startNewChat({ focus: false });
     await this.cleanupSessions();
   }
 
@@ -241,15 +273,22 @@ export default class PidianPlugin extends Plugin {
     }
   }
 
-  async startNewChat(): Promise<void> {
+  async startNewChat(options?: { focus?: boolean }): Promise<void> {
     if (!this.agentService) {
       new Notice(t("noticeNotInitialized"));
       return;
+    }
+    const focus = options?.focus !== false;
+    if (focus) {
+      this.requestComposerFocus();
     }
     await this.agentService.newChat(this.settings.provider, this.settings.model, this.settings.thinkingLevel);
     const error = this.agentService.getError();
     if (error) {
       new Notice(t("noticeError", { error }));
+    }
+    if (focus) {
+      this.requestComposerFocus();
     }
   }
 

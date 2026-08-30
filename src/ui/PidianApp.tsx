@@ -46,8 +46,10 @@ export function PidianApp({ plugin }: { plugin: PidianPlugin }): JSX.Element {
           <div className="pidian-title">Pidian</div>
           <div className="pidian-header-actions">
             <button
+              type="button"
               className="pidian-icon-button"
               aria-label={t("uiNewChat")}
+              onMouseDown={(event) => event.preventDefault()}
               onClick={() => {
                 void plugin.startNewChat();
               }}
@@ -94,6 +96,7 @@ export function PidianApp({ plugin }: { plugin: PidianPlugin }): JSX.Element {
           <TokenUsage messages={session?.messages ?? []} />
         </div>
         <Composer
+          plugin={plugin}
           disabled={!session || !session.provider || !session.model}
           streaming={streaming}
           toolbar={<ModelSelector plugin={plugin} onChange={rerender} />}

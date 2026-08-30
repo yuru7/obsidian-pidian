@@ -1,5 +1,6 @@
 import { useLayoutEffect, useRef, useState, type JSX } from "react";
 import { t } from "../i18n";
+import type PidianPlugin from "../main";
 
 const MIN_ROWS = 2;
 const MAX_ROWS = 4;
@@ -29,12 +30,14 @@ function fitTextarea(el: HTMLTextAreaElement): void {
 }
 
 export function Composer({
+  plugin,
   disabled,
   streaming,
   toolbar,
   onSend,
   onAbort,
 }: {
+  plugin: PidianPlugin;
   disabled: boolean;
   streaming: boolean;
   toolbar?: JSX.Element;
@@ -50,6 +53,18 @@ export function Composer({
       fitTextarea(el);
     }
   }, [text]);
+
+  useLayoutEffect(() => {
+    const tryFocus = (): boolean => {
+      const el = textareaRef.current;
+      if (!el || el.disabled) {
+        return false;
+      }
+      el.focus();
+      return true;
+    };
+    return plugin.subscribeComposerFocus(tryFocus);
+  }, [plugin, disabled]);
 
   const send = () => {
     const trimmed = text.trim();
