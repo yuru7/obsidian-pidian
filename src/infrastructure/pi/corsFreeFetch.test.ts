@@ -54,26 +54,24 @@ describe("injectCorsFreeFetch", () => {
 
 describe("withCorsFreeFetch", () => {
   it("swaps global fetch for the callback and restores it afterwards", async () => {
-    const original = globalThis.fetch;
     const injected = vi.fn() as unknown as typeof fetch;
     const seen: typeof fetch[] = [];
     await withCorsFreeFetch(async () => {
-      seen.push(globalThis.fetch);
+      seen.push(window.fetch);
       return "ok";
     }, injected);
     expect(seen).toEqual([injected]);
-    expect(globalThis.fetch).toBe(original);
+    expect(window.fetch).not.toBe(injected);
   });
 
   it("restores global fetch when the callback throws", async () => {
-    const original = globalThis.fetch;
     const injected = vi.fn() as unknown as typeof fetch;
     await expect(
       withCorsFreeFetch(async () => {
         throw new Error("boom");
       }, injected),
     ).rejects.toThrow("boom");
-    expect(globalThis.fetch).toBe(original);
+    expect(window.fetch).not.toBe(injected);
   });
 });
 
@@ -146,6 +144,18 @@ describe("corsFreeFetch", () => {
     expect(last.headers.authorization).toBe("Bearer test-key");
     expect(last.headers["user-agent"]).toBe("pidian-test");
     expect(await response.text()).toBe("data: 1\n\ndata: 2\n\n");
+  });
+
+  it.each([204, 304])("omits the body for status %s so Chromium can construct Response", async (status) => {
+    await listen((_req, res) => {
+      res.writeHead(status, { etag: '"catalog"' });
+      res.end();
+    });
+
+    const response = await corsFreeFetch(`${origin}/api/models`);
+    expect(response.status).toBe(status);
+    expect(response.body).toBeNull();
+    expect(await response.text()).toBe("");
   });
 
   it("rejects with AbortError when the signal aborts", async () => {

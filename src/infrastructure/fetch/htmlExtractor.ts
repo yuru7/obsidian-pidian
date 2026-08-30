@@ -51,7 +51,7 @@ export function selectExtractedHtml(
 export function extractReadability(html: string): ExtractedHtml | undefined {
   try {
     const { document } = parseHTML(html);
-    const article = new Readability(document as unknown as Document).parse();
+    const article = new Readability(document).parse();
     const contentHtml = article?.content?.trim();
     if (!contentHtml) {
       return undefined;
@@ -70,7 +70,7 @@ export function extractReadability(html: string): ExtractedHtml | undefined {
 export async function extractDefuddle(html: string, url: string): Promise<ExtractedHtml | undefined> {
   try {
     const { document } = parseHTML(html);
-    const result = await Defuddle(document as unknown as Document, url, {
+    const result = await Defuddle(document, url, {
       markdown: true,
       useAsync: false,
     });

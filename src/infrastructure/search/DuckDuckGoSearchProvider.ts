@@ -149,7 +149,7 @@ function isDuckDuckGoHost(hostname: string): boolean {
 
 function abortAfter(ms: number, parent?: AbortSignal): { signal: AbortSignal; dispose: () => void } {
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), ms);
+  const timer = window.setTimeout(() => controller.abort(), ms);
   const onParentAbort = () => controller.abort();
   parent?.addEventListener("abort", onParentAbort);
   if (parent?.aborted) {
@@ -158,7 +158,7 @@ function abortAfter(ms: number, parent?: AbortSignal): { signal: AbortSignal; di
   return {
     signal: controller.signal,
     dispose: () => {
-      clearTimeout(timer);
+      window.clearTimeout(timer);
       parent?.removeEventListener("abort", onParentAbort);
     },
   };

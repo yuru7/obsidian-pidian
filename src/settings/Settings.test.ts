@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
+import { bindConfigDir } from "../application/notePath";
 import { mergeSettings } from "./Settings";
+
+const TEST_CONFIG_DIR = "vault-config";
+
+bindConfigDir(() => TEST_CONFIG_DIR);
 
 describe("mergeSettings", () => {
   it("drops the former search permission and defaults delete to deny", () => {
@@ -56,7 +61,7 @@ describe("mergeSettings", () => {
     expect(mergeSettings({}).pluginDirectory).toBe("pidian");
     expect(mergeSettings({ pluginDirectory: "agent-data" }).pluginDirectory).toBe("agent-data");
     expect(mergeSettings({ pluginDirectory: "../secret" }).pluginDirectory).toBe("pidian");
-    expect(mergeSettings({ pluginDirectory: ".obsidian" }).pluginDirectory).toBe("pidian");
+    expect(mergeSettings({ pluginDirectory: TEST_CONFIG_DIR }).pluginDirectory).toBe("pidian");
   });
 
   it("builds a fresh copy so a settings reset does not mutate defaults", () => {

@@ -16,6 +16,10 @@ export interface PiLikeEvent {
   messages?: unknown;
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
 function usageFromPiMessages(messages: unknown): TokenUsage | undefined {
   if (!Array.isArray(messages)) {
     return undefined;
@@ -26,19 +30,10 @@ function usageFromPiMessages(messages: unknown): TokenUsage | undefined {
   let cacheWrite = 0;
   let found = false;
   for (const item of messages) {
-    if (!item || typeof item !== "object" || !("usage" in item)) {
+    if (!isRecord(item) || !isRecord(item.usage)) {
       continue;
     }
-    const usage = item.usage;
-    if (!usage || typeof usage !== "object") {
-      continue;
-    }
-    const record = usage as {
-      input?: unknown;
-      output?: unknown;
-      cacheRead?: unknown;
-      cacheWrite?: unknown;
-    };
+    const record = item.usage;
     if (typeof record.input !== "number" && typeof record.output !== "number") {
       continue;
     }

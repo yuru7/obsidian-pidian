@@ -30,7 +30,7 @@ export function shouldRefreshDynamicModels(mtimeMs: number | undefined, now = Da
   return now - mtimeMs >= DYNAMIC_MODELS_MAX_AGE_MS;
 }
 
-/** JSON file at `{pluginInstallDir}/dynamicModels.json` (e.g. `.obsidian/plugins/pidian`). */
+/** JSON file at `{pluginInstallDir}/dynamicModels.json` (plugin install directory). */
 export function createDynamicModelsFile(
   adapter: DynamicModelsVaultAdapter,
   pluginInstallDir: string,

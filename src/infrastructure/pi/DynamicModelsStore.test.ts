@@ -120,12 +120,12 @@ describe("createDynamicModelsFile", () => {
           return mtime === undefined ? null : { mtime };
         },
       },
-      ".obsidian/plugins/pidian",
+      "config/plugins/pidian",
     );
 
     await expect(file.mtimeMs()).resolves.toBeUndefined();
     await file.writeText('{"openai":{}}');
-    expect(files.get(".obsidian/plugins/pidian/dynamicModels.json")).toBe('{"openai":{}}');
+    expect(files.get("config/plugins/pidian/dynamicModels.json")).toBe('{"openai":{}}');
     await expect(file.readText()).resolves.toBe('{"openai":{}}');
     await expect(file.mtimeMs()).resolves.toBe(100);
   });

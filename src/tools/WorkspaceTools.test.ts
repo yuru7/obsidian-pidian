@@ -1,8 +1,13 @@
 import { describe, expect, it, vi } from "vitest";
+import { bindConfigDir } from "../application/notePath";
 import { PermissionService } from "../application/PermissionService";
 import type { OpenFileResult, WorkspaceNavigator, WorkspaceTab } from "../domain/workspace/WorkspaceNavigator";
 import { createOpenFileTool } from "./OpenFileTool";
 import { createWorkspaceTabsTool } from "./WorkspaceTabsTool";
+
+const TEST_CONFIG_DIR = "vault-config";
+
+bindConfigDir(() => TEST_CONFIG_DIR);
 
 const allowRead = () =>
   new PermissionService(
@@ -100,9 +105,9 @@ describe("open_file", () => {
   it("rejects unsafe paths before opening", async () => {
     const workspace = new MemoryWorkspace();
     const tool = createOpenFileTool({ workspace, permissions: allowRead() });
-    const result = await tool.execute({ path: ".obsidian/app.json" });
+    const result = await tool.execute({ path: `${TEST_CONFIG_DIR}/app.json` });
     expect(result.isError).toBe(true);
-    expect(result.content).toContain(".obsidian");
+    expect(result.content).toContain(TEST_CONFIG_DIR);
     expect(workspace.opened).toEqual([]);
   });
 });

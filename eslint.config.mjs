@@ -4,7 +4,7 @@ import globals from "globals";
 
 export default tseslint.config(
   {
-    ignores: ["main.js", "node_modules/**", "esbuild.config.mjs"],
+    ignores: ["main.js", "node_modules/**", "esbuild.config.mjs", "vitest.setup.ts"],
   },
   js.configs.recommended,
   ...tseslint.configs.recommended,

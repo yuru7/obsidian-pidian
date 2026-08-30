@@ -13,31 +13,10 @@ if you want to view the source, please visit the github repository of this plugi
 */
 
 // Obsidian evals plugin code, so Node's __filename is Electron's asar — not this file.
-// Pi reads package.json from import.meta.url / PI_PACKAGE_DIR at module load and throws
-// "Invalid package .../electron.asar" if that path is inside the asar.
-(function () {
-  var path = require("path");
-  var os = require("os");
-  var fs = require("fs");
-  var dir = path.join(os.tmpdir(), "pidian-pi-package");
-  try {
-    fs.mkdirSync(dir, { recursive: true });
-    fs.writeFileSync(
-      path.join(dir, "package.json"),
-      JSON.stringify({
-        name: "@earendil-works/pi-coding-agent",
-        version: "0.0.0",
-        piConfig: { name: "pi", configDir: ".pi" },
-      })
-    );
-  } catch (e) {}
-  if (!process.env.PI_PACKAGE_DIR) {
-    process.env.PI_PACKAGE_DIR = dir;
-  }
-})();
-var import_meta_url = require("url").pathToFileURL(
-  require("path").join(process.env.PI_PACKAGE_DIR, "main.js")
-).href;
+// Point import.meta.url at a virtual path so Pi does not walk electron.asar for package.json.
+// pathToFileURL keeps this absolute on Windows; a hardcoded file:///pidian-virtual/...
+// throws "File URL path must be absolute" in fileURLToPath / createRequire.
+var import_meta_url = require("node:url").pathToFileURL("/pidian-virtual/pi-coding-agent/main.js").href;
 
 // Pi hides node builtins behind import(variable) so bundlers skip them.
 // Obsidian's eval context cannot fetch \`node:fs\` as an ESM module.
@@ -58,7 +37,23 @@ const stubPaths = {
   tui: path.join(stubDir, "pi-tui.js"),
   mermaid: path.join(stubDir, "mermaid.js"),
   resourceLoader: path.join(rootDir, "src/infrastructure/pi/PidianResourceLoader.ts"),
+  sdk: path.join(rootDir, "src/infrastructure/pi/piCodingAgentSdk.ts"),
+  extensionLoader: path.join(stubDir, "extension-loader.js"),
+  tools: path.join(stubDir, "pi-tools.js"),
+  bash: path.join(stubDir, "bash.js"),
+  bashExecutor: path.join(stubDir, "bash-executor.js"),
+  childProcess: path.join(stubDir, "child-process.js"),
+  toolsManager: path.join(stubDir, "tools-manager.js"),
+  windowsSelfUpdate: path.join(stubDir, "windows-self-update.js"),
+  shell: path.join(stubDir, "shell.js"),
+  resolveConfigValue: path.join(stubDir, "resolve-config-value.ts"),
+  exec: path.join(stubDir, "exec.js"),
 };
+
+function fromPiCodingAgent(args) {
+  const importer = args.importer.replaceAll("\\", "/");
+  return importer.includes("@earendil-works/pi-coding-agent");
+}
 
 const obsidianCompatPlugin = {
   name: "obsidian-compat",
@@ -73,15 +68,45 @@ const obsidianCompatPlugin = {
       return { contents, loader: "js" };
     });
 
+    // The package barrel re-exports the CLI. Import only the SDK surface.
+    build.onResolve({ filter: /^@earendil-works\/pi-coding-agent$/ }, () => ({
+      path: stubPaths.sdk,
+    }));
+    build.onResolve({ filter: /[@]earendil-works[/\\]pi-coding-agent[/\\]dist[/\\]index\.js$/ }, () => ({
+      path: stubPaths.sdk,
+    }));
+
     // DefaultResourceLoader pulls the extension loader, which imports the whole
     // Pi barrel (CLI, TUI, jiti). Pidian only needs prompt + AGENTS.md.
     build.onResolve({ filter: /(?:^|[\\/])resource-loader\.js$/ }, (args) => {
-      const importer = args.importer.replaceAll("\\", "/");
-      if (!importer.includes("@earendil-works/pi-coding-agent")) {
+      if (!fromPiCodingAgent(args)) {
         return undefined;
       }
       return { path: stubPaths.resourceLoader };
     });
+
+    // Replace resolved Pi modules. onLoad matches the file path, not the specifier,
+    // so `./loader.js` from extensions/index.js is still caught.
+    const piFileStubs = [
+      ["core/extensions/loader.js", stubPaths.extensionLoader],
+      ["core/tools/index.js", stubPaths.tools],
+      ["core/tools/bash.js", stubPaths.bash],
+      ["core/bash-executor.js", stubPaths.bashExecutor],
+      ["utils/child-process.js", stubPaths.childProcess],
+      ["utils/tools-manager.js", stubPaths.toolsManager],
+      ["utils/windows-self-update.js", stubPaths.windowsSelfUpdate],
+      ["utils/shell.js", stubPaths.shell],
+      ["core/resolve-config-value.js", stubPaths.resolveConfigValue],
+      ["core/exec.js", stubPaths.exec],
+    ];
+    for (const [relative, stubPath] of piFileStubs) {
+      const escaped = relative.replaceAll(".", "\\.").replaceAll("/", "[/\\\\]");
+      const filter = new RegExp(`[@]earendil-works[/\\\\]pi-coding-agent[/\\\\]dist[/\\\\]${escaped}$`);
+      build.onLoad({ filter }, async () => {
+        const contents = await readFile(stubPath, "utf8");
+        return { contents, loader: stubPath.endsWith(".ts") ? "ts" : "js" };
+      });
+    }
 
     // AgentSession still imports TUI themes and coding-tool renderers.
     build.onResolve({ filter: /^(jiti|jiti\/)/ }, () => ({ path: stubPaths.jiti }));
@@ -91,6 +116,28 @@ const obsidianCompatPlugin = {
     build.onResolve({ filter: /^grok-mermaid/ }, () => ({ path: stubPaths.mermaid }));
   },
 };
+
+const FORBIDDEN_BUNDLE_PATTERNS = [
+  { pattern: /extractZipArchive/, label: "ZIP extraction (Pi tools-manager)" },
+  { pattern: /quarantineWindowsNativeDependencies/, label: "Pi Windows self-update" },
+  { pattern: /require\(["']child_process["']\)/, label: "require('child_process')" },
+  { pattern: /require\(["']node:child_process["']\)/, label: "require('node:child_process')" },
+  { pattern: /from["']child_process["']/, label: "import from child_process" },
+  { pattern: /from["']node:child_process["']/, label: "import from node:child_process" },
+  { pattern: /\bos\.hostname\b/, label: "os.hostname" },
+  { pattern: /\bos\.userInfo\b/, label: "os.userInfo" },
+  { pattern: /\bos\.networkInterfaces\b/, label: "os.networkInterfaces" },
+];
+
+async function assertBundleSurface() {
+  const bundle = await readFile(path.join(rootDir, "main.js"), "utf8");
+  const hits = FORBIDDEN_BUNDLE_PATTERNS.filter(({ pattern }) => pattern.test(bundle));
+  if (hits.length === 0) {
+    return;
+  }
+  const details = hits.map(({ label }) => `  - ${label}`).join("\n");
+  throw new Error(`Pidian bundle still contains review-sensitive APIs:\n${details}`);
+}
 
 const prod = process.argv[2] === "production";
 
@@ -135,6 +182,9 @@ const context = await esbuild.context({
     // Pi pulls undici via SettingsManager. Real undici uses Node Timeout.unref()
     // and HTTP/2 pings; both throw in Electron's renderer.
     undici: path.join(rootDir, "src/infrastructure/http/undici-stub.js"),
+    // google-auth-library optionally shells out to gcloud. Keep it out of the bundle.
+    child_process: stubPaths.childProcess,
+    "node:child_process": stubPaths.childProcess,
   },
   define: {
     "import.meta.url": "import_meta_url",
@@ -144,6 +194,7 @@ const context = await esbuild.context({
 
 if (prod) {
   await context.rebuild();
+  await assertBundleSurface();
   process.exit(0);
 } else {
   await context.watch();

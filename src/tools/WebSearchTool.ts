@@ -119,9 +119,18 @@ function parseDomainFilters(value: unknown): string[] | undefined {
   if (value === undefined) {
     return undefined;
   }
-  if (!Array.isArray(value) || value.some((item) => typeof item !== "string")) {
+  if (!Array.isArray(value)) {
     throw new Error("domainFilters must be an array of strings.");
   }
-  const filters = value.map((item) => item.trim()).filter((item) => item.length > 0);
+  const filters: string[] = [];
+  for (const item of value) {
+    if (typeof item !== "string") {
+      throw new Error("domainFilters must be an array of strings.");
+    }
+    const trimmed = item.trim();
+    if (trimmed.length > 0) {
+      filters.push(trimmed);
+    }
+  }
   return filters.length > 0 ? filters : undefined;
 }

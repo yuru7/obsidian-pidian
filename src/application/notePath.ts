@@ -1,6 +1,7 @@
 export const DEFAULT_PLUGIN_DIRECTORY = "pidian";
 
 let resolvePluginDirectory: () => string = () => DEFAULT_PLUGIN_DIRECTORY;
+let resolveConfigDir: () => string = () => "";
 
 export class UnsafeNotePathError extends Error {
   constructor(message: string) {
@@ -18,8 +19,23 @@ export function bindPluginDirectory(resolve: () => string): void {
   resolvePluginDirectory = resolve;
 }
 
+/** Live vault config folder. Bound from Vault#configDir in main.ts. */
+export function bindConfigDir(resolve: () => string): void {
+  resolveConfigDir = resolve;
+}
+
 export function getPluginDirectory(): string {
   return parsePluginDirectory(resolvePluginDirectory());
+}
+
+export function getConfigDir(): string {
+  return normalizeConfigDir(resolveConfigDir());
+}
+
+/** Vault config folder as shown in tool descriptions, or a fallback before bind. */
+export function formatConfigDirExclusion(): string {
+  const dir = getConfigDir();
+  return dir ? `${dir}/` : "the vault config folder";
 }
 
 export function isValidPluginDirectory(path: string): boolean {
@@ -31,7 +47,7 @@ export function isValidPluginDirectory(path: string): boolean {
   if (parts.some((part) => part === ".." || part === "." || part === "")) {
     return false;
   }
-  if (normalized === ".obsidian" || normalized.startsWith(".obsidian/")) {
+  if (isConfigDirPath(normalized)) {
     return false;
   }
   return true;
@@ -64,8 +80,8 @@ export function assertSafeNotePath(path: string, pluginDirectory = getPluginDire
   }
   if (isRestrictedVaultPath(normalized, pluginDirectory)) {
     throw new UnsafeNotePathError(
-      normalized === ".obsidian" || normalized.startsWith(".obsidian/")
-        ? "Notes inside .obsidian/ cannot be accessed."
+      isConfigDirPath(normalized)
+        ? `Notes inside ${getConfigDir()}/ cannot be accessed.`
         : "Session files cannot be accessed as notes.",
     );
   }
@@ -82,7 +98,7 @@ export function assertSafeDirectoryPath(path: string, pluginDirectory = getPlugi
 
 export function isRestrictedVaultPath(path: string, pluginDirectory = getPluginDirectory()): boolean {
   const normalized = normalizeNotePath(path);
-  if (normalized === ".obsidian" || normalized.startsWith(".obsidian/")) {
+  if (isConfigDirPath(normalized)) {
     return true;
   }
   const sessions = sessionsDir(pluginDirectory);
@@ -100,4 +116,17 @@ export function isExcludedFromSearch(path: string, pluginDirectory = getPluginDi
     return true;
   }
   return false;
+}
+
+function normalizeConfigDir(value: string): string {
+  return normalizeNotePath(value).replace(/\/+$/, "");
+}
+
+function isConfigDirPath(path: string, configDir = getConfigDir()): boolean {
+  const dir = normalizeConfigDir(configDir);
+  if (!dir) {
+    return false;
+  }
+  const normalized = normalizeNotePath(path);
+  return normalized === dir || normalized.startsWith(`${dir}/`);
 }

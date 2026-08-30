@@ -46,13 +46,18 @@ export const corsFreeFetch: FetchFunction = async (input, init) => {
         headers,
       },
       (res) => {
-        resolve(
-          new Response(incomingToWebStream(res), {
-            status: res.statusCode ?? 0,
-            statusText: res.statusMessage ?? "",
-            headers: incomingToHeaders(res),
-          }),
-        );
+        try {
+          resolve(
+            new Response(webResponseBody(res), {
+              status: res.statusCode ?? 200,
+              statusText: res.statusMessage ?? "",
+              headers: incomingToHeaders(res),
+            }),
+          );
+        } catch (error) {
+          res.destroy();
+          reject(error);
+        }
       },
     );
 
@@ -111,12 +116,12 @@ export async function withCorsFreeFetch<T>(
   run: () => Promise<T>,
   fetch: FetchFunction = corsFreeFetch,
 ): Promise<T> {
-  const original = globalThis.fetch;
-  globalThis.fetch = fetch;
+  const original = window.fetch.bind(window);
+  window.fetch = fetch;
   try {
     return await run();
   } finally {
-    globalThis.fetch = original;
+    window.fetch = original;
   }
 }
 
@@ -191,21 +196,8 @@ async function bodyToBuffer(body: BodyInit): Promise<Buffer> {
   if (typeof URLSearchParams !== "undefined" && body instanceof URLSearchParams) {
     return Buffer.from(body.toString());
   }
-  if (typeof ReadableStream !== "undefined" && body instanceof ReadableStream) {
-    const reader = body.getReader();
-    const chunks: Uint8Array[] = [];
-    for (;;) {
-      const { done, value } = await reader.read();
-      if (done) {
-        break;
-      }
-      if (value) {
-        chunks.push(value);
-      }
-    }
-    return Buffer.concat(chunks);
-  }
-  throw new TypeError("Unsupported request body");
+  const bytes = await new Response(body).arrayBuffer();
+  return Buffer.from(bytes);
 }
 
 function incomingToHeaders(res: IncomingMessage): Headers {
@@ -223,6 +215,19 @@ function incomingToHeaders(res: IncomingMessage): Headers {
     }
   }
   return headers;
+}
+
+/** Fetch forbids a body on 101/204/205/304. Chromium throws; Node's undici too. */
+function isNullBodyStatus(status: number): boolean {
+  return status === 101 || status === 204 || status === 205 || status === 304;
+}
+
+function webResponseBody(res: IncomingMessage): ReadableStream<Uint8Array> | null {
+  if (isNullBodyStatus(res.statusCode ?? 0)) {
+    res.resume();
+    return null;
+  }
+  return incomingToWebStream(res);
 }
 
 function incomingToWebStream(res: IncomingMessage): ReadableStream<Uint8Array> {
@@ -257,7 +262,7 @@ function incomingToWebStream(res: IncomingMessage): ReadableStream<Uint8Array> {
 }
 
 function abortError(signal?: AbortSignal): Error {
-  const reason = signal?.reason;
+  const reason = signal?.reason as unknown;
   if (reason instanceof Error) {
     return reason;
   }

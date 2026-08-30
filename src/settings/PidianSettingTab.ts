@@ -1,4 +1,4 @@
-import { Notice, PluginSettingTab, Setting, setIcon, type App } from "obsidian";
+import { Notice, PluginSettingTab, Setting, setIcon, type App, type SettingDefinitionItem } from "obsidian";
 import { t } from "../i18n";
 import type PidianPlugin from "../main";
 import type { CatalogModel, CatalogProvider } from "../domain/agent/ModelCatalog";
@@ -61,6 +61,27 @@ export class PidianSettingTab extends PluginSettingTab {
     super(app, plugin);
   }
 
+  getSettingDefinitions(): SettingDefinitionItem[] {
+    return settingsTabs().map((tab) => ({
+      type: "group" as const,
+      heading: tab.label,
+      items: [
+        {
+          name: tab.label,
+          render: (setting) => {
+            const parent = setting.settingEl.parentElement;
+            if (!parent) {
+              this.renderSelected(tab.id, setting.settingEl);
+              return;
+            }
+            setting.settingEl.remove();
+            this.renderSelected(tab.id, parent);
+          },
+        },
+      ],
+    }));
+  }
+
   display(): void {
     const { containerEl } = this;
     const sameTab = this.lastRenderedTab === this.selectedTab;
@@ -72,21 +93,7 @@ export class PidianSettingTab extends PluginSettingTab {
     panel.setAttr("role", "tabpanel");
     panel.id = "pidian-settings-panel";
     panel.setAttr("aria-labelledby", `pidian-settings-tab-${this.selectedTab}`);
-
-    switch (this.selectedTab) {
-      case "general":
-        this.renderGeneral(panel);
-        break;
-      case "permissions":
-        this.renderPermissions(panel);
-        break;
-      case "apiAuth":
-        this.renderApiAuth(panel);
-        break;
-      case "session":
-        this.renderSession(panel);
-        break;
-    }
+    this.renderSelected(this.selectedTab, panel);
 
     this.lastRenderedTab = this.selectedTab;
     if (sameTab) {
@@ -152,7 +159,33 @@ export class PidianSettingTab extends PluginSettingTab {
       }
     };
     apply();
-    requestAnimationFrame(apply);
+    window.requestAnimationFrame(apply);
+  }
+
+  private refreshSettings(): void {
+    const update = (this as { update?: () => void }).update;
+    if (typeof update === "function") {
+      update.call(this);
+      return;
+    }
+    this.display();
+  }
+
+  private renderSelected(tab: SettingsTabId, containerEl: HTMLElement): void {
+    switch (tab) {
+      case "general":
+        this.renderGeneral(containerEl);
+        break;
+      case "permissions":
+        this.renderPermissions(containerEl);
+        break;
+      case "apiAuth":
+        this.renderApiAuth(containerEl);
+        break;
+      case "session":
+        this.renderSession(containerEl);
+        break;
+    }
   }
 
   private fallbackProviders(): CatalogProvider[] {
@@ -225,7 +258,7 @@ export class PidianSettingTab extends PluginSettingTab {
   }
 
   private renderAgent(containerEl: HTMLElement, providers: CatalogProvider[], models: CatalogModel[]): void {
-    containerEl.createEl("h3", { text: t("settingsAgent") });
+    new Setting(containerEl).setName(t("settingsAgent")).setHeading();
 
     new Setting(containerEl)
       .setName(t("settingsProvider"))
@@ -241,7 +274,7 @@ export class PidianSettingTab extends PluginSettingTab {
           const nextModels = catalog ? await catalog.listModels(value).catch(() => []) : [];
           this.plugin.settings.model = nextModels[0]?.id ?? "";
           await this.plugin.saveSettings();
-          this.display();
+          this.refreshSettings();
         });
       });
 
@@ -262,7 +295,7 @@ export class PidianSettingTab extends PluginSettingTab {
   }
 
   private renderCustomProviders(containerEl: HTMLElement): void {
-    containerEl.createEl("h3", { text: t("settingsCustomProviders") });
+    new Setting(containerEl).setName(t("settingsCustomProviders")).setHeading();
     for (const provider of this.plugin.settings.customProviders) {
       this.renderCustomProvider(containerEl, provider);
     }
@@ -276,7 +309,7 @@ export class PidianSettingTab extends PluginSettingTab {
           apiKey: "",
         });
         await this.plugin.saveSettings();
-        this.display();
+        this.refreshSettings();
       });
     });
   }
@@ -333,7 +366,7 @@ export class PidianSettingTab extends PluginSettingTab {
   private async resetPermissions(): Promise<void> {
     this.plugin.settings.permissions = { ...DEFAULT_SETTINGS.permissions };
     await this.plugin.saveSettings();
-    this.display();
+    this.refreshSettings();
     new Notice(t("settingsResetDone"));
   }
 
@@ -383,7 +416,7 @@ export class PidianSettingTab extends PluginSettingTab {
         toggle.onChange(async (value) => {
           this.plugin.settings.autoDeleteSessions = value;
           await this.plugin.saveSettings();
-          this.display();
+          this.refreshSettings();
         });
       });
 
@@ -473,7 +506,7 @@ export class PidianSettingTab extends PluginSettingTab {
           button.setIcon("minus").setTooltip(t("settingsRemoveModel")).onClick(async () => {
             provider.modelIds.splice(index, 1);
             await this.plugin.saveSettings();
-            this.display();
+            this.refreshSettings();
           });
         });
       }
@@ -482,7 +515,7 @@ export class PidianSettingTab extends PluginSettingTab {
       button.setButtonText("+").setTooltip(t("settingsAddModel")).onClick(async () => {
         provider.modelIds.push("");
         await this.plugin.saveSettings();
-        this.display();
+        this.refreshSettings();
       });
     });
     new Setting(wrap).setName(t("settingsApiKey")).addText((text) => {
@@ -501,7 +534,7 @@ export class PidianSettingTab extends PluginSettingTab {
         );
         delete this.plugin.settings.apiKeys[provider.id];
         await this.plugin.saveSettings();
-        this.display();
+        this.refreshSettings();
         new Notice(t("settingsRemovedProvider"));
       });
     });

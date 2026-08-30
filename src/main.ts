@@ -8,7 +8,7 @@ import { ReadRevisionTracker } from "./application/ReadRevisionTracker";
 import { SessionCleanupService } from "./application/SessionCleanupService";
 import { SessionService } from "./application/SessionService";
 import { connectionConfigFingerprint, reconcileModelSelection } from "./application/modelSelection";
-import { bindPluginDirectory } from "./application/notePath";
+import { bindConfigDir, bindPluginDirectory } from "./application/notePath";
 import { isThinkingLevel } from "./domain/agent/thinkingLevel";
 import { corsFreeFetch } from "./infrastructure/pi/corsFreeFetch";
 import {
@@ -69,7 +69,7 @@ export default class PidianPlugin extends Plugin {
       console.warn("Pidian: failed to add ribbon icon", error);
     }
     this.addCommand({
-      id: "open-pidian",
+      id: "open",
       name: t("commandOpen"),
       icon: PIDIAN_ICON_ID,
       callback: () => {
@@ -77,7 +77,7 @@ export default class PidianPlugin extends Plugin {
       },
     });
     this.addCommand({
-      id: "new-pidian-chat",
+      id: "new-chat",
       name: t("commandNewChat"),
       icon: PIDIAN_ICON_ID,
       callback: () => {
@@ -149,7 +149,7 @@ export default class PidianPlugin extends Plugin {
     this.credentials = credentials;
     const dynamicModelsFile = createDynamicModelsFile(
       this.app.vault.adapter,
-      this.manifest.dir ?? `.obsidian/plugins/${this.manifest.id}`,
+      this.manifest.dir ?? `${this.app.vault.configDir}/plugins/${this.manifest.id}`,
     );
     const adapter = new PiAgentAdapter({
       credentials,
@@ -297,6 +297,7 @@ export default class PidianPlugin extends Plugin {
   }
 
   async loadSettings(): Promise<void> {
+    bindConfigDir(() => this.app.vault.configDir);
     this.settings = mergeSettings(await this.loadData());
     this.syncCustomProviderKeys();
     this.connectionFingerprint = connectionConfigFingerprint(this.settings);

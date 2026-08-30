@@ -1,7 +1,7 @@
 import type { NoteRepository } from "../domain/notes/NoteRepository";
 import type { PidianTool } from "../domain/tools/PidianTool";
 import { PermissionService } from "../application/PermissionService";
-import { assertSafeDirectoryPath, sessionsDir } from "../application/notePath";
+import { assertSafeDirectoryPath, formatConfigDirExclusion, sessionsDir } from "../application/notePath";
 
 export function createListFilesTool(options: {
   notes: NoteRepository;
@@ -11,7 +11,7 @@ export function createListFilesTool(options: {
     name: "list_files",
     label: "List files",
     description:
-      `List immediate files and folders in a vault directory. Not recursive. Use an empty string or / for the vault root. Excludes .obsidian/ and ${sessionsDir()}/.`,
+      `List immediate files and folders in a vault directory. Not recursive. Use an empty string or / for the vault root. Excludes ${formatConfigDirExclusion()} and ${sessionsDir()}/.`,
     parameters: {
       type: "object",
       properties: {
