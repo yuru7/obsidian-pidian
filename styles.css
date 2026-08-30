@@ -342,8 +342,16 @@
 }
 
 .pidian-message-role {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   font-weight: var(--font-semibold, 600);
   margin-bottom: 4px;
+}
+
+.pidian-message-role .pidian-icon {
+  flex-shrink: 0;
+  color: var(--text-muted);
 }
 
 .pidian-message-text,
