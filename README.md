@@ -21,13 +21,7 @@ The AI agent decides on its own when to read, write, and search notes.
 
 ## Install
 
-Pidian is not in the Community Plugins list yet. Use one of the following.
-
-**From a release**
-
-1. Download `main.js`, `manifest.json`, and `styles.css` from the GitHub Release
-2. Place them in `.obsidian/plugins/pidian/` in your vault
-3. Enable Pidian under Settings → Community plugins
+Install from the Obsidian Community Plugins.
 
 **To build from source**, see [CONTRIBUTING.md](CONTRIBUTING.md).
 
@@ -91,7 +85,6 @@ Priority, from highest to lowest:
 
 1. Pidian settings
 2. Environment variables
-3. Existing Pi credentials
 
 Example environment variables:
 
@@ -111,3 +104,11 @@ For Chat Completions-compatible endpoints, add Name / Base URL / Model ID / API 
 ## For developers
 
 Build, architecture, testing, and release steps are in [CONTRIBUTING.md](CONTRIBUTING.md). Agent execution uses [Pi](https://github.com/badlogic/pi-mono).
+
+## Third-party assets
+
+[NOTICE.md](./NOTICE.md)
+
+## License
+
+MIT

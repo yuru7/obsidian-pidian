@@ -21,13 +21,7 @@ AI エージェントの判断でノートを読み書き、検索なども自�
 
 ## インストール
 
-Community Plugin 一覧にはまだ出ていません。次のいずれかで入れてください。
-
-**Release から**
-
-1. GitHub Release の `main.js` / `manifest.json` / `styles.css` をダウンロードする
-2. Vault の `.obsidian/plugins/pidian/` に置く
-3. 設定 → コミュニティプラグイン で Pidian を有効にする
+Obsidan Community Plugin からインストールしてください。
 
 **ソースからビルドする場合**は [CONTRIBUTING.md](CONTRIBUTING.md) を見てください。
 
@@ -91,7 +85,6 @@ API キーは Obsidian のプラグインデータに保存されます。
 
 1. Pidian の設定
 2. 環境変数
-3. Pi 側の既存 credential
 
 環境変数例:
 
@@ -111,3 +104,11 @@ Chat Completions 互換のエンドポイントは、設定 → Pidian → **API
 ## 開発者向け
 
 ビルド、アーキテクチャ、テスト、リリース手順は [CONTRIBUTING.md](CONTRIBUTING.md) にあります。エージェント実行には [Pi](https://github.com/badlogic/pi-mono) を使っています。
+
+## サードパーティアセット
+
+[NOTICE.md](./NOTICE.md)
+
+## ライセンス
+
+MIT

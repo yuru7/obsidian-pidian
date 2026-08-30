@@ -22,7 +22,7 @@ export const en = {
   settingsAddProvider: "Add provider",
   settingsCustomProviderDefaultName: "Custom OpenAI Compatible",
   settingsCredentialsHelp:
-    "API keys are stored in this plugin's Obsidian data. Leave a field empty to use an environment variable or Pi's existing credentials.",
+    "API keys are stored in this plugin's Obsidian data. Leave a field empty to use an environment variable.",
   settingsEnvSet: 'Environment variable "{name}" is set',
   settingsEnvAvailable: "Environment variable {names} is available",
   settingsApiKey: "API key",
