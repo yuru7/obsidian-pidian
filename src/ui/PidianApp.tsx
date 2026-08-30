@@ -8,10 +8,10 @@ import { Composer } from "./Composer";
 import { ModelSelector } from "./ModelSelector";
 import { SessionSelector } from "./SessionSelector";
 import { Spinner } from "./Thinking";
+import { useOverflowMarquee } from "./useOverflowMarquee";
 
-function formatContextLabel(notePath: string, startLine: number, endLine: number): string {
-  const fileName = notePath.split("/").pop() || notePath;
-  return `${fileName} [${formatLineRange(startLine, endLine)}]`;
+function fileNameFromPath(notePath: string): string {
+  return notePath.split("/").pop() || notePath;
 }
 
 export function PidianApp({ plugin }: { plugin: PidianPlugin }): JSX.Element {
@@ -136,15 +136,15 @@ function ContextPreview({ plugin }: { plugin: PidianPlugin }): JSX.Element {
     const onChange = () => rerender();
     const unsubEditor = plugin.subscribeEditorContext(onChange);
     const workspace = plugin.app.workspace;
-    const refs = [
-      workspace.on("active-leaf-change", onChange),
-      workspace.on("file-open", onChange),
-    ];
+    const vault = plugin.app.vault;
+    const leafChangeRef = workspace.on("active-leaf-change", onChange);
+    const fileOpenRef = workspace.on("file-open", onChange);
+    const renameRef = vault.on("rename", onChange);
     return () => {
       unsubEditor();
-      for (const ref of refs) {
-        workspace.offref(ref);
-      }
+      workspace.offref(leafChangeRef);
+      workspace.offref(fileOpenRef);
+      vault.offref(renameRef);
     };
   }, [plugin]);
 
@@ -152,9 +152,28 @@ function ContextPreview({ plugin }: { plugin: PidianPlugin }): JSX.Element {
   if (!context) {
     return <div className="pidian-context pidian-context-empty">{t("uiNoActiveNote")}</div>;
   }
+  const fileName = fileNameFromPath(context.notePath);
+  const lineLabel = `[${formatLineRange(context.startLine, context.endLine)}]`;
   return (
     <div className="pidian-context">
-      {formatContextLabel(context.notePath, context.startLine, context.endLine)}
+      <ContextFileName fileName={fileName} />
+      <span className="pidian-context-line">{lineLabel}</span>
     </div>
+  );
+}
+
+function ContextFileName({ fileName }: { fileName: string }): JSX.Element {
+  const marquee = useOverflowMarquee(fileName);
+  return (
+    <span
+      ref={marquee.viewportRef}
+      className="pidian-context-name"
+      onPointerEnter={marquee.onPointerEnter}
+      onPointerLeave={marquee.onPointerLeave}
+    >
+      <span ref={marquee.textRef} className="pidian-context-name-text">
+        {fileName}
+      </span>
+    </span>
   );
 }

@@ -32,6 +32,10 @@
   justify-content: space-between;
 }
 
+.pidian-token-selector {
+  flex-shrink: 0;
+}
+
 .pidian-title {
   font-weight: var(--font-semibold, 600);
 }
@@ -133,13 +137,15 @@
   min-width: 0;
 }
 
-.pidian-model-trigger-label {
+.pidian-model-trigger-label,
+.pidian-context-name {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.pidian-model-trigger-text {
+.pidian-model-trigger-text,
+.pidian-context-name-text {
   display: inline-block;
   max-width: 100%;
   overflow: hidden;
@@ -148,7 +154,8 @@
   vertical-align: bottom;
 }
 
-.pidian-model-trigger-label.is-marquee .pidian-model-trigger-text {
+.pidian-model-trigger-label.is-marquee .pidian-model-trigger-text,
+.pidian-context-name.is-marquee .pidian-context-name-text {
   max-width: none;
   overflow: visible;
   text-overflow: clip;
@@ -500,7 +507,8 @@
     opacity: 1;
   }
 
-  .pidian-model-trigger-label.is-marquee .pidian-model-trigger-text {
+  .pidian-model-trigger-label.is-marquee .pidian-model-trigger-text,
+  .pidian-context-name.is-marquee .pidian-context-name-text {
     transform: none;
   }
 }
@@ -545,10 +553,21 @@
 }
 
 .pidian-context {
-  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex: 1 1 auto;
   min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  color: var(--text-muted);
+}
+
+.pidian-context-name {
+  flex: 0 1 auto;
+  min-width: 0;
+}
+
+.pidian-context-line {
+  flex: 0 0 auto;
   white-space: nowrap;
 }
 
