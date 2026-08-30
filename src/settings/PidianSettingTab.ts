@@ -773,7 +773,7 @@ export class PidianSettingTab extends PluginSettingTab {
     for (const provider of this.plugin.settings.customProviders) {
       this.renderCustomProvider(containerEl, provider);
     }
-    new Setting(containerEl).addButton((button) => {
+    new Setting(containerEl).setClass("pidian-add-provider").addButton((button) => {
       button.setButtonText(t("settingsAddProvider")).onClick(async () => {
         this.plugin.settings.customProviders.push({
           id: `custom-${crypto.randomUUID()}`,
@@ -1000,7 +1000,7 @@ export class PidianSettingTab extends PluginSettingTab {
       }
     });
     new Setting(wrap).setClass("pidian-custom-provider-add-model").addButton((button) => {
-      button.setButtonText("+").setTooltip(t("settingsAddModel")).onClick(async () => {
+      button.setButtonText(t("settingsAddModel")).onClick(async () => {
         provider.modelIds.push("");
         await this.plugin.saveSettings();
         this.refreshSettings();

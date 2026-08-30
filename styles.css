@@ -929,6 +929,12 @@ button.pidian-favorite-item-title:hover {
   justify-content: flex-end;
 }
 
+.setting-item.pidian-custom-provider-add-model,
+.setting-item.pidian-custom-provider-remove,
+.setting-item.pidian-add-provider {
+  background-color: transparent;
+}
+
 .pidian-settings-using-env {
   display: inline-flex;
   align-items: center;
