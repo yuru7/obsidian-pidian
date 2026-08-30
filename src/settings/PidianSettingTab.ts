@@ -1,11 +1,12 @@
-import { Notice, PluginSettingTab, Setting, setIcon, type App } from "obsidian";
+import { Notice, PluginSettingTab, Setting, setIcon, normalizePath, TFile, type App } from "obsidian";
 import { t } from "../i18n";
 import type PidianPlugin from "../main";
 import type { CatalogModel, CatalogProvider } from "../domain/agent/ModelCatalog";
 import { clampThinkingLevel, formatModelSelectionLabel, hasSelectableThinkingLevels, parseOptionalThinkingLevel } from "../domain/agent/thinkingLevel";
 import type { Permission } from "../domain/permissions/Permission";
-import { DEFAULT_PLUGIN_DIRECTORY, isValidPluginDirectory, normalizeNotePath } from "../application/notePath";
+import { DEFAULT_PLUGIN_DIRECTORY, agentsFilePath, isValidPluginDirectory, normalizeNotePath } from "../application/notePath";
 import { listKnownCredentialProviders } from "../infrastructure/pi/PiCredentials";
+import { ObsidianWorkspaceNavigator } from "../infrastructure/obsidian/ObsidianWorkspaceNavigator";
 import { addFavorite, moveFavorite, removeFavoriteById, type ModelFavorite } from "./modelFavorites";
 import { DEFAULT_SETTINGS, parseSessionFileFormat, type CustomOpenAIProvider } from "./Settings";
 
@@ -129,7 +130,7 @@ export class PidianSettingTab extends PluginSettingTab {
     const fallbackProviders = this.fallbackProviders();
     const fallbackModels = this.fallbackModels(this.plugin.settings.model);
     this.renderAgent(agentEl, this.selectableProviders(fallbackProviders), fallbackModels);
-    this.renderPluginDirectory(containerEl);
+    this.renderOther(containerEl);
     void this.enrichAgentFromCatalog(agentEl);
   }
 
@@ -693,6 +694,53 @@ export class PidianSettingTab extends PluginSettingTab {
           });
         });
     }
+
+    this.renderAgentInstructions(containerEl);
+  }
+
+  private renderAgentInstructions(containerEl: HTMLElement): void {
+    new Setting(containerEl)
+      .setName(t("settingsAgentInstructions"))
+      .setDesc(t("settingsAgentInstructionsDesc"))
+      .addButton((button) => {
+        button.setButtonText(t("settingsOpenAgentsMd")).onClick(() => {
+          void this.openAgentsFile();
+        });
+      });
+  }
+
+  private async openAgentsFile(): Promise<void> {
+    try {
+      const path = normalizePath(agentsFilePath(this.plugin.settings.pluginDirectory));
+      const file = await this.ensureAgentsFile(path);
+      await new ObsidianWorkspaceNavigator(this.app).openFile(file.path);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      new Notice(t("noticeError", { error: message }));
+    }
+  }
+
+  private async ensureAgentsFile(path: string): Promise<TFile> {
+    const existing = this.app.vault.getFileByPath(path);
+    if (existing) {
+      return existing;
+    }
+    const folder = path.includes("/") ? path.slice(0, path.lastIndexOf("/")) : "";
+    if (folder) {
+      await this.ensureVaultFolder(folder);
+    }
+    return this.app.vault.create(path, "");
+  }
+
+  private async ensureVaultFolder(folder: string): Promise<void> {
+    const parts = folder.split("/").filter(Boolean);
+    let current = "";
+    for (const part of parts) {
+      current = current ? `${current}/${part}` : part;
+      if (!this.app.vault.getAbstractFileByPath(current)) {
+        await this.app.vault.createFolder(current);
+      }
+    }
   }
 
   private async applyAgentSelection(
@@ -782,6 +830,11 @@ export class PidianSettingTab extends PluginSettingTab {
 
   private isCustomRetention(): boolean {
     return this.customRetentionSelected || !RETENTION_PRESETS.has(String(this.plugin.settings.retentionDays));
+  }
+
+  private renderOther(containerEl: HTMLElement): void {
+    new Setting(containerEl).setName(t("settingsOther")).setHeading();
+    this.renderPluginDirectory(containerEl);
   }
 
   private renderPluginDirectory(containerEl: HTMLElement): void {

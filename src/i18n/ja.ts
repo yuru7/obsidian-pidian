@@ -23,6 +23,9 @@ export const ja: { [K in keyof typeof en]: string } = {
   settingsModelDesc: "新しいチャットの既定モデルです。",
   settingsThinkingLevel: "思考量",
   settingsThinkingLevelDesc: "新しいチャットの既定の思考量です。",
+  settingsAgentInstructions: "エージェント指示",
+  settingsAgentInstructionsDesc: "エージェントの動作や文体を調整するための AGENTS.md を作成します。",
+  settingsOpenAgentsMd: "AGENTS.md を開く",
   settingsCustomProviders: "カスタム OpenAI Compatible",
   settingsAddProvider: "プロバイダを追加",
   settingsCustomProviderDefaultName: "カスタム OpenAI Compatible",
@@ -39,6 +42,7 @@ export const ja: { [K in keyof typeof en]: string } = {
   settingsPermissionAllow: "常に許可",
   settingsPermissionAsk: "毎回確認",
   settingsPermissionDeny: "拒否",
+  settingsOther: "その他",
   settingsPluginDirectory: "プラグイン用フォルダ",
   settingsPluginDirectoryDesc:
     "セッションと AGENTS.md を置く Vault 相対フォルダです。既存ファイルは移動しません。既定は pidian です。",

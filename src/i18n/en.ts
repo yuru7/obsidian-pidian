@@ -21,6 +21,9 @@ export const en = {
   settingsModelDesc: "Default model for new chats.",
   settingsThinkingLevel: "Thinking",
   settingsThinkingLevelDesc: "Default thinking level for new chats.",
+  settingsAgentInstructions: "Agent instructions",
+  settingsAgentInstructionsDesc: "Creates an AGENTS.md to adjust the agent's behavior and writing style.",
+  settingsOpenAgentsMd: "Open AGENTS.md",
   settingsCustomProviders: "Custom OpenAI Compatible",
   settingsAddProvider: "Add provider",
   settingsCustomProviderDefaultName: "Custom OpenAI Compatible",
@@ -37,6 +40,7 @@ export const en = {
   settingsPermissionAllow: "Always allow",
   settingsPermissionAsk: "Ask every time",
   settingsPermissionDeny: "Deny",
+  settingsOther: "Other",
   settingsPluginDirectory: "Plugin folder",
   settingsPluginDirectoryDesc:
     "Vault-relative folder for sessions and AGENTS.md. Existing files are not moved. Default: pidian",
