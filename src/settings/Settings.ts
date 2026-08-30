@@ -1,6 +1,9 @@
 import { DEFAULT_THINKING_LEVEL, parseThinkingLevel, type ThinkingLevel } from "../domain/agent/thinkingLevel";
 import type { PermissionSettings } from "../domain/permissions/Permission";
 import { DEFAULT_PLUGIN_DIRECTORY, parsePluginDirectory } from "../application/notePath";
+import { parseModelFavorites, type ModelFavorite } from "./modelFavorites";
+
+export type { ModelFavorite };
 
 export interface CustomOpenAIProvider {
   id: string;
@@ -41,6 +44,7 @@ export interface PidianSettings {
   pluginDirectory: string;
   autoDeleteSessions: boolean;
   retentionDays: number;
+  modelFavorites: ModelFavorite[];
 }
 
 export const DEFAULT_SETTINGS: PidianSettings = {
@@ -60,6 +64,7 @@ export const DEFAULT_SETTINGS: PidianSettings = {
   pluginDirectory: DEFAULT_PLUGIN_DIRECTORY,
   autoDeleteSessions: false,
   retentionDays: 30,
+  modelFavorites: [],
 };
 
 export function parseSessionFileFormat(value: unknown): SessionFileFormat {
@@ -118,6 +123,7 @@ export function mergeSettings(raw: unknown): PidianSettings {
     sessionFileFormat: parseSessionFileFormat(input.sessionFileFormat),
     pluginDirectory: parsePluginDirectory(input.pluginDirectory),
     thinkingLevel: parseThinkingLevel(input.thinkingLevel),
+    modelFavorites: parseModelFavorites(input.modelFavorites),
     permissions: {
       read: input.permissions?.read ?? DEFAULT_SETTINGS.permissions.read,
       edit: input.permissions?.edit ?? DEFAULT_SETTINGS.permissions.edit,

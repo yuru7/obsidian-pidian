@@ -22,6 +22,7 @@ describe("lookup", () => {
     expect(lookup("ja", "uiSend")).toBe("送信");
     expect(lookup("ja", "uiForked")).toBe("会話を分岐しました");
     expect(lookup("ja", "settingsTabGeneral")).toBe("全般");
+    expect(lookup("ja", "settingsTabFavorites")).toBe("お気に入り");
     expect(lookup("ja", "settingsTabPermissions")).toBe("権限");
     expect(lookup("ja", "settingsTabApiAuth")).toBe("API認証");
     expect(lookup("ja", "settingsTabSession")).toBe("セッション");

@@ -51,6 +51,22 @@ describe("mergeSettings", () => {
     expect(mergeSettings({ thinkingLevel: "nope" } as Record<string, unknown>).thinkingLevel).toBe("medium");
   });
 
+  it("defaults favorites to empty and keeps a valid list", () => {
+    expect(mergeSettings({}).modelFavorites).toEqual([]);
+    expect(
+      mergeSettings({
+        modelFavorites: [
+          { id: "fav-1", provider: "openai", model: "gpt-5", thinkingLevel: "high" },
+          { provider: "", model: "gone" },
+        ],
+      }),
+    ).toEqual(
+      expect.objectContaining({
+        modelFavorites: [{ id: "fav-1", provider: "openai", model: "gpt-5", thinkingLevel: "high" }],
+      }),
+    );
+  });
+
   it("defaults session files to json.md and keeps json when set", () => {
     expect(mergeSettings({}).sessionFileFormat).toBe("json.md");
     expect(mergeSettings({ sessionFileFormat: "json" }).sessionFileFormat).toBe("json");
@@ -75,9 +91,11 @@ describe("mergeSettings", () => {
       modelIds: [""],
       apiKey: "",
     });
+    restored.modelFavorites.push({ id: "fav-1", provider: "openai", model: "gpt-5" });
     expect(mergeSettings({}).apiKeys).toEqual({});
     expect(mergeSettings({}).permissions.read).toBe("allow");
     expect(mergeSettings({}).customProviders).toEqual([]);
+    expect(mergeSettings({}).modelFavorites).toEqual([]);
   });
 
   it("migrates a custom provider modelId into modelIds", () => {
