@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type JSX } from "react";
 import { locale, t } from "../i18n";
 import type PidianPlugin from "../main";
 import { NEW_CHAT_TITLE } from "../application/sessionTitle";

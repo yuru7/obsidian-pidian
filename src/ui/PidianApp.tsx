@@ -1,4 +1,4 @@
-import { useEffect, useReducer } from "react";
+import { useEffect, useReducer, type JSX } from "react";
 import { formatLineRange } from "../application/activeMarkdown";
 import { t } from "../i18n";
 import type PidianPlugin from "../main";

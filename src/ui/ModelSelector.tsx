@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useReducer, useRef, useState } from "react";
+import { useCallback, useEffect, useReducer, useRef, useState, type JSX } from "react";
 import { t } from "../i18n";
 import type PidianPlugin from "../main";
 import { sortCatalogModels, type CatalogModel, type CatalogProvider } from "../domain/agent/ModelCatalog";

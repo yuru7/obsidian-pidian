@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type JSX } from "react";
 import { t } from "../i18n";
 
 const SPINNER_DOTS = 8;

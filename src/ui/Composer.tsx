@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, useState } from "react";
+import { useLayoutEffect, useRef, useState, type JSX } from "react";
 import { t } from "../i18n";
 
 const MIN_ROWS = 2;

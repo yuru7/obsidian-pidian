@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, type JSX } from "react";
 import type { App } from "obsidian";
 import { t } from "../i18n";
 import type { PidianMessage } from "../domain/sessions/PidianSession";

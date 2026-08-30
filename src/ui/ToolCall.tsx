@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type JSX } from "react";
 import type { PidianToolCall } from "../domain/sessions/PidianSession";
 
 export function ToolCall({ toolCall }: { toolCall: PidianToolCall }): JSX.Element {

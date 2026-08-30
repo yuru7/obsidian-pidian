@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, type JSX } from "react";
 import { Component, MarkdownRenderer, type App } from "obsidian";
 
 export function Markdown({ app, markdown }: { app: App; markdown: string }): JSX.Element {
