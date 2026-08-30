@@ -4,6 +4,8 @@ Pi Coding Agent on Obsidian
 
 [English](README.md) | **日本語**
 
+![icon](./assets/obsidian-pi-badge-256.png)
+
 Obsidian のサイドバーで AI と会話し、開いているノートの質問・編集や、ノート検索、Web検索ができるプラグインです。
 
 現在、Desktop のみに対応し、モバイルには非対応です。

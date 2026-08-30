@@ -4,6 +4,8 @@ Pi Coding Agent on Obsidian
 
 **English** | [日本語](README_ja.md)
 
+![icon](./assets/obsidian-pi-badge-256.png)
+
 A plugin that lets you chat with an AI in the Obsidian sidebar to ask about or edit the open note, search notes, and search the web.
 
 Desktop only. Mobile is not supported.
