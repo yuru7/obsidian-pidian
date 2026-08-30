@@ -25,6 +25,8 @@ describe("lookup", () => {
     expect(lookup("ja", "settingsTabPermissions")).toBe("権限");
     expect(lookup("ja", "settingsTabApiAuth")).toBe("API認証");
     expect(lookup("ja", "settingsTabSession")).toBe("セッション");
+    expect(lookup("ja", "settingsThinkingLevel")).toBe("思考量");
+    expect(lookup("en", "settingsThinkingLevel")).toBe("Thinking");
   });
 
   it("interpolates placeholders", () => {

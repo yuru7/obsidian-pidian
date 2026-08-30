@@ -2,6 +2,7 @@ import { Notice, PluginSettingTab, Setting, setIcon, type App } from "obsidian";
 import { t } from "../i18n";
 import type PidianPlugin from "../main";
 import type { CatalogModel, CatalogProvider } from "../domain/agent/ModelCatalog";
+import { clampThinkingLevel, hasSelectableThinkingLevels } from "../domain/agent/thinkingLevel";
 import type { Permission } from "../domain/permissions/Permission";
 import { DEFAULT_PLUGIN_DIRECTORY, isValidPluginDirectory, normalizeNotePath } from "../application/notePath";
 import { listKnownCredentialProviders } from "../infrastructure/pi/PiCredentials";
@@ -243,29 +244,56 @@ export class PidianSettingTab extends PluginSettingTab {
         }
         dropdown.setValue(this.plugin.settings.provider);
         dropdown.onChange(async (value) => {
-          this.plugin.settings.provider = value;
           const catalog = this.plugin.modelCatalog;
           const nextModels = catalog ? await catalog.listModels(value).catch(() => []) : [];
-          this.plugin.settings.model = nextModels[0]?.id ?? "";
-          await this.plugin.saveSettings();
+          const first = nextModels[0];
+          await this.applyAgentSelection(value, first?.id ?? "", first?.thinkingLevels ?? []);
           this.refreshSettings();
         });
       });
 
+    const modelOptions = models.length > 0 ? models : this.fallbackModels(this.plugin.settings.model);
     new Setting(containerEl)
       .setName(t("settingsModel"))
       .setDesc(t("settingsModelDesc"))
       .addDropdown((dropdown) => {
-        const options = models.length > 0 ? models : this.fallbackModels(this.plugin.settings.model);
-        for (const model of options) {
+        for (const model of modelOptions) {
           dropdown.addOption(model.id, model.name);
         }
         dropdown.setValue(this.plugin.settings.model);
         dropdown.onChange(async (value) => {
-          this.plugin.settings.model = value;
-          await this.plugin.saveSettings();
+          const selected = modelOptions.find((item) => item.id === value);
+          await this.applyAgentSelection(this.plugin.settings.provider, value, selected?.thinkingLevels ?? []);
+          this.refreshSettings();
         });
       });
+
+    const selectedModel = modelOptions.find((item) => item.id === this.plugin.settings.model);
+    const thinkingLevels = selectedModel?.thinkingLevels ?? [];
+    if (hasSelectableThinkingLevels(thinkingLevels)) {
+      const thinking = clampThinkingLevel(this.plugin.settings.thinkingLevel, thinkingLevels);
+      new Setting(containerEl)
+        .setName(t("settingsThinkingLevel"))
+        .setDesc(t("settingsThinkingLevelDesc"))
+        .addDropdown((dropdown) => {
+          for (const level of thinkingLevels) {
+            dropdown.addOption(level, level);
+          }
+          dropdown.setValue(thinking ?? "");
+          dropdown.onChange(async (value) => {
+            await this.plugin.changeModel(this.plugin.settings.provider, this.plugin.settings.model, value);
+          });
+        });
+    }
+  }
+
+  private async applyAgentSelection(
+    provider: string,
+    model: string,
+    thinkingLevels: readonly string[],
+  ): Promise<void> {
+    const thinking = clampThinkingLevel(this.plugin.settings.thinkingLevel, thinkingLevels);
+    await this.plugin.changeModel(provider, model, thinking);
   }
 
   private renderCustomProviders(containerEl: HTMLElement): void {

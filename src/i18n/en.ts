@@ -18,6 +18,8 @@ export const en = {
   settingsProviderDesc: "Default provider for new chats.",
   settingsModel: "Model",
   settingsModelDesc: "Default model for new chats.",
+  settingsThinkingLevel: "Thinking",
+  settingsThinkingLevelDesc: "Default thinking level for new chats.",
   settingsCustomProviders: "Custom OpenAI Compatible",
   settingsAddProvider: "Add provider",
   settingsCustomProviderDefaultName: "Custom OpenAI Compatible",

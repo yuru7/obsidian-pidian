@@ -172,8 +172,7 @@
   transform: rotate(45deg);
 }
 
-.pidian-model-selector.is-open .pidian-model-trigger .pidian-caret,
-.pidian-token-selector:hover .pidian-model-trigger .pidian-caret {
+.pidian-model-selector.is-open .pidian-model-trigger .pidian-caret {
   transform: rotate(225deg);
 }
 
@@ -184,6 +183,12 @@
 
 .pidian-token-selector .pidian-model-trigger {
   cursor: default;
+  padding: 4px;
+}
+
+.pidian-token-balloon-title {
+  padding: 2px 2px 4px;
+  color: var(--text-normal);
 }
 
 .pidian-token-selector .pidian-model-balloon {
