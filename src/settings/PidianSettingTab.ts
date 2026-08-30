@@ -713,10 +713,26 @@ export class PidianSettingTab extends PluginSettingTab {
     try {
       const path = normalizePath(agentsFilePath(this.plugin.settings.pluginDirectory));
       const file = await this.ensureAgentsFile(path);
-      await new ObsidianWorkspaceNavigator(this.app).openFile(file.path);
+      const result = await new ObsidianWorkspaceNavigator(this.app).openFile(file.path);
+      this.closeSettingsWindow();
+      const leaf = this.app.workspace.getLeafById(result.tab.id);
+      if (leaf) {
+        this.app.workspace.setActiveLeaf(leaf, { focus: true });
+      }
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       new Notice(t("noticeError", { error: message }));
+    }
+  }
+
+  private closeSettingsWindow(): void {
+    // App.setting is the settings modal. It is not in the public App typings, and
+    // SettingTab.hide() only unloads this tab. Closing the modal is required to
+    // return keyboard focus to the workspace. If close() is removed later,
+    // opening AGENTS.md still works; the settings window just stays open.
+    const setting = (this.app as App & { setting?: { close?: () => void } }).setting;
+    if (typeof setting?.close === "function") {
+      setting.close();
     }
   }
 
