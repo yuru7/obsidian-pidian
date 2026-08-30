@@ -9,9 +9,13 @@ import { ToolCall } from "./ToolCall";
 export function Message({
   app,
   message,
+  onFork,
+  forkDisabled,
 }: {
   app: App;
   message: PidianMessage;
+  onFork?: (messageId: string) => void;
+  forkDisabled?: boolean;
 }): JSX.Element {
   const name = message.role === "user" ? t("uiYou") : "Pidian";
   const assistant = message.role === "assistant";
@@ -26,7 +30,17 @@ export function Message({
         <ToolCall key={toolCall.id} toolCall={toolCall} />
       ))}
       {message.text ? <Markdown app={app} markdown={message.text} /> : null}
-      {assistant && message.text ? <CopyButton markdown={message.text} /> : null}
+      {assistant && message.text ? (
+        <div className="pidian-message-actions">
+          <CopyButton markdown={message.text} />
+          {onFork ? (
+            <ForkButton
+              disabled={forkDisabled}
+              onFork={() => onFork(message.id)}
+            />
+          ) : null}
+        </div>
+      ) : null}
     </article>
   );
 }
@@ -80,52 +94,87 @@ function CopyButton({ markdown }: { markdown: string }): JSX.Element {
   }, [copied]);
 
   return (
-    <div className="pidian-message-actions">
-      <button
-        type="button"
-        className="pidian-icon-button pidian-copy-button"
-        aria-label={copied ? t("uiCopied") : t("uiCopy")}
-        title={copied ? t("uiCopied") : t("uiCopy")}
-        onClick={() => {
-          void navigator.clipboard.writeText(markdown).then(
-            () => setCopied(true),
-            (error: unknown) => {
-              console.error("Pidian: failed to copy response", error);
-            },
-          );
-        }}
+    <button
+      type="button"
+      className="pidian-icon-button pidian-copy-button"
+      aria-label={copied ? t("uiCopied") : t("uiCopy")}
+      title={copied ? t("uiCopied") : t("uiCopy")}
+      onClick={() => {
+        void navigator.clipboard.writeText(markdown).then(
+          () => setCopied(true),
+          (error: unknown) => {
+            console.error("Pidian: failed to copy response", error);
+          },
+        );
+      }}
+    >
+      {copied ? (
+        <svg
+          className="pidian-icon"
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden="true"
+        >
+          <path d="M20 6 9 17l-5-5" />
+        </svg>
+      ) : (
+        <svg
+          className="pidian-icon"
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden="true"
+        >
+          <rect width="14" height="14" x="8" y="8" rx="2" ry="2" />
+          <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" />
+        </svg>
+      )}
+    </button>
+  );
+}
+
+function ForkButton({
+  onFork,
+  disabled,
+}: {
+  onFork: () => void;
+  disabled?: boolean;
+}): JSX.Element {
+  return (
+    <button
+      type="button"
+      className="pidian-icon-button pidian-fork-button"
+      aria-label={t("uiFork")}
+      title={t("uiFork")}
+      disabled={disabled}
+      onClick={onFork}
+    >
+      <svg
+        className="pidian-icon"
+        xmlns="http://www.w3.org/2000/svg"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden="true"
       >
-        {copied ? (
-          <svg
-            className="pidian-icon"
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden="true"
-          >
-            <path d="M20 6 9 17l-5-5" />
-          </svg>
-        ) : (
-          <svg
-            className="pidian-icon"
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden="true"
-          >
-            <rect width="14" height="14" x="8" y="8" rx="2" ry="2" />
-            <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" />
-          </svg>
-        )}
-      </button>
-    </div>
+        <path d="M3 12h7" />
+        <path d="m10 12 8-7" />
+        <path d="m10 12 8 7" />
+        <path d="M14.5 5H18v3.5" />
+        <path d="M14.5 19H18v-3.5" />
+      </svg>
+    </button>
   );
 }

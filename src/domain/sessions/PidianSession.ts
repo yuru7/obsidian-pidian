@@ -40,6 +40,8 @@ export interface PidianSession {
   provider: string;
   model: string;
   thinkingLevel?: string;
+  /** Number of inherited messages when this session was forked; the fork notice is shown after this many. */
+  forkedMessageCount?: number;
   messages: PidianMessage[];
 }
 

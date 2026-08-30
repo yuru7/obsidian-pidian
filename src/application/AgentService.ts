@@ -71,6 +71,30 @@ export class AgentService {
     return session;
   }
 
+  async forkFrom(messageId: string): Promise<PidianSession> {
+    if (this.streaming) {
+      throw new Error("The agent is already responding.");
+    }
+    const source = this.requireSession();
+    const session = this.sessions.fork(source, messageId);
+    await this.disposeCurrent();
+    this.current = {
+      session,
+      unsubscribe: () => undefined,
+    };
+    this.error = undefined;
+    if (session.provider && session.model) {
+      try {
+        await this.ensureAgent();
+      } catch (error) {
+        this.error = error instanceof Error ? error.message : String(error);
+      }
+    }
+    await this.sessions.save(session);
+    this.notify();
+    return session;
+  }
+
   async openChat(id: string): Promise<PidianSession> {
     const loaded = await this.sessions.load(id);
     if (!loaded) {

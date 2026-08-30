@@ -65,4 +65,24 @@ export class SessionService {
   appendMessage(session: PidianSession, message: PidianMessage): void {
     session.messages.push(message);
   }
+
+  fork(source: PidianSession, messageId: string): PidianSession {
+    const index = source.messages.findIndex((message) => message.id === messageId);
+    if (index < 0) {
+      throw new Error(`Message not found: ${messageId}`);
+    }
+    const now = new Date().toISOString();
+    return {
+      version: 1,
+      id: crypto.randomUUID(),
+      title: source.title,
+      createdAt: now,
+      updatedAt: now,
+      provider: source.provider,
+      model: source.model,
+      ...(source.thinkingLevel ? { thinkingLevel: source.thinkingLevel } : {}),
+      forkedMessageCount: index + 1,
+      messages: structuredClone(source.messages.slice(0, index + 1)),
+    };
+  }
 }

@@ -73,6 +73,8 @@ export const ja: { [K in keyof typeof en]: string } = {
   uiThinking: "思考中",
   uiCopy: "コピー",
   uiCopied: "コピーしました",
+  uiFork: "会話を分岐",
+  uiForked: "会話を分岐しました",
   uiTokens: "Tokens",
   uiTokenRead: "Read",
   uiTokenCacheRead: "Cache Read",

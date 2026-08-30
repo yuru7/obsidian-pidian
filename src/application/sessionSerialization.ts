@@ -27,6 +27,13 @@ function parseOptionalTokenCount(value: unknown, field: string): number {
   return parseTokenCount(value, field);
 }
 
+function parseOptionalForkedMessageCount(value: unknown): number | undefined {
+  if (typeof value !== "number" || !Number.isInteger(value) || value < 1) {
+    return undefined;
+  }
+  return value;
+}
+
 function parseUsage(value: unknown, field: string): TokenUsage | undefined {
   if (value === undefined) {
     return undefined;
@@ -88,6 +95,7 @@ function parseV1(raw: Record<string, unknown>): PidianSession {
     throw new Error("Invalid session field: messages");
   }
   const thinkingLevel = parseOptionalThinkingLevel(raw.thinkingLevel);
+  const forkedMessageCount = parseOptionalForkedMessageCount(raw.forkedMessageCount);
   return {
     version: 1,
     id: expectString(raw.id, "id"),
@@ -97,6 +105,7 @@ function parseV1(raw: Record<string, unknown>): PidianSession {
     provider: expectString(raw.provider, "provider"),
     model: expectString(raw.model, "model"),
     ...(thinkingLevel ? { thinkingLevel } : {}),
+    ...(forkedMessageCount !== undefined ? { forkedMessageCount } : {}),
     messages: raw.messages.map(parseMessage),
   };
 }

@@ -72,6 +72,8 @@ export const en = {
   uiThinking: "Thinking",
   uiCopy: "Copy",
   uiCopied: "Copied",
+  uiFork: "Fork conversation",
+  uiForked: "Forked this conversation",
   uiTokens: "Tokens",
   uiTokenRead: "Read",
   uiTokenCacheRead: "Cache Read",

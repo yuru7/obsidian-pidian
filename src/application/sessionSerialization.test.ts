@@ -100,6 +100,18 @@ describe("session serialization", () => {
     expect(parsePidianSession(JSON.parse(json))).toEqual(withThinking);
   });
 
+  it("round-trips forked sessions", () => {
+    const forked: PidianSession = { ...sample, forkedMessageCount: 1 };
+    const json = serializePidianSession(forked);
+    expect(parsePidianSession(JSON.parse(json))).toEqual(forked);
+  });
+
+  it("omits invalid forkedMessageCount values", () => {
+    expect(parsePidianSession({ ...sample, forkedMessageCount: 0 }).forkedMessageCount).toBeUndefined();
+    expect(parsePidianSession({ ...sample, forkedMessageCount: 1.5 }).forkedMessageCount).toBeUndefined();
+    expect(parsePidianSession(sample).forkedMessageCount).toBeUndefined();
+  });
+
   it("ignores unknown thinkingLevel values", () => {
     expect(parsePidianSession({ ...sample, thinkingLevel: "nope" }).thinkingLevel).toBeUndefined();
   });
