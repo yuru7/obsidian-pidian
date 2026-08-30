@@ -27,4 +27,12 @@ describe("virtual import.meta.url", () => {
     expect(config).toContain(`pathToFileURL("${VIRTUAL_MODULE_PATH}")`);
     expect(config).not.toMatch(/import_meta_url = "file:\/\/\/pidian-virtual\//);
   });
+
+  it("aliases Node fs out of the plugin bundle", () => {
+    const config = readFileSync(path.join(process.cwd(), "esbuild.config.mjs"), "utf8");
+    expect(config).toContain("fs: stubPaths.fs");
+    expect(config).toContain('"node:fs": stubPaths.fs');
+    expect(config).toContain('"fs/promises": stubPaths.fsPromises');
+    expect(config).toContain("require('fs')");
+  });
 });

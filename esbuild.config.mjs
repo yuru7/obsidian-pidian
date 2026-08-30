@@ -20,8 +20,35 @@ var import_meta_url = require("node:url").pathToFileURL("/pidian-virtual/pi-codi
 
 // Pi hides node builtins behind import(variable) so bundlers skip them.
 // Obsidian's eval context cannot fetch \`node:fs\` as an ESM module.
+// Static \`fs\` imports are aliased to a stub; keep dynamic node:fs off the real disk too.
+function __pidianFsMissing(method) {
+  var err = new Error("Pidian does not access the filesystem (" + method + ")");
+  err.code = "ENOENT";
+  return err;
+}
+var __pidianFsPromises = {
+  readFile: async function () { throw __pidianFsMissing("readFile"); },
+  writeFile: async function () { throw __pidianFsMissing("writeFile"); },
+  mkdir: async function () { throw __pidianFsMissing("mkdir"); },
+  stat: async function () { throw __pidianFsMissing("stat"); },
+};
+var __pidianFs = {
+  existsSync: function () { return false; },
+  constants: { F_OK: 0, R_OK: 4, W_OK: 2, X_OK: 1 },
+  promises: __pidianFsPromises,
+  readFileSync: function () { throw __pidianFsMissing("readFileSync"); },
+  statSync: function () { throw __pidianFsMissing("statSync"); },
+  mkdirSync: function () { throw __pidianFsMissing("mkdirSync"); },
+  writeFileSync: function () { throw __pidianFsMissing("writeFileSync"); },
+};
 function __pidianDynImport(specifier) {
   var id = String(specifier);
+  if (id === "fs" || id === "node:fs") {
+    return Promise.resolve(__pidianFs);
+  }
+  if (id === "fs/promises" || id === "node:fs/promises") {
+    return Promise.resolve(__pidianFsPromises);
+  }
   if (id.indexOf("node:") === 0) {
     return Promise.resolve(require(id.slice(5)));
   }
@@ -43,6 +70,8 @@ const stubPaths = {
   bash: path.join(stubDir, "bash.js"),
   bashExecutor: path.join(stubDir, "bash-executor.js"),
   childProcess: path.join(stubDir, "child-process.js"),
+  fs: path.join(stubDir, "fs.ts"),
+  fsPromises: path.join(stubDir, "fs-promises.ts"),
   toolsManager: path.join(stubDir, "tools-manager.js"),
   windowsSelfUpdate: path.join(stubDir, "windows-self-update.js"),
   shell: path.join(stubDir, "shell.js"),
@@ -124,6 +153,10 @@ const FORBIDDEN_BUNDLE_PATTERNS = [
   { pattern: /require\(["']node:child_process["']\)/, label: "require('node:child_process')" },
   { pattern: /from["']child_process["']/, label: "import from child_process" },
   { pattern: /from["']node:child_process["']/, label: "import from node:child_process" },
+  { pattern: /require\(["']fs["']\)/, label: "require('fs')" },
+  { pattern: /require\(["']node:fs["']\)/, label: "require('node:fs')" },
+  { pattern: /require\(["']fs\/promises["']\)/, label: "require('fs/promises')" },
+  { pattern: /require\(["']node:fs\/promises["']\)/, label: "require('node:fs/promises')" },
   { pattern: /\bos\.hostname\b/, label: "os.hostname" },
   { pattern: /\bos\.userInfo\b/, label: "os.userInfo" },
   { pattern: /\bos\.networkInterfaces\b/, label: "os.networkInterfaces" },
@@ -185,6 +218,10 @@ const context = await esbuild.context({
     // google-auth-library optionally shells out to gcloud. Keep it out of the bundle.
     child_process: stubPaths.childProcess,
     "node:child_process": stubPaths.childProcess,
+    fs: stubPaths.fs,
+    "node:fs": stubPaths.fs,
+    "fs/promises": stubPaths.fsPromises,
+    "node:fs/promises": stubPaths.fsPromises,
   },
   define: {
     "import.meta.url": "import_meta_url",

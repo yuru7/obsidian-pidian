@@ -5,7 +5,7 @@ import {
   SettingsManager,
   type ResourceLoader,
 } from "@earendil-works/pi-coding-agent";
-import { clampThinkingLevel } from "@earendil-works/pi-ai";
+import { clampThinkingLevel, InMemoryCredentialStore } from "@earendil-works/pi-ai";
 import type { Api, Model, ModelsStore } from "@earendil-works/pi-ai";
 import type { AgentConversation } from "../../domain/agent/AgentConversation";
 import type { AgentEngine, AgentSessionOptions } from "../../domain/agent/AgentEngine";
@@ -61,6 +61,8 @@ export class PiAgentAdapter implements AgentEngine {
       await ModelRuntime.create({
         modelsPath: null,
         modelsStore: this.options.modelsStore,
+        // Do not read ~/.pi/agent/auth.json. Keys come from settings and env.
+        credentials: new InMemoryCredentialStore(),
         allowModelNetwork: false,
         refreshOnCreate: false,
       }),
