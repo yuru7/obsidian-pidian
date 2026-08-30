@@ -14,6 +14,7 @@ export function SessionSelector({
   const rootRef = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(false);
   const [sessions, setSessions] = useState<SessionSummary[]>([]);
+  const activeId = plugin.agentService?.getSession()?.id;
 
   useEffect(() => {
     if (!open) {
@@ -72,7 +73,8 @@ export function SessionSelector({
             sessions.map((session) => (
               <button
                 key={session.id}
-                className="pidian-session-item"
+                className={`pidian-session-item${session.id === activeId ? " is-selected" : ""}`}
+                aria-current={session.id === activeId ? "true" : undefined}
                 onClick={() => {
                   void plugin.openSession(session.id).then(() => {
                     setOpen(false);

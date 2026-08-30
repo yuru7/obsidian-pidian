@@ -305,7 +305,8 @@
   border-radius: 0;
 }
 
-.pidian-view .pidian-model-menu-item.is-selected {
+.pidian-view .pidian-model-menu-item.is-selected,
+.pidian-view .pidian-session-item.is-selected {
   background-color: var(--background-modifier-hover);
 }
 
