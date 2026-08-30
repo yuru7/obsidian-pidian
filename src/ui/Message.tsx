@@ -98,7 +98,6 @@ function CopyButton({ markdown }: { markdown: string }): JSX.Element {
       type="button"
       className="pidian-icon-button pidian-copy-button"
       aria-label={copied ? t("uiCopied") : t("uiCopy")}
-      title={copied ? t("uiCopied") : t("uiCopy")}
       onClick={() => {
         void navigator.clipboard.writeText(markdown).then(
           () => setCopied(true),
@@ -154,7 +153,6 @@ function ForkButton({
       type="button"
       className="pidian-icon-button pidian-fork-button"
       aria-label={t("uiFork")}
-      title={t("uiFork")}
       disabled={disabled}
       onClick={onFork}
     >
