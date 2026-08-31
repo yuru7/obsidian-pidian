@@ -1,5 +1,6 @@
 import * as http from "node:http";
 import * as https from "node:https";
+import * as zlib from "node:zlib";
 import type { IncomingMessage } from "node:http";
 import type { FetchFunction } from "@earendil-works/pi-ai";
 import type { ModelRuntime } from "@earendil-works/pi-coding-agent";
@@ -47,11 +48,12 @@ export const corsFreeFetch: FetchFunction = async (input, init) => {
       },
       (res) => {
         try {
+          const gzip = isGzipContentEncoding(res);
           resolve(
-            new Response(webResponseBody(res), {
+            new Response(webResponseBody(res, gzip), {
               status: res.statusCode ?? 200,
               statusText: res.statusMessage ?? "",
-              headers: incomingToHeaders(res),
+              headers: incomingToHeaders(res, gzip),
             }),
           );
         } catch (error) {
@@ -200,7 +202,7 @@ async function bodyToBuffer(body: BodyInit): Promise<Buffer> {
   return Buffer.from(bytes);
 }
 
-function incomingToHeaders(res: IncomingMessage): Headers {
+function incomingToHeaders(res: IncomingMessage, stripContentEncoding = false): Headers {
   const headers = new Headers();
   for (const [key, value] of Object.entries(res.headers)) {
     if (value === undefined) {
@@ -214,7 +216,18 @@ function incomingToHeaders(res: IncomingMessage): Headers {
       headers.set(key, value);
     }
   }
+  if (stripContentEncoding) {
+    headers.delete("content-encoding");
+    headers.delete("content-length");
+  }
   return headers;
+}
+
+/** Node http does not decode Content-Encoding; browser fetch does. */
+function isGzipContentEncoding(res: IncomingMessage): boolean {
+  const raw = res.headers["content-encoding"];
+  const value = (Array.isArray(raw) ? raw[0] : raw)?.split(",")[0]?.trim().toLowerCase();
+  return value === "gzip" || value === "x-gzip";
 }
 
 /** Fetch forbids a body on 101/204/205/304. Chromium throws; Node's undici too. */
@@ -222,42 +235,62 @@ function isNullBodyStatus(status: number): boolean {
   return status === 101 || status === 204 || status === 205 || status === 304;
 }
 
-function webResponseBody(res: IncomingMessage): ReadableStream<Uint8Array> | null {
+function webResponseBody(res: IncomingMessage, gzip: boolean): ReadableStream<Uint8Array> | null {
   if (isNullBodyStatus(res.statusCode ?? 0)) {
     res.resume();
     return null;
   }
-  return incomingToWebStream(res);
+  return incomingToWebStream(res, gzip);
 }
 
-function incomingToWebStream(res: IncomingMessage): ReadableStream<Uint8Array> {
+function incomingToWebStream(res: IncomingMessage, gzip: boolean): ReadableStream<Uint8Array> {
+  let source: NodeJS.ReadableStream = res;
   return new ReadableStream({
     start(controller) {
-      res.on("data", (chunk: Buffer | string) => {
-        try {
-          controller.enqueue(typeof chunk === "string" ? Buffer.from(chunk) : new Uint8Array(chunk));
-        } catch {
-          res.destroy();
-        }
-      });
-      res.on("end", () => {
-        try {
-          controller.close();
-        } catch {
-          // Already closed after cancel or error.
-        }
-      });
-      res.on("error", (error) => {
-        try {
-          controller.error(error);
-        } catch {
-          // Already closed.
-        }
-      });
+      if (gzip) {
+        const gunzip = zlib.createGunzip();
+        res.on("error", (error) => gunzip.destroy(error));
+        source = gunzip;
+        attachIncomingStream(gunzip, controller, res);
+        res.pipe(gunzip);
+        return;
+      }
+      attachIncomingStream(res, controller, res);
     },
     cancel() {
+      if (source !== res && "destroy" in source) {
+        (source as zlib.Gunzip).destroy();
+      }
       res.destroy();
     },
+  });
+}
+
+function attachIncomingStream(
+  source: NodeJS.ReadableStream,
+  controller: ReadableStreamDefaultController<Uint8Array>,
+  res: IncomingMessage,
+): void {
+  source.on("data", (chunk: Buffer | string) => {
+    try {
+      controller.enqueue(typeof chunk === "string" ? Buffer.from(chunk) : new Uint8Array(chunk));
+    } catch {
+      res.destroy();
+    }
+  });
+  source.on("end", () => {
+    try {
+      controller.close();
+    } catch {
+      // Already closed after cancel or error.
+    }
+  });
+  source.on("error", (error) => {
+    try {
+      controller.error(error);
+    } catch {
+      // Already closed.
+    }
   });
 }
 

@@ -1,5 +1,6 @@
 import { createServer, type IncomingHttpHeaders, type Server } from "node:http";
 import type { AddressInfo } from "node:net";
+import { gzipSync } from "node:zlib";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { ModelRuntime } from "@earendil-works/pi-coding-agent";
 import { corsFreeFetch, injectCorsFreeFetch, withCorsFreeFetch } from "./corsFreeFetch";
@@ -144,6 +145,36 @@ describe("corsFreeFetch", () => {
     expect(last.headers.authorization).toBe("Bearer test-key");
     expect(last.headers["user-agent"]).toBe("pidian-test");
     expect(await response.text()).toBe("data: 1\n\ndata: 2\n\n");
+  });
+
+  it("decompresses gzip bodies like browser fetch", async () => {
+    const html = "<!doctype html><p>hello</p>";
+    await listen((_req, res) => {
+      const body = gzipSync(html);
+      res.writeHead(200, {
+        "Content-Type": "text/html; charset=UTF-8",
+        "Content-Encoding": "gzip",
+        "Content-Length": String(body.length),
+      });
+      res.end(body);
+    });
+
+    const response = await corsFreeFetch(`${origin}/`);
+    expect(response.status).toBe(200);
+    expect(response.headers.get("content-encoding")).toBeNull();
+    expect(response.headers.get("content-length")).toBeNull();
+    expect(response.headers.get("content-type")).toBe("text/html; charset=UTF-8");
+    expect(await response.text()).toBe(html);
+  });
+
+  it("rejects a gzip Content-Encoding whose body is not gzip", async () => {
+    await listen((_req, res) => {
+      res.writeHead(200, { "Content-Type": "text/html", "Content-Encoding": "gzip" });
+      res.end("<html>not gzip</html>");
+    });
+
+    const response = await corsFreeFetch(`${origin}/`);
+    await expect(response.text()).rejects.toThrow();
   });
 
   it.each([204, 304])("omits the body for status %s so Chromium can construct Response", async (status) => {
