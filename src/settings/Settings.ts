@@ -153,7 +153,7 @@ export const DEFAULT_SETTINGS: PidianSettings = {
   sessionFileFormat: "jsonl.md",
   pluginDirectory: DEFAULT_PLUGIN_DIRECTORY,
   autoDeleteSessions: false,
-  retentionDays: 30,
+  retentionDays: 90,
   modelFavorites: [],
   firecrawlApiKey: "",
 };
