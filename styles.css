@@ -45,7 +45,8 @@
 .pidian-view .pidian-disclosure,
 .pidian-view .pidian-session-item,
 .pidian-view .pidian-model-menu-item,
-.pidian-view .pidian-select-trigger {
+.pidian-view .pidian-select-trigger,
+.pidian-view .pidian-streaming-scroll {
   background-color: transparent;
   box-shadow: none;
   color: var(--text-normal);
@@ -577,6 +578,22 @@
   transform: translate(-50%, calc(-100% - 8px));
   pointer-events: none;
   z-index: 3;
+}
+
+.pidian-view .pidian-streaming-scroll {
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: none;
+  color: var(--text-muted);
+}
+
+.pidian-view .pidian-streaming-scroll:hover {
+  color: var(--text-normal);
 }
 
 .pidian-spinner {

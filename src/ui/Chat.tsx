@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useRef, type JSX } from "react";
+import { Fragment, useEffect, useImperativeHandle, useRef, type JSX, type Ref } from "react";
 import type { App } from "obsidian";
 import { t } from "../i18n";
 import type { PidianMessage } from "../domain/sessions/PidianSession";
@@ -10,6 +10,10 @@ function isAtBottom(el: HTMLElement): boolean {
   return el.scrollHeight - el.scrollTop - el.clientHeight <= STICK_TO_BOTTOM_THRESHOLD_PX;
 }
 
+export type ChatHandle = {
+  scrollToBottom: () => void;
+};
+
 export function Chat({
   app,
   messages,
@@ -17,6 +21,7 @@ export function Chat({
   onFork,
   forkDisabled,
   streaming = false,
+  ref,
 }: {
   app: App;
   messages: PidianMessage[];
@@ -24,10 +29,24 @@ export function Chat({
   onFork?: (messageId: string) => void;
   forkDisabled?: boolean;
   streaming?: boolean;
+  ref?: Ref<ChatHandle>;
 }): JSX.Element {
   const rootRef = useRef<HTMLDivElement | null>(null);
   const contentRef = useRef<HTMLDivElement | null>(null);
   const stickToBottomRef = useRef(true);
+  const lastScrollTopRef = useRef(0);
+
+  useImperativeHandle(ref, () => ({
+    scrollToBottom() {
+      const root = rootRef.current;
+      if (!root) {
+        return;
+      }
+      stickToBottomRef.current = true;
+      root.scrollTop = root.scrollHeight;
+      lastScrollTopRef.current = root.scrollTop;
+    },
+  }));
 
   useEffect(() => {
     const root = rootRef.current;
@@ -36,10 +55,10 @@ export function Chat({
       return;
     }
 
-    let lastScrollTop = root.scrollTop;
+    lastScrollTopRef.current = root.scrollTop;
 
     const unstickIfScrolledUp = () => {
-      if (root.scrollTop < lastScrollTop) {
+      if (root.scrollTop < lastScrollTopRef.current) {
         stickToBottomRef.current = false;
       }
     };
@@ -52,12 +71,12 @@ export function Chat({
 
     const onScroll = () => {
       const scrollTop = root.scrollTop;
-      if (scrollTop < lastScrollTop) {
+      if (scrollTop < lastScrollTopRef.current) {
         stickToBottomRef.current = false;
       } else if (isAtBottom(root)) {
         stickToBottomRef.current = true;
       }
-      lastScrollTop = scrollTop;
+      lastScrollTopRef.current = scrollTop;
     };
 
     const followIfStuck = () => {
@@ -65,7 +84,7 @@ export function Chat({
         return;
       }
       root.scrollTop = root.scrollHeight;
-      lastScrollTop = root.scrollTop;
+      lastScrollTopRef.current = root.scrollTop;
     };
 
     root.addEventListener("wheel", onWheel, { passive: true });

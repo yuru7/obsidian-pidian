@@ -103,6 +103,7 @@ export const ja: { [K in keyof typeof en]: string } = {
   uiYou: "あなた",
   uiThinking: "思考",
   uiWorking: "Working...",
+  uiScrollToLatest: "チャット末尾へスクロール",
   uiWorked: "Worked",
   uiWorkedFor: "Worked for {seconds}s",
   uiCopy: "コピー",

@@ -102,6 +102,7 @@ export const en = {
   uiYou: "You",
   uiThinking: "Thinking",
   uiWorking: "Working...",
+  uiScrollToLatest: "Scroll to the end of the chat",
   uiWorked: "Worked",
   uiWorkedFor: "Worked for {seconds}s",
   uiCopy: "Copy",

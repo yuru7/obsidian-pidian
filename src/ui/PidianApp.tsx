@@ -1,9 +1,9 @@
-import { useEffect, useReducer, type JSX } from "react";
+import { useEffect, useReducer, useRef, type JSX } from "react";
 import { formatLineRange } from "../application/activeMarkdown";
 import { t } from "../i18n";
 import type PidianPlugin from "../main";
 import { sumTokenUsage, type PidianMessage } from "../domain/sessions/PidianSession";
-import { Chat } from "./Chat";
+import { Chat, type ChatHandle } from "./Chat";
 import { Composer } from "./Composer";
 import { ModelSelector } from "./ModelSelector";
 import { SessionSelector } from "./SessionSelector";
@@ -16,6 +16,7 @@ function fileNameFromPath(notePath: string): string {
 
 export function PidianApp({ plugin }: { plugin: PidianPlugin }): JSX.Element {
   const [, rerender] = useReducer((value: number) => value + 1, 0);
+  const chatRef = useRef<ChatHandle>(null);
 
   useEffect(() => {
     const unsubAgent = plugin.agentService?.subscribe(() => rerender());
@@ -75,6 +76,7 @@ export function PidianApp({ plugin }: { plugin: PidianPlugin }): JSX.Element {
       </header>
       <Chat
         key={session?.id}
+        ref={chatRef}
         app={plugin.app}
         messages={session?.messages ?? []}
         forkedMessageCount={session?.forkedMessageCount}
@@ -90,7 +92,18 @@ export function PidianApp({ plugin }: { plugin: PidianPlugin }): JSX.Element {
       <footer className="pidian-footer">
         {streaming ? (
           <div className="pidian-streaming-indicator">
-            <Spinner />
+            <button
+              type="button"
+              className="pidian-streaming-scroll"
+              aria-label={t("uiScrollToLatest")}
+              title={t("uiScrollToLatest")}
+              onMouseDown={(event) => event.preventDefault()}
+              onClick={() => {
+                chatRef.current?.scrollToBottom();
+              }}
+            >
+              <Spinner decorative />
+            </button>
           </div>
         ) : null}
         <div className="pidian-footer-meta">
