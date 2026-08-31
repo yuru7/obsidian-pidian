@@ -18,6 +18,8 @@ export function Chat({
   app,
   messages,
   forkedMessageCount,
+  compactionFirstKeptMessageId,
+  compacting = false,
   onFork,
   forkDisabled,
   streaming = false,
@@ -26,6 +28,8 @@ export function Chat({
   app: App;
   messages: PidianMessage[];
   forkedMessageCount?: number;
+  compactionFirstKeptMessageId?: string;
+  compacting?: boolean;
   onFork?: (messageId: string) => void;
   forkDisabled?: boolean;
   streaming?: boolean;
@@ -113,6 +117,9 @@ export function Chat({
           ? t("uiEmptyChat")
           : messages.map((message, index) => (
               <Fragment key={message.id}>
+                {compactionFirstKeptMessageId === message.id ? (
+                  <p className="pidian-compaction-notice">{t("uiCompacted")}</p>
+                ) : null}
                 <Message
                   app={app}
                   message={message}
@@ -127,6 +134,7 @@ export function Chat({
                 ) : null}
               </Fragment>
             ))}
+        {compacting ? <p className="pidian-compaction-notice">{t("uiCompacting")}</p> : null}
       </div>
     </div>
   );

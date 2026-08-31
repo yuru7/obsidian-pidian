@@ -78,6 +78,36 @@ describe("SessionService.fork", () => {
     source.messages[0]!.context = { notePath: "changed.md", startLine: 1, endLine: 1 };
     expect(forked.messages[0]?.context).toEqual({ notePath: "notes/a.md", startLine: 3, endLine: 5 });
   });
+
+  it("copies compaction when the kept message is in the forked prefix", () => {
+    const service = new SessionService(unused);
+    const source = session({
+      compaction: {
+        summary: "## Goal\nSearch",
+        firstKeptMessageId: "a1",
+        createdAt: "2026-01-01T00:00:04.000Z",
+      },
+    });
+    const forked = service.fork(source, "a1");
+    expect(forked.compaction).toEqual(source.compaction);
+    forked.compaction!.summary = "changed";
+    expect(source.compaction?.summary).toBe("## Goal\nSearch");
+  });
+
+  it("drops compaction when the kept message is after the fork point", () => {
+    const service = new SessionService(unused);
+    const forked = service.fork(
+      session({
+        compaction: {
+          summary: "## Goal\nSearch",
+          firstKeptMessageId: "u2",
+          createdAt: "2026-01-01T00:00:04.000Z",
+        },
+      }),
+      "a1",
+    );
+    expect(forked.compaction).toBeUndefined();
+  });
 });
 
 describe("SessionService.toConversation", () => {
@@ -100,6 +130,7 @@ describe("SessionService.toConversation", () => {
 
     expect(conversation.messages).toEqual([
       {
+        id: "u1",
         role: "user",
         text: formatAgentPrompt("rewrite this", { notePath: "notes/example.md", startLine: 12, endLine: 12 }, "2026-01-01T00:00:00.000Z"),
         thinking: undefined,
@@ -107,6 +138,7 @@ describe("SessionService.toConversation", () => {
         createdAt: "2026-01-01T00:00:00.000Z",
       },
       {
+        id: "a1",
         role: "assistant",
         text: "ok",
         thinking: "plan",
@@ -126,5 +158,24 @@ describe("SessionService.toConversation", () => {
       formatAgentPrompt("DuckDuckGo", undefined, "2026-01-01T00:00:02.000Z"),
     );
     expect(conversation.messages[1]?.text).toBe("Brave");
+  });
+
+  it("includes the compaction checkpoint for resume", () => {
+    const service = new SessionService(unused);
+    const conversation = service.toConversation(
+      session({
+        compaction: {
+          summary: "## Goal\nSearch",
+          firstKeptMessageId: "u2",
+          createdAt: "2026-01-01T00:00:04.000Z",
+          tokensBefore: 40000,
+        },
+      }),
+    );
+    expect(conversation.compaction).toEqual({
+      summary: "## Goal\nSearch",
+      firstKeptMessageId: "u2",
+      tokensBefore: 40000,
+    });
   });
 });

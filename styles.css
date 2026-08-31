@@ -546,7 +546,8 @@
   cursor: default;
 }
 
-.pidian-fork-notice {
+.pidian-fork-notice,
+.pidian-compaction-notice {
   color: var(--text-muted);
   margin: 4px 0 16px;
 }

@@ -31,6 +31,7 @@ export class AgentService {
     unsubscribe: () => void;
   };
   private streaming = false;
+  private compacting = false;
   private error?: string;
   private thinkingIdleTimer: ReturnType<typeof setTimeout> | undefined;
   private readonly listeners = new Set<ChatListener>();
@@ -51,6 +52,10 @@ export class AgentService {
 
   isStreaming(): boolean {
     return this.streaming;
+  }
+
+  isCompacting(): boolean {
+    return this.compacting;
   }
 
   getError(): string | undefined {
@@ -275,6 +280,26 @@ export class AgentService {
   }
 
   private handleEvent(event: AgentEvent): void {
+    if (event.type === "compaction_start") {
+      this.compacting = true;
+      this.notify();
+      return;
+    }
+    if (event.type === "compaction_failed") {
+      this.compacting = false;
+      this.notify();
+      return;
+    }
+    if (event.type === "compacted") {
+      this.compacting = false;
+      this.applyCompaction(event.summary, event.firstKeptIndex, event.tokensBefore);
+      this.notify();
+      if (this.current?.session.compaction) {
+        void this.sessions.save(this.current.session);
+      }
+      return;
+    }
+
     const assistant = this.latestAssistant();
     if (!assistant) {
       return;
@@ -324,6 +349,26 @@ export class AgentService {
     this.notify();
   }
 
+  private applyCompaction(summary: string, firstKeptIndex?: number, tokensBefore?: number): void {
+    const session = this.current?.session;
+    if (!session || session.messages.length === 0) {
+      return;
+    }
+    const kept =
+      firstKeptIndex !== undefined
+        ? (session.messages[firstKeptIndex] ?? session.messages.at(-1))
+        : session.messages.at(-1);
+    if (!kept) {
+      return;
+    }
+    session.compaction = {
+      summary,
+      firstKeptMessageId: kept.id,
+      createdAt: new Date().toISOString(),
+      ...(tokensBefore !== undefined ? { tokensBefore } : {}),
+    };
+  }
+
   private latestAssistant(): PidianMessage | undefined {
     const messages = this.current?.session.messages;
     if (!messages) {
@@ -351,6 +396,7 @@ export class AgentService {
     await this.current?.agent?.dispose();
     this.current = undefined;
     this.streaming = false;
+    this.compacting = false;
   }
 
   private scheduleThinkingIdle(): void {

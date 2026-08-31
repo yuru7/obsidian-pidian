@@ -168,6 +168,38 @@ describe("session serialization", () => {
     expect(parsePidianSession(JSON.parse(json))).toEqual(forked);
   });
 
+  it("round-trips compaction checkpoints", () => {
+    const compacted: PidianSession = {
+      ...sample,
+      messages: [
+        sample.messages[0]!,
+        { id: "m2", role: "assistant", text: "Hi", createdAt: "2026-01-01T00:00:01.000Z" },
+      ],
+      compaction: {
+        summary: "## Goal\nGreet",
+        firstKeptMessageId: "m2",
+        createdAt: "2026-01-01T00:00:02.000Z",
+        tokensBefore: 32000,
+      },
+    };
+    const json = serializePidianSession(compacted);
+    expect(parsePidianSession(JSON.parse(json))).toEqual(compacted);
+  });
+
+  it("omits invalid compaction checkpoints", () => {
+    expect(parsePidianSession({ ...sample, compaction: { summary: "" } }).compaction).toBeUndefined();
+    expect(
+      parsePidianSession({
+        ...sample,
+        compaction: {
+          summary: "## Goal",
+          firstKeptMessageId: "missing",
+          createdAt: "2026-01-01T00:00:02.000Z",
+        },
+      }).compaction,
+    ).toBeUndefined();
+  });
+
   it("round-trips assistant content blocks", () => {
     const withBlocks: PidianSession = {
       ...sample,

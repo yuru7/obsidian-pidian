@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { mapPiEvent } from "./PiEventMapper";
+import { mapPiCompactionEvent, mapPiEvent } from "./PiEventMapper";
 
 describe("PiEventMapper", () => {
   it("maps text and thinking deltas", () => {
@@ -88,6 +88,45 @@ describe("PiEventMapper", () => {
         result: { content: [{ type: "text", text: "denied" }], details: { isError: true } },
       }),
     ).toMatchObject({ isError: true, result: "denied" });
+  });
+
+  it("maps compaction lifecycle", () => {
+    const entries = [
+      { id: "u1", type: "message", message: { role: "user" } },
+      { id: "a1", type: "message", message: { role: "assistant" } },
+      { id: "t1", type: "message", message: { role: "toolResult" } },
+      { id: "u2", type: "message", message: { role: "user" } },
+    ];
+    expect(mapPiCompactionEvent({ type: "compaction_start" }, entries)).toEqual({ type: "compaction_start" });
+    expect(
+      mapPiCompactionEvent(
+        {
+          type: "compaction_end",
+          result: { summary: "## Goal", firstKeptEntryId: "u2", tokensBefore: 12000 },
+        },
+        entries,
+      ),
+    ).toEqual({
+      type: "compacted",
+      summary: "## Goal",
+      firstKeptIndex: 2,
+      tokensBefore: 12000,
+    });
+    expect(
+      mapPiCompactionEvent(
+        { type: "compaction_end", result: { summary: "## Goal", firstKeptEntryId: "t1" } },
+        entries,
+      ),
+    ).toEqual({ type: "compacted", summary: "## Goal", firstKeptIndex: 1 });
+    expect(
+      mapPiCompactionEvent(
+        { type: "compaction_end", result: { summary: "## Goal", firstKeptEntryId: "missing" } },
+        entries,
+      ),
+    ).toEqual({ type: "compacted", summary: "## Goal" });
+    expect(mapPiCompactionEvent({ type: "compaction_end", aborted: true }, entries)).toEqual({
+      type: "compaction_failed",
+    });
   });
 
   it("ignores unrelated Pi events", () => {

@@ -143,6 +143,14 @@ export function sumTokenUsage(messages: readonly PidianMessage[]): TokenUsage {
   return { input, output, cacheRead, cacheWrite };
 }
 
+/** Latest LLM-context checkpoint. Display history in `messages` stays complete. */
+export interface SessionCompaction {
+  summary: string;
+  firstKeptMessageId: string;
+  createdAt: string;
+  tokensBefore?: number;
+}
+
 export interface PidianSession {
   version: 1;
   id: string;
@@ -154,7 +162,22 @@ export interface PidianSession {
   thinkingLevel?: string;
   /** Number of inherited messages when this session was forked; the fork notice is shown after this many. */
   forkedMessageCount?: number;
+  /** Latest compaction checkpoint. Omitted on older sessions and when none has run. */
+  compaction?: SessionCompaction;
   messages: PidianMessage[];
+}
+
+export function compactionAfterFork(
+  compaction: SessionCompaction | undefined,
+  messages: readonly PidianMessage[],
+): SessionCompaction | undefined {
+  if (!compaction) {
+    return undefined;
+  }
+  if (!messages.some((message) => message.id === compaction.firstKeptMessageId)) {
+    return undefined;
+  }
+  return { ...compaction };
 }
 
 export interface SessionSummary {

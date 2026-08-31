@@ -80,6 +80,8 @@ export function PidianApp({ plugin }: { plugin: PidianPlugin }): JSX.Element {
         app={plugin.app}
         messages={session?.messages ?? []}
         forkedMessageCount={session?.forkedMessageCount}
+        compactionFirstKeptMessageId={session?.compaction?.firstKeptMessageId}
+        compacting={agent.isCompacting()}
         forkDisabled={streaming}
         streaming={streaming}
         onFork={(messageId) => {

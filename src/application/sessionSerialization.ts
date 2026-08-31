@@ -1,7 +1,14 @@
 import type { TokenUsage } from "../domain/agent/AgentEvent";
 import { parseOptionalThinkingLevel } from "../domain/agent/thinkingLevel";
 import type { ContextSnapshot } from "../domain/notes/ContextSnapshot";
-import type { PidianContentBlock, PidianMessage, PidianSession, PidianToolCall, PidianWorkItem } from "../domain/sessions/PidianSession";
+import type {
+  PidianContentBlock,
+  PidianMessage,
+  PidianSession,
+  PidianToolCall,
+  PidianWorkItem,
+  SessionCompaction,
+} from "../domain/sessions/PidianSession";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
@@ -33,6 +40,37 @@ function parseOptionalForkedMessageCount(value: unknown): number | undefined {
     return undefined;
   }
   return value;
+}
+
+function parseOptionalCompaction(
+  value: unknown,
+  messages: readonly PidianMessage[],
+): SessionCompaction | undefined {
+  if (!isRecord(value)) {
+    return undefined;
+  }
+  if (typeof value.summary !== "string" || value.summary.length === 0) {
+    return undefined;
+  }
+  if (typeof value.firstKeptMessageId !== "string" || value.firstKeptMessageId.length === 0) {
+    return undefined;
+  }
+  if (typeof value.createdAt !== "string" || value.createdAt.length === 0) {
+    return undefined;
+  }
+  if (!messages.some((message) => message.id === value.firstKeptMessageId)) {
+    return undefined;
+  }
+  const tokensBefore =
+    typeof value.tokensBefore === "number" && Number.isFinite(value.tokensBefore) && value.tokensBefore >= 0
+      ? value.tokensBefore
+      : undefined;
+  return {
+    summary: value.summary,
+    firstKeptMessageId: value.firstKeptMessageId,
+    createdAt: value.createdAt,
+    ...(tokensBefore !== undefined ? { tokensBefore } : {}),
+  };
 }
 
 function parseOptionalWorkedMs(value: unknown): number | undefined {
@@ -190,6 +228,8 @@ function parseV1(raw: Record<string, unknown>): PidianSession {
   }
   const thinkingLevel = parseOptionalThinkingLevel(raw.thinkingLevel);
   const forkedMessageCount = parseOptionalForkedMessageCount(raw.forkedMessageCount);
+  const messages = raw.messages.map(parseMessage);
+  const compaction = parseOptionalCompaction(raw.compaction, messages);
   return {
     version: 1,
     id: expectString(raw.id, "id"),
@@ -200,7 +240,8 @@ function parseV1(raw: Record<string, unknown>): PidianSession {
     model: expectString(raw.model, "model"),
     ...(thinkingLevel ? { thinkingLevel } : {}),
     ...(forkedMessageCount !== undefined ? { forkedMessageCount } : {}),
-    messages: raw.messages.map(parseMessage),
+    ...(compaction ? { compaction } : {}),
+    messages,
   };
 }
 

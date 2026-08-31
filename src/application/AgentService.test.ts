@@ -218,6 +218,31 @@ describe("AgentService.send", () => {
     expect(agent.getSession()?.messages[0]?.text).toBe("rewrite this");
   });
 
+  it("passes the compaction checkpoint when the agent session is recreated", async () => {
+    const store = new MemoryRepository();
+    const engine = new CapturingEngine();
+    const agent = createService(store, engine);
+    await agent.newChat("openai", "gpt-5");
+    await agent.send("hello");
+    const session = agent.getSession()!;
+    session.compaction = {
+      summary: "## Goal\nGreet",
+      firstKeptMessageId: session.messages[0]!.id,
+      createdAt: "2026-01-01T00:00:04.000Z",
+    };
+    await store.save(session);
+
+    await agent.openChat(session.id);
+
+    expect(engine.lastConversation?.compaction).toEqual({
+      summary: "## Goal\nGreet",
+      firstKeptMessageId: session.messages[0]!.id,
+    });
+    expect(engine.lastConversation?.messages.map((message) => message.id)).toEqual(
+      session.messages.map((message) => message.id),
+    );
+  });
+
   it("records workedMs when thinking ends before text", async () => {
     const store = new MemoryRepository();
     let agent!: AgentService;
@@ -428,5 +453,58 @@ describe("AgentService.send", () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+
+  it("stores a compaction checkpoint without dropping chat history", async () => {
+    const store = new MemoryRepository();
+    const agent = createService(
+      store,
+      new ScriptedAgentEngine(async (emit) => {
+        emit({ type: "text_delta", text: "Hi" });
+        emit({ type: "compaction_start" });
+        expect(agent.isCompacting()).toBe(true);
+        emit({
+          type: "compacted",
+          summary: "## Goal\nGreet",
+          firstKeptIndex: 0,
+          tokensBefore: 24000,
+        });
+        await Promise.resolve();
+        await Promise.resolve();
+        expect(store.sessions[0]?.compaction?.summary).toBe("## Goal\nGreet");
+        emit({ type: "turn_completed" });
+      }),
+    );
+    await agent.newChat("openai", "gpt-5");
+    await agent.send("hello");
+
+    const current = agent.getSession();
+    expect(agent.isCompacting()).toBe(false);
+    expect(current?.messages).toHaveLength(2);
+    expect(current?.messages[0]?.text).toBe("hello");
+    expect(current?.compaction).toMatchObject({
+      summary: "## Goal\nGreet",
+      firstKeptMessageId: current?.messages[0]?.id,
+      tokensBefore: 24000,
+    });
+    expect(store.sessions[0]?.compaction?.summary).toBe("## Goal\nGreet");
+  });
+
+  it("keeps a compaction checkpoint when the cut index is past the chat messages", async () => {
+    const store = new MemoryRepository();
+    const agent = createService(
+      store,
+      new ScriptedAgentEngine(async (emit) => {
+        emit({ type: "text_delta", text: "Hi" });
+        emit({ type: "compacted", summary: "## Goal\nGreet", firstKeptIndex: 99 });
+        emit({ type: "turn_completed" });
+      }),
+    );
+    await agent.newChat("openai", "gpt-5");
+    await agent.send("hello");
+
+    const current = agent.getSession();
+    expect(current?.compaction?.firstKeptMessageId).toBe(current?.messages.at(-1)?.id);
+    expect(store.sessions[0]?.compaction?.summary).toBe("## Goal\nGreet");
   });
 });

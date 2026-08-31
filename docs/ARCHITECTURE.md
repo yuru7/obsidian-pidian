@@ -132,6 +132,7 @@ Composer
 - `text_delta` / `thinking_delta` / `thinking_start` / `thinking_end`
 - `tool_started` / `tool_completed`
 - `turn_completed`（token usage）
+- `compaction_start` / `compacted` / `compaction_failed`
 - `error`
 
 `AgentSession` の操作は `prompt` / `abort` / `subscribe` / `dispose` のみ。
@@ -246,6 +247,12 @@ interface PidianSession {
   model: string;
   thinkingLevel?: string;
   forkedMessageCount?: number;
+  compaction?: {
+    summary: string;
+    firstKeptMessageId: string;
+    createdAt: string;
+    tokensBefore?: number;
+  };
   messages: PidianMessage[];
 }
 ```
@@ -253,7 +260,8 @@ interface PidianSession {
 - パースは `migratePidianSession`。`version !== 1` は throw。フィールド追加時は後方互換を崩さないか、version を上げて migration を足す。
 - ユーザーメッセージの任意 `context` は送信時のノート位置。UI には出さず、再開時の `formatAgentPrompt` 用。無い・不正なら無視する。時刻ヘッダは `createdAt` から組み立て、保存 `text` には含めない。
 - アシスタントの `workedMs` は各 Work 区間が閉じるまでの時間。思考→ツール→思考は同じ Work に時系列の `items` として残し、`thinking_end` だけでは閉じない。本文が出たあと、思考 delta が途切れたとき、またはターン完了で閉じる。思考中の本文は Work の直下へ随時出す。空白だけの delta では区切らない。`blocks` が無い古い保存データは思考・ツールを1つの WorkLog にまとめる。
-- 再開は `PidianSession → AgentConversation → PiAgentAdapter`。ユーザー本文は `formatAgentPrompt` でヘッダ付きに戻す。Pi 固有オブジェクトは保存しない。
+- 再開は `PidianSession → AgentConversation → PiAgentAdapter`。ユーザー本文は `formatAgentPrompt` でヘッダ付きに戻す。Pi 固有オブジェクトは保存しない。会話は Pi の `SessionManager` に全文を載せ、`compaction` があればその境界で要約エントリを足してから `createAgentSession` する。LLM 入力は SessionManager が組み直した要約 + 残したメッセージ。画面と `messages` は全文のまま。
+- Pi の自動 compaction が走ったら `compaction` を上書き保存する。fork は分岐点より前のチェックポイントだけコピーする。
 - 破損ファイルは list 時にスキップする。
 - 自動削除は `SessionCleanupService`。既定オフ。起動時のみ。アクティブ session id は消さない。
 - fork は指定メッセージまでをコピーした新セッション。`forkedMessageCount` で UI が分岐点を出す。
@@ -279,7 +287,7 @@ Pi を Obsidian の eval 環境で動かすための隔離が `src/infrastructur
 
 | ファイル | 役割 |
 | --- | --- |
-| `PiAgentAdapter.ts` | `AgentEngine` 実装。`SessionManager.inMemory()`、`noTools: "builtin"` |
+| `PiAgentAdapter.ts` | `AgentEngine` 実装。`SessionManager.inMemory()`、再開時は会話を SessionManager に載せる。`noTools: "builtin"` |
 | `piCodingAgentSdk.ts` | パッケージ barrel の代わり。CLI / self-update をバンドルに入れない |
 | `PiEventMapper.ts` | Pi イベント → `AgentEvent` |
 | `PiToolAdapter.ts` | `PidianTool` → `defineTool` |
@@ -363,7 +371,7 @@ UI は `AgentService` と `plugin.settings` を読む。Pi 型を import しな�
 - `CredentialResolver`
 - `PermissionService`
 - `ContextService`
-- `SessionCleanupService` / `sessionSerialization` / migration
+- `SessionCleanupService` / `sessionSerialization` / migration / compaction checkpoint
 - `PiEventMapper`
 - `revision` / `replacements`
 - `notePath`（制限パス）

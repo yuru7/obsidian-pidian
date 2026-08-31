@@ -110,6 +110,8 @@ export const ja: { [K in keyof typeof en]: string } = {
   uiCopied: "コピーしました",
   uiFork: "会話を分岐",
   uiForked: "会話を分岐しました",
+  uiCompacted: "古いメッセージを要約してコンテキストを確保しました",
+  uiCompacting: "古いメッセージを要約しています...",
   uiTokens: "トークン量",
   uiTokenRead: "Read",
   uiTokenCacheRead: "Cache Read",

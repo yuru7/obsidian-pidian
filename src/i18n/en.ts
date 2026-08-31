@@ -109,6 +109,8 @@ export const en = {
   uiCopied: "Copied",
   uiFork: "Fork conversation",
   uiForked: "Forked this conversation",
+  uiCompacted: "Older messages were summarized to free context",
+  uiCompacting: "Summarizing older messages...",
   uiTokens: "Tokens",
   uiTokenRead: "Read",
   uiTokenCacheRead: "Cache Read",

@@ -7,6 +7,7 @@ export interface AgentToolCallRecord {
 }
 
 export interface AgentConversationMessage {
+  id: string;
   role: "user" | "assistant";
   text: string;
   thinking?: string;
@@ -14,6 +15,13 @@ export interface AgentConversationMessage {
   createdAt: string;
 }
 
+export interface AgentConversationCompaction {
+  summary: string;
+  firstKeptMessageId: string;
+  tokensBefore?: number;
+}
+
 export interface AgentConversation {
   messages: AgentConversationMessage[];
+  compaction?: AgentConversationCompaction;
 }

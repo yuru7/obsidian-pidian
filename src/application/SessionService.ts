@@ -4,6 +4,7 @@ import type {
   SessionRepository,
   SessionSummary,
 } from "../domain/sessions/PidianSession";
+import { compactionAfterFork } from "../domain/sessions/PidianSession";
 import type { AgentConversation } from "../domain/agent/AgentConversation";
 import { formatAgentPrompt } from "./ContextService";
 import { parsePidianSession } from "./sessionSerialization";
@@ -54,6 +55,7 @@ export class SessionService {
   toConversation(session: PidianSession): AgentConversation {
     return {
       messages: session.messages.map((message) => ({
+        id: message.id,
         role: message.role,
         text:
           message.role === "user"
@@ -63,6 +65,17 @@ export class SessionService {
         toolCalls: message.toolCalls,
         createdAt: message.createdAt,
       })),
+      ...(session.compaction
+        ? {
+            compaction: {
+              summary: session.compaction.summary,
+              firstKeptMessageId: session.compaction.firstKeptMessageId,
+              ...(session.compaction.tokensBefore !== undefined
+                ? { tokensBefore: session.compaction.tokensBefore }
+                : {}),
+            },
+          }
+        : {}),
     };
   }
 
@@ -76,6 +89,8 @@ export class SessionService {
       throw new Error(`Message not found: ${messageId}`);
     }
     const now = new Date().toISOString();
+    const messages = structuredClone(source.messages.slice(0, index + 1));
+    const compaction = compactionAfterFork(source.compaction, messages);
     return {
       version: 1,
       id: crypto.randomUUID(),
@@ -86,7 +101,8 @@ export class SessionService {
       model: source.model,
       ...(source.thinkingLevel ? { thinkingLevel: source.thinkingLevel } : {}),
       forkedMessageCount: index + 1,
-      messages: structuredClone(source.messages.slice(0, index + 1)),
+      ...(compaction ? { compaction } : {}),
+      messages,
     };
   }
 }

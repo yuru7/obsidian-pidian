@@ -48,6 +48,22 @@ export interface AgentErrorEvent {
   message: string;
 }
 
+export interface CompactionStartEvent {
+  type: "compaction_start";
+}
+
+export interface CompactedEvent {
+  type: "compacted";
+  summary: string;
+  /** Index into the current Pidian message list of the first message kept verbatim. */
+  firstKeptIndex?: number;
+  tokensBefore?: number;
+}
+
+export interface CompactionFailedEvent {
+  type: "compaction_failed";
+}
+
 export type AgentEvent =
   | TextDeltaEvent
   | ThinkingDeltaEvent
@@ -56,6 +72,9 @@ export type AgentEvent =
   | ToolStartedEvent
   | ToolCompletedEvent
   | TurnCompletedEvent
-  | AgentErrorEvent;
+  | AgentErrorEvent
+  | CompactionStartEvent
+  | CompactedEvent
+  | CompactionFailedEvent;
 
 export type AgentEventListener = (event: AgentEvent) => void;

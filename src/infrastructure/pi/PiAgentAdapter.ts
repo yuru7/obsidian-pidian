@@ -6,8 +6,7 @@ import {
   type ResourceLoader,
 } from "@earendil-works/pi-coding-agent";
 import { clampThinkingLevel, InMemoryCredentialStore } from "@earendil-works/pi-ai";
-import type { Api, Model, ModelsStore } from "@earendil-works/pi-ai";
-import type { AgentConversation } from "../../domain/agent/AgentConversation";
+import type { ModelsStore } from "@earendil-works/pi-ai";
 import type { AgentEngine, AgentSessionOptions } from "../../domain/agent/AgentEngine";
 import type { AgentEventListener } from "../../domain/agent/AgentEvent";
 import type { AgentPrompt, AgentSession } from "../../domain/agent/AgentSession";
@@ -24,7 +23,8 @@ import { createCustomRequestBodyFetch } from "./customRequestBody";
 import { PidianResourceLoader } from "./PidianResourceLoader";
 import { normalizeAgentsContent, pidianAgentsFiles } from "./pidianAgentsFiles";
 import { PIDIAN_SYSTEM_PROMPT } from "./PiCredentials";
-import { mapPiEvent } from "./PiEventMapper";
+import { mapPiCompactionEvent, mapPiEvent } from "./PiEventMapper";
+import { hydratePiSession } from "./piSessionHydration";
 import { toPiTools } from "./PiToolAdapter";
 
 const MODEL_CATALOG_REFRESH_TIMEOUT_MS = 15_000;
@@ -36,15 +36,6 @@ export interface PiAgentAdapterOptions {
   modelsStore?: ModelsStore;
   shouldRefreshDynamicCatalog?: () => Promise<boolean>;
 }
-
-const EMPTY_USAGE = {
-  input: 0,
-  output: 0,
-  cacheRead: 0,
-  cacheWrite: 0,
-  totalTokens: 0,
-  cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 },
-};
 
 export class PiAgentAdapter implements AgentEngine {
   private runtimePromise?: Promise<ModelRuntime>;
@@ -125,24 +116,21 @@ export class PiAgentAdapter implements AgentEngine {
       systemPrompt: PIDIAN_SYSTEM_PROMPT,
       agentsFiles: pidianAgentsFiles(agentsContent),
     });
+    const sessionManager = SessionManager.inMemory();
+    if (options.conversation && options.conversation.messages.length > 0) {
+      hydratePiSession(sessionManager, options.conversation, model);
+    }
 
     const { session } = await createAgentSession({
       model,
       thinkingLevel,
       modelRuntime: runtime,
-      sessionManager: SessionManager.inMemory(),
+      sessionManager,
       settingsManager,
       resourceLoader: loader as unknown as ResourceLoader,
       noTools: "builtin",
       customTools: toPiTools(options.tools),
     });
-
-    if (options.conversation && options.conversation.messages.length > 0) {
-      session.agent.state.messages = toPiMessages(
-        options.conversation,
-        model,
-      ) as unknown as typeof session.agent.state.messages;
-    }
 
     return new PiWrappedSession(session);
   }
@@ -217,6 +205,11 @@ class PiWrappedSession implements AgentSession {
 
   subscribe(listener: AgentEventListener): () => void {
     return this.session.subscribe((event) => {
+      const compaction = mapPiCompactionEvent(event, this.session.sessionManager.getBranch());
+      if (compaction) {
+        listener(compaction);
+        return;
+      }
       const mapped = mapPiEvent(event);
       if (mapped) {
         listener(mapped);
@@ -232,55 +225,4 @@ class PiWrappedSession implements AgentSession {
 function customApiKey(provider: CustomOpenAIProvider | undefined): string {
   const key = provider?.apiKey.trim();
   return key || "local";
-}
-
-function toPiMessages(conversation: AgentConversation, model: Model<Api>): Array<Record<string, unknown>> {
-  const messages: Array<Record<string, unknown>> = [];
-  for (const message of conversation.messages) {
-    if (message.role === "user") {
-      messages.push({
-        role: "user",
-        content: message.text,
-        timestamp: Date.parse(message.createdAt) || Date.now(),
-      });
-      continue;
-    }
-
-    const content: Array<Record<string, unknown>> = [];
-    if (message.thinking) {
-      content.push({ type: "thinking", thinking: message.thinking });
-    }
-    if (message.text) {
-      content.push({ type: "text", text: message.text });
-    }
-    for (const toolCall of message.toolCalls ?? []) {
-      content.push({
-        type: "toolCall",
-        id: toolCall.id,
-        name: toolCall.name,
-        arguments: toolCall.args && typeof toolCall.args === "object" ? toolCall.args : {},
-      });
-    }
-    messages.push({
-      role: "assistant",
-      content,
-      api: model.api,
-      provider: model.provider,
-      model: model.id,
-      usage: EMPTY_USAGE,
-      stopReason: (message.toolCalls?.length ?? 0) > 0 ? "toolUse" : "stop",
-      timestamp: Date.parse(message.createdAt) || Date.now(),
-    });
-    for (const toolCall of message.toolCalls ?? []) {
-      messages.push({
-        role: "toolResult",
-        toolCallId: toolCall.id,
-        toolName: toolCall.name,
-        content: [{ type: "text", text: toolCall.result ?? "" }],
-        isError: Boolean(toolCall.isError),
-        timestamp: Date.parse(message.createdAt) || Date.now(),
-      });
-    }
-  }
-  return messages;
 }

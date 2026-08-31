@@ -1,4 +1,5 @@
 import type { AgentEvent, TokenUsage } from "../../domain/agent/AgentEvent";
+import { pidianIndexForFirstKept, type PiBranchEntry } from "./piSessionHydration";
 
 export interface PiLikeAssistantEvent {
   type: string;
@@ -127,4 +128,40 @@ export function mapPiEvent(event: PiLikeEvent): AgentEvent | undefined {
     default:
       return undefined;
   }
+}
+
+export function mapPiCompactionEvent(
+  event: { type: string; result?: unknown; aborted?: boolean },
+  entries: readonly PiBranchEntry[],
+): AgentEvent | undefined {
+  if (event.type === "compaction_start") {
+    return { type: "compaction_start" };
+  }
+  if (event.type !== "compaction_end") {
+    return undefined;
+  }
+  if (event.aborted) {
+    return { type: "compaction_failed" };
+  }
+  const result = event.result;
+  if (!isCompactionResult(result)) {
+    return { type: "compaction_failed" };
+  }
+  const firstKeptIndex = pidianIndexForFirstKept(entries, result.firstKeptEntryId);
+  return {
+    type: "compacted",
+    summary: result.summary,
+    ...(firstKeptIndex !== undefined ? { firstKeptIndex } : {}),
+    ...(typeof result.tokensBefore === "number" ? { tokensBefore: result.tokensBefore } : {}),
+  };
+}
+
+function isCompactionResult(
+  value: unknown,
+): value is { summary: string; firstKeptEntryId: string; tokensBefore?: number } {
+  if (!value || typeof value !== "object") {
+    return false;
+  }
+  const record = value as Record<string, unknown>;
+  return typeof record.summary === "string" && record.summary.length > 0 && typeof record.firstKeptEntryId === "string";
 }
