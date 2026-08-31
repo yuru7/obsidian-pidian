@@ -5,30 +5,38 @@ import type { PidianMessage } from "../domain/sessions/PidianSession";
 import { Markdown } from "./Markdown";
 import { Thinking } from "./Thinking";
 import { ToolCall } from "./ToolCall";
+import { WorkLog } from "./WorkLog";
 
 export function Message({
   app,
   message,
   onFork,
   forkDisabled,
+  streaming = false,
 }: {
   app: App;
   message: PidianMessage;
   onFork?: (messageId: string) => void;
   forkDisabled?: boolean;
+  streaming?: boolean;
 }): JSX.Element {
   const name = message.role === "user" ? t("uiYou") : "Pidian";
   const assistant = message.role === "assistant";
+  const hasWork = Boolean(message.thinking) || (message.toolCalls?.length ?? 0) > 0;
   return (
     <article className={`pidian-message pidian-message-${message.role}`}>
       <div className="pidian-message-role">
         {message.role === "user" ? <YouIcon /> : <PidianIcon />}
         {name}
       </div>
-      {message.thinking ? <Thinking text={message.thinking} /> : null}
-      {message.toolCalls?.map((toolCall) => (
-        <ToolCall key={toolCall.id} toolCall={toolCall} />
-      ))}
+      {hasWork ? (
+        <WorkLog streaming={streaming} workedMs={message.workedMs}>
+          {message.thinking ? <Thinking text={message.thinking} /> : null}
+          {message.toolCalls?.map((toolCall) => (
+            <ToolCall key={toolCall.id} toolCall={toolCall} />
+          ))}
+        </WorkLog>
+      ) : null}
       {message.text ? <Markdown app={app} markdown={message.text} /> : null}
       {assistant && message.text ? (
         <div className="pidian-message-actions">

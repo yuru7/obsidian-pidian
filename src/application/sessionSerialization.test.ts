@@ -106,6 +106,41 @@ describe("session serialization", () => {
     expect(parsePidianSession(JSON.parse(json))).toEqual(forked);
   });
 
+  it("round-trips assistant workedMs", () => {
+    const withWork: PidianSession = {
+      ...sample,
+      messages: [
+        sample.messages[0]!,
+        {
+          id: "m2",
+          role: "assistant",
+          text: "Hi",
+          workedMs: 8320,
+          createdAt: "2026-01-01T00:00:01.000Z",
+        },
+      ],
+    };
+    const json = serializePidianSession(withWork);
+    expect(parsePidianSession(JSON.parse(json))).toEqual(withWork);
+  });
+
+  it("omits invalid workedMs values", () => {
+    expect(
+      parsePidianSession({
+        ...sample,
+        messages: [
+          {
+            id: "m2",
+            role: "assistant",
+            text: "Hi",
+            workedMs: -1,
+            createdAt: "2026-01-01T00:00:01.000Z",
+          },
+        ],
+      }).messages[0]?.workedMs,
+    ).toBeUndefined();
+  });
+
   it("omits invalid forkedMessageCount values", () => {
     expect(parsePidianSession({ ...sample, forkedMessageCount: 0 }).forkedMessageCount).toBeUndefined();
     expect(parsePidianSession({ ...sample, forkedMessageCount: 1.5 }).forkedMessageCount).toBeUndefined();

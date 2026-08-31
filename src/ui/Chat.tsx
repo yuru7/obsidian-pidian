@@ -16,12 +16,14 @@ export function Chat({
   forkedMessageCount,
   onFork,
   forkDisabled,
+  streaming = false,
 }: {
   app: App;
   messages: PidianMessage[];
   forkedMessageCount?: number;
   onFork?: (messageId: string) => void;
   forkDisabled?: boolean;
+  streaming?: boolean;
 }): JSX.Element {
   const rootRef = useRef<HTMLDivElement | null>(null);
   const contentRef = useRef<HTMLDivElement | null>(null);
@@ -97,6 +99,9 @@ export function Chat({
                   message={message}
                   onFork={onFork}
                   forkDisabled={forkDisabled}
+                  streaming={
+                    streaming && message.role === "assistant" && index === messages.length - 1
+                  }
                 />
                 {forkedMessageCount === index + 1 ? (
                   <p className="pidian-fork-notice">{t("uiForked")}</p>

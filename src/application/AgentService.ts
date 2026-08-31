@@ -190,6 +190,7 @@ export class AgentService {
       this.notify();
     } finally {
       this.streaming = false;
+      this.recordWorkedMs();
       await this.sessions.save(session);
       this.notify();
     }
@@ -292,6 +293,18 @@ export class AgentService {
         break;
     }
     this.notify();
+  }
+
+  private recordWorkedMs(): void {
+    const assistant = this.latestAssistant();
+    if (!assistant || assistant.workedMs !== undefined) {
+      return;
+    }
+    const started = Date.parse(assistant.createdAt);
+    if (!Number.isFinite(started)) {
+      return;
+    }
+    assistant.workedMs = Math.max(0, Date.now() - started);
   }
 
   private latestAssistant(): PidianMessage | undefined {

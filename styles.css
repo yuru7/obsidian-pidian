@@ -551,8 +551,20 @@
   display: flex;
   gap: 6px;
   align-items: center;
-  padding: 4px 8px;
+  padding: 4px 2px;
   margin: 4px 0;
+}
+
+.pidian-work-log-items {
+  padding-left: 12px;
+}
+
+.pidian-work-log-items .pidian-disclosure {
+  margin-top: 0;
+}
+
+.pidian-work-log .pidian-spinner {
+  --pidian-spinner-size: 12px;
 }
 
 .pidian-streaming-indicator {

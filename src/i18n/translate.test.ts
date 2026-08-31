@@ -45,6 +45,10 @@ describe("lookup", () => {
     expect(lookup("ja", "settingsEnvAvailable", { names: '"OPENAI_API_KEY"' })).toBe(
       '環境変数 "OPENAI_API_KEY" が使用可能',
     );
+    expect(lookup("en", "uiWorkedFor", { seconds: 8 })).toBe("Worked for 8s");
+    expect(lookup("ja", "uiWorkedFor", { seconds: 8 })).toBe("Worked for 8s");
+    expect(lookup("ja", "uiWorking")).toBe("Working...");
+    expect(lookup("ja", "uiThinking")).toBe("思考");
   });
 
   it("leaves the template unchanged when vars are omitted", () => {

@@ -3,9 +3,14 @@ import { t } from "../i18n";
 
 const SPINNER_DOTS = 8;
 
-export function Spinner(): JSX.Element {
+export function Spinner({ decorative = false }: { decorative?: boolean } = {}): JSX.Element {
   return (
-    <span className="pidian-spinner" role="status" aria-label={t("uiThinking")}>
+    <span
+      className="pidian-spinner"
+      {...(decorative
+        ? { "aria-hidden": true }
+        : { role: "status", "aria-label": t("uiWorking") })}
+    >
       {Array.from({ length: SPINNER_DOTS }, (_, index) => (
         <span key={index} />
       ))}

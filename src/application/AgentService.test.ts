@@ -102,3 +102,17 @@ describe("AgentService.forkFrom", () => {
     expect(agent.getSession()?.id).toBe(originalId);
   });
 });
+
+describe("AgentService.send", () => {
+  it("records how long the assistant worked", async () => {
+    const store = new MemoryRepository();
+    const agent = createService(store);
+    await agent.newChat("openai", "gpt-5");
+    await agent.send("hello");
+
+    const assistant = agent.getSession()?.messages[1];
+    expect(assistant?.role).toBe("assistant");
+    expect(assistant?.workedMs).toEqual(expect.any(Number));
+    expect(assistant!.workedMs).toBeGreaterThanOrEqual(0);
+  });
+});

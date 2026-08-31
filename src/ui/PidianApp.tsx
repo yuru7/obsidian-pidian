@@ -79,6 +79,7 @@ export function PidianApp({ plugin }: { plugin: PidianPlugin }): JSX.Element {
         messages={session?.messages ?? []}
         forkedMessageCount={session?.forkedMessageCount}
         forkDisabled={streaming}
+        streaming={streaming}
         onFork={(messageId) => {
           void agent.forkFrom(messageId).catch((error: unknown) => {
             console.error("Pidian: failed to fork session", error);

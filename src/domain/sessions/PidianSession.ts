@@ -11,6 +11,8 @@ export interface PidianMessage {
   thinking?: string;
   toolCalls?: PidianToolCall[];
   usage?: TokenUsage;
+  /** Elapsed time of the assistant turn, in milliseconds. */
+  workedMs?: number;
   createdAt: string;
 }
 

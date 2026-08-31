@@ -34,6 +34,13 @@ function parseOptionalForkedMessageCount(value: unknown): number | undefined {
   return value;
 }
 
+function parseOptionalWorkedMs(value: unknown): number | undefined {
+  if (typeof value !== "number" || !Number.isFinite(value) || value < 0) {
+    return undefined;
+  }
+  return value;
+}
+
 function parseUsage(value: unknown, field: string): TokenUsage | undefined {
   if (value === undefined) {
     return undefined;
@@ -79,6 +86,7 @@ function parseMessage(value: unknown): PidianMessage {
     throw new Error("Invalid session field: messages.role");
   }
   const usage = parseUsage(value.usage, "messages.usage");
+  const workedMs = parseOptionalWorkedMs(value.workedMs);
   return {
     id: expectString(value.id, "messages.id"),
     role,
@@ -86,6 +94,7 @@ function parseMessage(value: unknown): PidianMessage {
     thinking: typeof value.thinking === "string" ? value.thinking : undefined,
     toolCalls: parseToolCalls(value.toolCalls),
     ...(usage ? { usage } : {}),
+    ...(workedMs !== undefined ? { workedMs } : {}),
     createdAt: expectString(value.createdAt, "messages.createdAt"),
   };
 }

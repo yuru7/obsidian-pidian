@@ -251,6 +251,7 @@ interface PidianSession {
 ```
 
 - パースは `migratePidianSession`。`version !== 1` は throw。フィールド追加時は後方互換を崩さないか、version を上げて migration を足す。
+- アシスタントの `workedMs` はターン所要時間。無い古い保存データは完了ラベルだけ出す。
 - 再開は `PidianSession → AgentConversation → PiAgentAdapter`。Pi 固有オブジェクトは保存しない。
 - 破損ファイルは list 時にスキップする。
 - 自動削除は `SessionCleanupService`。既定オフ。起動時のみ。アクティブ session id は消さない。
@@ -303,7 +304,7 @@ Pi のモジュール解決や stub を足すときは、バンドルゲート�
 | --- | --- |
 | `PidianView.tsx` | `ItemView`。React root |
 | `PidianApp.tsx` | ヘッダ、Chat、Composer、ModelSelector、SessionSelector |
-| `Chat.tsx` / `Message.tsx` / `ToolCall.tsx` / `Thinking.tsx` | ストリーム表示 |
+| `Chat.tsx` / `Message.tsx` / `WorkLog.tsx` / `ToolCall.tsx` / `Thinking.tsx` | ストリーム表示。思考とツールは WorkLog にまとめる |
 | `Composer.tsx` | 入力。`subscribeComposerFocus` でフォーカス |
 | `Markdown.tsx` | チャット内 Markdown。`[[wiki]]` はメモアイコン付きで、クリックは既存エディタタブを優先して開く |
 | `PidianSettingTab.ts` | 設定 UI（React ではない） |
