@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { FakeAgentEngine } from "../infrastructure/fake/FakeAgentEngine";
+import type { AgentEngine, AgentSessionOptions } from "../domain/agent/AgentEngine";
+import type { AgentEvent, AgentEventListener } from "../domain/agent/AgentEvent";
+import type { AgentSession } from "../domain/agent/AgentSession";
 import type { PidianSession, SessionRepository, SessionSummary } from "../domain/sessions/PidianSession";
+import { FakeAgentEngine } from "../infrastructure/fake/FakeAgentEngine";
 import { AgentService } from "./AgentService";
 import { ContextService } from "./ContextService";
 import { SessionService } from "./SessionService";
@@ -39,9 +42,37 @@ class MemoryRepository implements SessionRepository {
   }
 }
 
-function createService(store: MemoryRepository): AgentService {
+class ScriptedAgentEngine implements AgentEngine {
+  constructor(private readonly play: (emit: (event: AgentEvent) => void) => Promise<void>) {}
+
+  async createSession(_options: AgentSessionOptions): Promise<AgentSession> {
+    const listeners = new Set<AgentEventListener>();
+    const emit = (event: AgentEvent): void => {
+      for (const listener of listeners) {
+        listener(event);
+      }
+    };
+    return {
+      prompt: async () => {
+        await this.play(emit);
+      },
+      abort: async () => undefined,
+      subscribe: (listener) => {
+        listeners.add(listener);
+        return () => {
+          listeners.delete(listener);
+        };
+      },
+      dispose: async () => {
+        listeners.clear();
+      },
+    };
+  }
+}
+
+function createService(store: MemoryRepository, engine: AgentEngine = new FakeAgentEngine()): AgentService {
   return new AgentService(
-    new FakeAgentEngine(),
+    engine,
     new SessionService(store),
     new ContextService({ getActiveNote: () => undefined }),
     () => [],
@@ -114,5 +145,56 @@ describe("AgentService.send", () => {
     expect(assistant?.role).toBe("assistant");
     expect(assistant?.workedMs).toEqual(expect.any(Number));
     expect(assistant!.workedMs).toBeGreaterThanOrEqual(0);
+  });
+
+  it("records workedMs on the first text_delta", async () => {
+    const store = new MemoryRepository();
+    let agent!: AgentService;
+    let workedMsAtFirstText: number | undefined;
+    agent = createService(
+      store,
+      new ScriptedAgentEngine(async (emit) => {
+        emit({ type: "thinking_delta", text: "plan" });
+        emit({
+          type: "tool_started",
+          toolCallId: "1",
+          toolName: "read_note",
+          args: {},
+        });
+        expect(agent.getSession()?.messages[1]?.workedMs).toBeUndefined();
+        emit({
+          type: "tool_completed",
+          toolCallId: "1",
+          toolName: "read_note",
+          result: "ok",
+          isError: false,
+        });
+        expect(agent.getSession()?.messages[1]?.workedMs).toBeUndefined();
+        emit({ type: "text_delta", text: "Hi" });
+        workedMsAtFirstText = agent.getSession()?.messages[1]?.workedMs;
+        emit({ type: "text_delta", text: " there" });
+        emit({ type: "turn_completed" });
+      }),
+    );
+    await agent.newChat("openai", "gpt-5");
+    await agent.send("hello");
+
+    expect(workedMsAtFirstText).toEqual(expect.any(Number));
+    expect(agent.getSession()?.messages[1]?.workedMs).toBe(workedMsAtFirstText);
+  });
+
+  it("records workedMs when the turn ends without text", async () => {
+    const store = new MemoryRepository();
+    const agent = createService(
+      store,
+      new ScriptedAgentEngine(async (emit) => {
+        emit({ type: "thinking_delta", text: "plan" });
+        emit({ type: "turn_completed" });
+      }),
+    );
+    await agent.newChat("openai", "gpt-5");
+    await agent.send("hello");
+
+    expect(agent.getSession()?.messages[1]?.workedMs).toEqual(expect.any(Number));
   });
 });

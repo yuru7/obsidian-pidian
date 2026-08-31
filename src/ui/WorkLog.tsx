@@ -13,12 +13,13 @@ export function WorkLog({
   children: ReactNode;
 }): JSX.Element {
   const [open, setOpen] = useState(false);
+  const working = streaming && workedMs === undefined;
 
-  const label = streaming
-    ? t("uiWorking")
-    : workedMs === undefined
-      ? t("uiWorked")
-      : t("uiWorkedFor", { seconds: workedSeconds(workedMs) });
+  const label = workedMs !== undefined
+    ? t("uiWorkedFor", { seconds: workedSeconds(workedMs) })
+    : working
+      ? t("uiWorking")
+      : t("uiWorked");
 
   return (
     <div className="pidian-work-log">
@@ -30,7 +31,7 @@ export function WorkLog({
       >
         <span>{open ? "▾" : "▸"}</span>
         <span>{label}</span>
-        {streaming ? <Spinner decorative /> : null}
+        {working ? <Spinner decorative /> : null}
       </button>
       {open ? <div className="pidian-work-log-items">{children}</div> : null}
     </div>

@@ -260,6 +260,7 @@ export class AgentService {
     switch (event.type) {
       case "text_delta":
         assistant.text += event.text;
+        this.recordWorkedMs();
         break;
       case "thinking_delta":
         assistant.thinking = `${assistant.thinking ?? ""}${event.text}`;
