@@ -1,6 +1,5 @@
 import { useState, type JSX, type ReactNode } from "react";
 import { t } from "../i18n";
-import { Spinner } from "./Thinking";
 import { workedSeconds } from "./workedSeconds";
 
 export function WorkLog({
@@ -30,8 +29,7 @@ export function WorkLog({
         onClick={() => setOpen((value) => !value)}
       >
         <span>{open ? "▾" : "▸"}</span>
-        <span>{label}</span>
-        {working ? <Spinner decorative /> : null}
+        <span className={working ? "pidian-working" : undefined}>{label}</span>
       </button>
       {open ? <div className="pidian-work-log-items">{children}</div> : null}
     </div>

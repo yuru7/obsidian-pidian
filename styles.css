@@ -449,6 +449,12 @@
   margin-bottom: 16px;
 }
 
+.pidian-message-user {
+  padding: 8px 10px;
+  border-radius: var(--radius-s);
+  background-color: var(--background-modifier-hover);
+}
+
 .pidian-message-role {
   display: flex;
   align-items: center;
@@ -568,8 +574,27 @@
   margin-top: 0;
 }
 
-.pidian-work-log .pidian-spinner {
-  --pidian-spinner-size: 12px;
+.pidian-working::after {
+  content: "...";
+  display: inline-block;
+  width: 3ch;
+  text-align: left;
+  animation: pidian-working-dots 1.2s infinite;
+}
+
+@keyframes pidian-working-dots {
+  0%,
+  32% {
+    content: ".";
+  }
+  33%,
+  65% {
+    content: "..";
+  }
+  66%,
+  100% {
+    content: "...";
+  }
 }
 
 .pidian-streaming-indicator {
@@ -669,6 +694,11 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .pidian-working::after {
+    animation: none;
+    content: "...";
+  }
+
   .pidian-spinner span::before {
     animation: none;
     opacity: 0.25;

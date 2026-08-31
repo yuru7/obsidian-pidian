@@ -101,7 +101,7 @@ export const en = {
   uiEmptyChat: "Ask Pidian about the current note, or search the vault.",
   uiYou: "You",
   uiThinking: "Thinking",
-  uiWorking: "Working...",
+  uiWorking: "Working",
   uiScrollToLatest: "Scroll to the end of the chat",
   uiWorked: "Worked",
   uiWorkedFor: "Worked for {seconds}s",

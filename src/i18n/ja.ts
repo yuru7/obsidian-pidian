@@ -102,7 +102,7 @@ export const ja: { [K in keyof typeof en]: string } = {
   uiEmptyChat: "今開いているノートについて聞いたり、Vault を検索したりできます。",
   uiYou: "あなた",
   uiThinking: "思考",
-  uiWorking: "Working...",
+  uiWorking: "Working",
   uiScrollToLatest: "チャット末尾へスクロール",
   uiWorked: "Worked",
   uiWorkedFor: "Worked for {seconds}s",
