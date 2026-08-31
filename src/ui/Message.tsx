@@ -1,7 +1,7 @@
 import { useEffect, useState, type JSX } from "react";
 import type { App } from "obsidian";
 import { t } from "../i18n";
-import type { PidianMessage } from "../domain/sessions/PidianSession";
+import { contentBlocks, type PidianMessage } from "../domain/sessions/PidianSession";
 import { Markdown } from "./Markdown";
 import { Thinking } from "./Thinking";
 import { ToolCall } from "./ToolCall";
@@ -22,22 +22,32 @@ export function Message({
 }): JSX.Element {
   const name = message.role === "user" ? t("uiYou") : "Pidian";
   const assistant = message.role === "assistant";
-  const hasWork = Boolean(message.thinking) || (message.toolCalls?.length ?? 0) > 0;
   return (
     <article className={`pidian-message pidian-message-${message.role}`}>
       <div className="pidian-message-role">
         {message.role === "user" ? <YouIcon /> : <PidianIcon />}
         {name}
       </div>
-      {hasWork ? (
-        <WorkLog streaming={streaming} workedMs={message.workedMs}>
-          {message.thinking ? <Thinking text={message.thinking} /> : null}
-          {message.toolCalls?.map((toolCall) => (
-            <ToolCall key={toolCall.id} toolCall={toolCall} />
-          ))}
-        </WorkLog>
-      ) : null}
-      {message.text ? <Markdown app={app} markdown={message.text} /> : null}
+      {assistant
+        ? contentBlocks(message).map((block, index) => {
+            if (block.type === "work") {
+              if (!block.thinking && (block.toolCalls?.length ?? 0) === 0) {
+                return null;
+              }
+              return (
+                <WorkLog key={index} streaming={streaming} workedMs={block.workedMs}>
+                  {block.thinking ? <Thinking text={block.thinking} /> : null}
+                  {block.toolCalls?.map((toolCall) => (
+                    <ToolCall key={toolCall.id} toolCall={toolCall} />
+                  ))}
+                </WorkLog>
+              );
+            }
+            return block.text ? <Markdown key={index} app={app} markdown={block.text} /> : null;
+          })
+        : message.text
+          ? <Markdown app={app} markdown={message.text} />
+          : null}
       {assistant && message.text ? (
         <div className="pidian-message-actions">
           <CopyButton markdown={message.text} />

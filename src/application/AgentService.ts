@@ -4,6 +4,14 @@ import type { AgentSession } from "../domain/agent/AgentSession";
 import type { PidianTool } from "../domain/tools/PidianTool";
 import type { PidianMessage, PidianSession } from "../domain/sessions/PidianSession";
 import { DEFAULT_THINKING_LEVEL } from "../domain/agent/thinkingLevel";
+import {
+  applyAssistantError,
+  applyTextDelta,
+  applyThinkingDelta,
+  applyToolCompleted,
+  applyToolStarted,
+  closeOpenWork,
+} from "./assistantContent";
 import { ContextService, formatAgentPrompt } from "./ContextService";
 import { SessionService } from "./SessionService";
 
@@ -186,11 +194,17 @@ export class AgentService {
       });
     } catch (error) {
       this.error = error instanceof Error ? error.message : String(error);
-      this.appendAssistantError(this.error);
+      const failed = this.latestAssistant();
+      if (failed) {
+        applyAssistantError(failed, this.error);
+      }
       this.notify();
     } finally {
       this.streaming = false;
-      this.recordWorkedMs();
+      const assistant = this.latestAssistant();
+      if (assistant) {
+        closeOpenWork(assistant);
+      }
       await this.sessions.save(session);
       this.notify();
     }
@@ -259,33 +273,24 @@ export class AgentService {
     }
     switch (event.type) {
       case "text_delta":
-        assistant.text += event.text;
-        this.recordWorkedMs();
+        applyTextDelta(assistant, event.text);
         break;
       case "thinking_delta":
-        assistant.thinking = `${assistant.thinking ?? ""}${event.text}`;
+        applyThinkingDelta(assistant, event.text);
         break;
       case "tool_started":
-        assistant.toolCalls = [
-          ...(assistant.toolCalls ?? []),
-          {
-            id: event.toolCallId,
-            name: event.toolName,
-            args: event.args,
-          },
-        ];
+        applyToolStarted(assistant, {
+          id: event.toolCallId,
+          name: event.toolName,
+          args: event.args,
+        });
         break;
-      case "tool_completed": {
-        const toolCall = assistant.toolCalls?.find((item) => item.id === event.toolCallId);
-        if (toolCall) {
-          toolCall.result = event.result;
-          toolCall.isError = event.isError;
-        }
+      case "tool_completed":
+        applyToolCompleted(assistant, event.toolCallId, event.result, event.isError);
         break;
-      }
       case "error":
         this.error = event.message;
-        this.appendAssistantError(event.message);
+        applyAssistantError(assistant, event.message);
         break;
       case "turn_completed":
         if (event.usage) {
@@ -294,18 +299,6 @@ export class AgentService {
         break;
     }
     this.notify();
-  }
-
-  private recordWorkedMs(): void {
-    const assistant = this.latestAssistant();
-    if (!assistant || assistant.workedMs !== undefined) {
-      return;
-    }
-    const started = Date.parse(assistant.createdAt);
-    if (!Number.isFinite(started)) {
-      return;
-    }
-    assistant.workedMs = Math.max(0, Date.now() - started);
   }
 
   private latestAssistant(): PidianMessage | undefined {
@@ -320,16 +313,6 @@ export class AgentService {
       }
     }
     return undefined;
-  }
-
-  private appendAssistantError(message: string): void {
-    const assistant = this.latestAssistant();
-    if (!assistant) {
-      return;
-    }
-    if (!assistant.text.includes(message)) {
-      assistant.text = assistant.text ? `${assistant.text}\n\n${message}` : message;
-    }
   }
 
   private requireSession(): PidianSession {

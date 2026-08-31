@@ -106,6 +106,43 @@ describe("session serialization", () => {
     expect(parsePidianSession(JSON.parse(json))).toEqual(forked);
   });
 
+  it("round-trips assistant content blocks", () => {
+    const withBlocks: PidianSession = {
+      ...sample,
+      messages: [
+        sample.messages[0]!,
+        {
+          id: "m2",
+          role: "assistant",
+          text: "I'll look. Done.",
+          thinking: "planmore",
+          toolCalls: [{ id: "1", name: "read_note", args: {}, result: "ok", isError: false }],
+          workedMs: 1000,
+          blocks: [
+            {
+              type: "work",
+              thinking: "plan",
+              workedMs: 1000,
+              startedAt: "2026-01-01T00:00:01.000Z",
+            },
+            { type: "text", text: "I'll look." },
+            {
+              type: "work",
+              thinking: "more",
+              toolCalls: [{ id: "1", name: "read_note", args: {}, result: "ok", isError: false }],
+              workedMs: 4000,
+              startedAt: "2026-01-01T00:00:02.000Z",
+            },
+            { type: "text", text: " Done." },
+          ],
+          createdAt: "2026-01-01T00:00:01.000Z",
+        },
+      ],
+    };
+    const json = serializePidianSession(withBlocks);
+    expect(parsePidianSession(JSON.parse(json))).toEqual(withBlocks);
+  });
+
   it("round-trips assistant workedMs", () => {
     const withWork: PidianSession = {
       ...sample,

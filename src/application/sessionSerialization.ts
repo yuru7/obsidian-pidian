@@ -1,6 +1,6 @@
 import type { TokenUsage } from "../domain/agent/AgentEvent";
 import { parseOptionalThinkingLevel } from "../domain/agent/thinkingLevel";
-import type { PidianMessage, PidianSession } from "../domain/sessions/PidianSession";
+import type { PidianContentBlock, PidianMessage, PidianSession } from "../domain/sessions/PidianSession";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
@@ -77,6 +77,35 @@ function parseToolCalls(value: unknown): PidianMessage["toolCalls"] {
   });
 }
 
+function parseContentBlocks(value: unknown): PidianContentBlock[] | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+  if (!Array.isArray(value)) {
+    throw new Error("Invalid session field: messages.blocks");
+  }
+  return value.map((item) => {
+    if (!isRecord(item)) {
+      throw new Error("Invalid session field: messages.blocks[]");
+    }
+    if (item.type === "text") {
+      return { type: "text", text: typeof item.text === "string" ? item.text : "" };
+    }
+    if (item.type !== "work") {
+      throw new Error("Invalid session field: messages.blocks[].type");
+    }
+    const workedMs = parseOptionalWorkedMs(item.workedMs);
+    const startedAt = typeof item.startedAt === "string" && item.startedAt ? item.startedAt : undefined;
+    return {
+      type: "work",
+      thinking: typeof item.thinking === "string" ? item.thinking : undefined,
+      toolCalls: parseToolCalls(item.toolCalls),
+      ...(workedMs !== undefined ? { workedMs } : {}),
+      ...(startedAt ? { startedAt } : {}),
+    };
+  });
+}
+
 function parseMessage(value: unknown): PidianMessage {
   if (!isRecord(value)) {
     throw new Error("Invalid session field: messages[]");
@@ -87,6 +116,7 @@ function parseMessage(value: unknown): PidianMessage {
   }
   const usage = parseUsage(value.usage, "messages.usage");
   const workedMs = parseOptionalWorkedMs(value.workedMs);
+  const blocks = parseContentBlocks(value.blocks);
   return {
     id: expectString(value.id, "messages.id"),
     role,
@@ -95,6 +125,7 @@ function parseMessage(value: unknown): PidianMessage {
     toolCalls: parseToolCalls(value.toolCalls),
     ...(usage ? { usage } : {}),
     ...(workedMs !== undefined ? { workedMs } : {}),
+    ...(blocks ? { blocks } : {}),
     createdAt: expectString(value.createdAt, "messages.createdAt"),
   };
 }

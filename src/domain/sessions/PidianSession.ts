@@ -4,6 +4,22 @@ import type { TokenUsage } from "../agent/AgentEvent";
 export type PidianToolCall = AgentToolCallRecord;
 export type { TokenUsage };
 
+export interface PidianWorkBlock {
+  type: "work";
+  thinking?: string;
+  toolCalls?: PidianToolCall[];
+  /** Milliseconds from this work segment start until the following text. */
+  workedMs?: number;
+  startedAt?: string;
+}
+
+export interface PidianTextBlock {
+  type: "text";
+  text: string;
+}
+
+export type PidianContentBlock = PidianWorkBlock | PidianTextBlock;
+
 export interface PidianMessage {
   id: string;
   role: "user" | "assistant";
@@ -13,7 +29,76 @@ export interface PidianMessage {
   usage?: TokenUsage;
   /** Milliseconds from assistant start until the first answer text. */
   workedMs?: number;
+  /** Interleaved work and text. Missing on older saved sessions. */
+  blocks?: PidianContentBlock[];
   createdAt: string;
+}
+
+export function contentBlocks(message: PidianMessage): PidianContentBlock[] {
+  const blocks = message.blocks ?? synthesizeLegacyBlocks(message);
+  return coalesceAdjacentWork(blocks);
+}
+
+function synthesizeLegacyBlocks(message: PidianMessage): PidianContentBlock[] {
+  const blocks: PidianContentBlock[] = [];
+  if (message.thinking || (message.toolCalls?.length ?? 0) > 0) {
+    blocks.push({
+      type: "work",
+      thinking: message.thinking,
+      toolCalls: message.toolCalls,
+      ...(message.workedMs !== undefined ? { workedMs: message.workedMs } : {}),
+      startedAt: message.createdAt,
+    });
+  }
+  if (message.text) {
+    blocks.push({ type: "text", text: message.text });
+  }
+  return blocks;
+}
+
+function coalesceAdjacentWork(blocks: readonly PidianContentBlock[]): PidianContentBlock[] {
+  const result: PidianContentBlock[] = [];
+  for (const block of blocks) {
+    if (block.type === "text" && !block.text.trim()) {
+      continue;
+    }
+    const previous = result.at(-1);
+    if (block.type === "work" && previous?.type === "work") {
+      result[result.length - 1] = mergeWorkBlocks(previous, block);
+      continue;
+    }
+    result.push(block);
+  }
+  return result;
+}
+
+function mergeWorkBlocks(left: PidianWorkBlock, right: PidianWorkBlock): PidianWorkBlock {
+  const thinking = `${left.thinking ?? ""}${right.thinking ?? ""}`;
+  const toolCalls = [...(left.toolCalls ?? []), ...(right.toolCalls ?? [])];
+  const startedAt = left.startedAt ?? right.startedAt;
+  const workedMs = combinedWorkedMs(left, right);
+  return {
+    type: "work",
+    ...(thinking ? { thinking } : {}),
+    ...(toolCalls.length > 0 ? { toolCalls } : {}),
+    ...(startedAt ? { startedAt } : {}),
+    ...(workedMs !== undefined ? { workedMs } : {}),
+  };
+}
+
+function combinedWorkedMs(left: PidianWorkBlock, right: PidianWorkBlock): number | undefined {
+  if (right.workedMs === undefined) {
+    return undefined;
+  }
+  if (left.workedMs === undefined) {
+    return right.workedMs;
+  }
+  const start = Date.parse(left.startedAt ?? "");
+  const next = Date.parse(right.startedAt ?? "");
+  if (Number.isFinite(start) && Number.isFinite(next)) {
+    return Math.max(0, next + right.workedMs - start);
+  }
+  return left.workedMs + right.workedMs;
 }
 
 export function sumTokenUsage(messages: readonly PidianMessage[]): TokenUsage {

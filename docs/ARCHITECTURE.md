@@ -251,7 +251,7 @@ interface PidianSession {
 ```
 
 - パースは `migratePidianSession`。`version !== 1` は throw。フィールド追加時は後方互換を崩さないか、version を上げて migration を足す。
-- アシスタントの `workedMs` は最初の回答テキスト（`text_delta`）までの時間。テキストが無いターンは完了時に記録。無い古い保存データは完了ラベルだけ出す。
+- アシスタントの `workedMs` は各 Work 区間（思考・ツール）が次の見える `text_delta` に達するまでの時間。空白だけの delta では区切らない。テキストが無い区間は完了時に記録。`blocks` が無い古い保存データは思考・ツールを1つの WorkLog にまとめる。
 - 再開は `PidianSession → AgentConversation → PiAgentAdapter`。Pi 固有オブジェクトは保存しない。
 - 破損ファイルは list 時にスキップする。
 - 自動削除は `SessionCleanupService`。既定オフ。起動時のみ。アクティブ session id は消さない。
@@ -304,7 +304,7 @@ Pi のモジュール解決や stub を足すときは、バンドルゲート�
 | --- | --- |
 | `PidianView.tsx` | `ItemView`。React root |
 | `PidianApp.tsx` | ヘッダ、Chat、Composer、ModelSelector、SessionSelector |
-| `Chat.tsx` / `Message.tsx` / `WorkLog.tsx` / `ToolCall.tsx` / `Thinking.tsx` | ストリーム表示。思考とツールは WorkLog にまとめる |
+| `Chat.tsx` / `Message.tsx` / `WorkLog.tsx` / `ToolCall.tsx` / `Thinking.tsx` | ストリーム表示。思考とツールは WorkLog にまとめ、`text_delta` で区切って複数出せる |
 | `Composer.tsx` | 入力。`subscribeComposerFocus` でフォーカス |
 | `Markdown.tsx` | チャット内 Markdown。`[[wiki]]` はメモアイコン付きで、クリックは既存エディタタブを優先して開く |
 | `PidianSettingTab.ts` | 設定 UI（React ではない） |

@@ -135,18 +135,6 @@ describe("AgentService.forkFrom", () => {
 });
 
 describe("AgentService.send", () => {
-  it("records how long the assistant worked", async () => {
-    const store = new MemoryRepository();
-    const agent = createService(store);
-    await agent.newChat("openai", "gpt-5");
-    await agent.send("hello");
-
-    const assistant = agent.getSession()?.messages[1];
-    expect(assistant?.role).toBe("assistant");
-    expect(assistant?.workedMs).toEqual(expect.any(Number));
-    expect(assistant!.workedMs).toBeGreaterThanOrEqual(0);
-  });
-
   it("records workedMs on the first text_delta", async () => {
     const store = new MemoryRepository();
     let agent!: AgentService;
@@ -196,5 +184,54 @@ describe("AgentService.send", () => {
     await agent.send("hello");
 
     expect(agent.getSession()?.messages[1]?.workedMs).toEqual(expect.any(Number));
+  });
+
+  it("starts a new work segment after text when tools continue", async () => {
+    const store = new MemoryRepository();
+    let agent!: AgentService;
+    let blocksAfterPreamble: unknown;
+    agent = createService(
+      store,
+      new ScriptedAgentEngine(async (emit) => {
+        emit({ type: "thinking_delta", text: "plan" });
+        emit({ type: "text_delta", text: "I'll look." });
+        blocksAfterPreamble = [...(agent.getSession()?.messages[1]?.blocks ?? [])];
+        emit({
+          type: "tool_started",
+          toolCallId: "1",
+          toolName: "read_note",
+          args: {},
+        });
+        emit({
+          type: "tool_completed",
+          toolCallId: "1",
+          toolName: "read_note",
+          result: "ok",
+          isError: false,
+        });
+        emit({ type: "thinking_delta", text: "more" });
+        emit({ type: "text_delta", text: " Done." });
+        emit({ type: "turn_completed" });
+      }),
+    );
+    await agent.newChat("openai", "gpt-5");
+    await agent.send("hello");
+
+    expect(blocksAfterPreamble).toEqual([
+      expect.objectContaining({ type: "work", thinking: "plan", workedMs: expect.any(Number) }),
+      { type: "text", text: "I'll look." },
+    ]);
+
+    expect(agent.getSession()?.messages[1]?.blocks).toEqual([
+      expect.objectContaining({ type: "work", thinking: "plan", workedMs: expect.any(Number) }),
+      { type: "text", text: "I'll look." },
+      expect.objectContaining({
+        type: "work",
+        thinking: "more",
+        toolCalls: [{ id: "1", name: "read_note", args: {}, result: "ok", isError: false }],
+        workedMs: expect.any(Number),
+      }),
+      { type: "text", text: " Done." },
+    ]);
   });
 });
