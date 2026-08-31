@@ -47,14 +47,15 @@ export function Markdown({ app, markdown }: { app: App; markdown: string }): JSX
 
 function decorateInternalNoteLinks(root: HTMLElement): void {
   for (const node of root.querySelectorAll("a.internal-link")) {
-    if (!(node instanceof HTMLElement) || node.querySelector(":scope > .pidian-note-link-icon")) {
+    if (!node.instanceOf(HTMLElement) || node.querySelector(":scope > .pidian-note-link-icon")) {
       continue;
     }
-    const icon = document.createElement("span");
-    icon.className = "pidian-note-link-icon";
-    icon.setAttribute("aria-hidden", "true");
+    const icon = node.createSpan({
+      cls: "pidian-note-link-icon",
+      attr: { "aria-hidden": "true" },
+      prepend: true,
+    });
     setIcon(icon, "sticky-note");
-    node.prepend(icon);
   }
 }
 

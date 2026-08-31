@@ -130,7 +130,7 @@ export default class PidianPlugin extends Plugin {
     this.composerFocusPending = true;
     this.flushComposerFocus();
     if (this.composerFocusPending) {
-      requestAnimationFrame(() => this.flushComposerFocus());
+      window.requestAnimationFrame(() => this.flushComposerFocus());
     }
   }
 

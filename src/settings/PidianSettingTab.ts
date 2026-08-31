@@ -1161,11 +1161,12 @@ export class PidianSettingTab extends PluginSettingTab {
         text: t("settingsRemoveModel"),
         attr: { type: "button" },
       });
-      remove.addEventListener("click", async () => {
+      remove.addEventListener("click", () => {
         this.expandedCustomModelJson.delete(jsonKey);
         provider.models.splice(index, 1);
-        await this.plugin.saveSettings();
-        this.refreshSettings();
+        void this.plugin.saveSettings().then(() => {
+          this.refreshSettings();
+        });
       });
     }
   }
@@ -1218,7 +1219,7 @@ export class PidianSettingTab extends PluginSettingTab {
 
   private refreshModelNameErrors(containerEl: HTMLElement, provider: CustomOpenAIProvider): void {
     for (const input of Array.from(containerEl.querySelectorAll(".pidian-custom-model-name-input"))) {
-      if (!(input instanceof HTMLInputElement)) {
+      if (!input.instanceOf(HTMLInputElement)) {
         continue;
       }
       const index = Number(input.dataset.modelIndex);
@@ -1275,23 +1276,19 @@ const EXTRA_JSON_HELP_EXAMPLE = `{
 }`;
 
 function appendCircleQuestionIcon(parent: HTMLElement): void {
-  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-  svg.setAttribute("class", "pidian-icon");
-  svg.setAttribute("viewBox", "0 0 24 24");
-  svg.setAttribute("fill", "none");
-  svg.setAttribute("stroke", "currentColor");
-  svg.setAttribute("stroke-width", "2");
-  svg.setAttribute("stroke-linecap", "round");
-  svg.setAttribute("stroke-linejoin", "round");
-  svg.setAttribute("aria-hidden", "true");
-  const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-  circle.setAttribute("cx", "12");
-  circle.setAttribute("cy", "12");
-  circle.setAttribute("r", "10");
-  const curve = document.createElementNS("http://www.w3.org/2000/svg", "path");
-  curve.setAttribute("d", "M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3");
-  const dot = document.createElementNS("http://www.w3.org/2000/svg", "path");
-  dot.setAttribute("d", "M12 17h.01");
-  svg.append(circle, curve, dot);
-  parent.append(svg);
+  const svg = parent.createSvg("svg", {
+    cls: "pidian-icon",
+    attr: {
+      viewBox: "0 0 24 24",
+      fill: "none",
+      stroke: "currentColor",
+      "stroke-width": "2",
+      "stroke-linecap": "round",
+      "stroke-linejoin": "round",
+      "aria-hidden": "true",
+    },
+  });
+  svg.createSvg("circle", { attr: { cx: "12", cy: "12", r: "10" } });
+  svg.createSvg("path", { attr: { d: "M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" } });
+  svg.createSvg("path", { attr: { d: "M12 17h.01" } });
 }

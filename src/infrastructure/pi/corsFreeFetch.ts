@@ -58,7 +58,7 @@ export const corsFreeFetch: FetchFunction = async (input, init) => {
           );
         } catch (error) {
           res.destroy();
-          reject(error);
+          reject(error instanceof Error ? error : new Error(String(error)));
         }
       },
     );
@@ -223,10 +223,19 @@ function incomingToHeaders(res: IncomingMessage, stripContentEncoding = false): 
   return headers;
 }
 
+function firstHeaderValue(raw: unknown): string | undefined {
+  if (typeof raw === "string") {
+    return raw;
+  }
+  if (Array.isArray(raw) && typeof raw[0] === "string") {
+    return raw[0];
+  }
+  return undefined;
+}
+
 /** Node http does not decode Content-Encoding; browser fetch does. */
 function decoderForContentEncoding(res: IncomingMessage): ContentDecoder | undefined {
-  const raw = res.headers["content-encoding"];
-  const value = (Array.isArray(raw) ? raw[0] : raw)?.split(",")[0]?.trim().toLowerCase();
+  const value = firstHeaderValue(res.headers["content-encoding"])?.split(",")[0]?.trim().toLowerCase();
   if (value === "gzip" || value === "x-gzip") {
     return zlib.createGunzip();
   }
