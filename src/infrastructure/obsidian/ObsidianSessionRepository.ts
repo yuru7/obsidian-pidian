@@ -4,7 +4,6 @@ import { getPluginDirectory, parsePluginDirectory, sessionsDir } from "../../app
 import {
   isSessionFilePath,
   newSessionFilePath,
-  SESSION_FILE_EXTENSION,
   sessionFileExtension,
   sessionIdFromFilePath,
 } from "../../application/sessionFilePath";
@@ -14,7 +13,7 @@ import type { SessionFileFormat } from "../../settings/Settings";
 export class ObsidianSessionRepository implements SessionRepository {
   constructor(
     private readonly app: App,
-    private readonly getSessionFileFormat: () => SessionFileFormat = () => "json.md",
+    private readonly getSessionFileFormat: () => SessionFileFormat = () => "jsonl.md",
     private readonly resolvePluginDirectory: () => string = getPluginDirectory,
   ) {}
 
@@ -23,7 +22,7 @@ export class ObsidianSessionRepository implements SessionRepository {
     const path = (await this.resolveExistingPath(session.id)) ?? newSessionFilePath(session, this.getSessionFileFormat(), this.pluginDirectory());
     await this.app.vault.adapter.write(
       path,
-      serializeSessionFile(session, path.endsWith(SESSION_FILE_EXTENSION)),
+      serializeSessionFile(session, path.endsWith(".md")),
     );
   }
 

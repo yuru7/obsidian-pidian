@@ -17,11 +17,15 @@ describe("notePath", () => {
     expect(() => assertSafeNotePath(`${TEST_CONFIG_DIR}/app.json`)).toThrow();
     expect(() => assertSafeNotePath("pidian/sessions/a.json")).toThrow();
     expect(() => assertSafeNotePath("pidian/sessions/a.json.md")).toThrow();
+    expect(() => assertSafeNotePath("pidian/sessions/a.jsonl")).toThrow();
+    expect(() => assertSafeNotePath("pidian/sessions/a.jsonl.md")).toThrow();
   });
 
   it("excludes session files and AGENTS.md from search", () => {
     expect(isExcludedFromSearch("pidian/sessions/a.json")).toBe(true);
     expect(isExcludedFromSearch("pidian/sessions/a.json.md")).toBe(true);
+    expect(isExcludedFromSearch("pidian/sessions/a.jsonl")).toBe(true);
+    expect(isExcludedFromSearch("pidian/sessions/a.jsonl.md")).toBe(true);
     expect(isExcludedFromSearch("pidian/AGENTS.md")).toBe(true);
     expect(isExcludedFromSearch("notes/hello.md")).toBe(false);
   });

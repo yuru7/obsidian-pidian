@@ -234,7 +234,7 @@ revision は本文の SHA-256（`src/application/revision.ts`）。トラッカ�
 
 ## セッション永続化
 
-保存先: `{pluginDirectory}/sessions/{createdAt}_{id}.json.md`（または `.json`）。
+保存先: `{pluginDirectory}/sessions/{createdAt}_{id}.jsonl.md`（または `.jsonl`）。1行目がセッション、以降がメッセージ。インデントしない。既存の `.json.md` / `.json` も読む。
 
 ```ts
 interface PidianSession {

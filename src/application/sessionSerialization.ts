@@ -261,20 +261,43 @@ export function parsePidianSession(raw: unknown): PidianSession {
 }
 
 export function serializePidianSession(session: PidianSession): string {
-  return JSON.stringify(parsePidianSession(session), null, 2);
+  const parsed = parsePidianSession(session);
+  const { messages, ...header } = parsed;
+  return [header, ...messages].map((record) => JSON.stringify(record)).join("\n");
 }
 
 export function unwrapSessionFileText(raw: string): string {
   const trimmed = raw.trim();
-  const fenced = /^```json[ \t]*\r?\n([\s\S]*?)\r?\n```$/.exec(trimmed);
+  const fenced = /^```jsonl?[ \t]*\r?\n([\s\S]*?)\r?\n```$/.exec(trimmed);
   return fenced ? fenced[1]! : trimmed;
 }
 
 export function serializeSessionFile(session: PidianSession, markdown: boolean): string {
-  const json = serializePidianSession(session);
-  return markdown ? `\`\`\`json\n${json}\n\`\`\`\n` : json;
+  const jsonl = serializePidianSession(session);
+  return markdown ? `\`\`\`json\n${jsonl}\n\`\`\`\n` : jsonl;
 }
 
 export function parseSessionFile(raw: string): PidianSession {
-  return parsePidianSession(JSON.parse(unwrapSessionFileText(raw)));
+  const text = unwrapSessionFileText(raw);
+  try {
+    const parsed = JSON.parse(text);
+    if (isRecord(parsed) && !Array.isArray(parsed.messages)) {
+      return parsePidianSession({ ...parsed, messages: [] });
+    }
+    return parsePidianSession(parsed);
+  } catch (error) {
+    if (!(error instanceof SyntaxError)) {
+      throw error;
+    }
+  }
+  return parseJsonlSession(text);
+}
+
+function parseJsonlSession(text: string): PidianSession {
+  const records = text.split(/\r?\n/).filter((line) => line.length > 0).map((line) => JSON.parse(line));
+  const header = records[0];
+  if (!isRecord(header) || Array.isArray(header.messages)) {
+    throw new Error("Session data must be an object.");
+  }
+  return parsePidianSession({ ...header, messages: records.slice(1) });
 }

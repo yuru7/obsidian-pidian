@@ -51,7 +51,7 @@ export const en = {
     "Vault-relative folder for sessions and AGENTS.md. Existing files are not moved. Default: pidian",
   settingsSessionFileFormat: "Session file format",
   settingsSessionFileFormatDesc:
-    ".json.md files appear in Obsidian's built-in file explorer.",
+    ".jsonl.md files appear in Obsidian's built-in file explorer.",
   settingsAutoDelete: "Automatically delete old sessions",
   settingsAutoDeleteDesc:
     "Off by default. When enabled, sessions older than the retention period are deleted on startup.",

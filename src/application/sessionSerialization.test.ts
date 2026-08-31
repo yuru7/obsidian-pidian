@@ -28,8 +28,7 @@ const sample: PidianSession = {
 
 describe("session serialization", () => {
   it("round-trips version 1 sessions", () => {
-    const json = serializePidianSession(sample);
-    expect(parsePidianSession(JSON.parse(json))).toEqual(sample);
+    expect(parseSessionFile(serializePidianSession(sample))).toEqual(sample);
   });
 
   it("round-trips assistant usage", () => {
@@ -46,8 +45,7 @@ describe("session serialization", () => {
         },
       ],
     };
-    const json = serializePidianSession(withUsage);
-    expect(parsePidianSession(JSON.parse(json))).toEqual(withUsage);
+    expect(parseSessionFile(serializePidianSession(withUsage))).toEqual(withUsage);
   });
 
   it("sums token usage across messages", () => {
@@ -107,8 +105,7 @@ describe("session serialization", () => {
         },
       ],
     };
-    const json = serializePidianSession(withContext);
-    expect(parsePidianSession(JSON.parse(json))).toEqual(withContext);
+    expect(parseSessionFile(serializePidianSession(withContext))).toEqual(withContext);
   });
 
   it("omits invalid user message context", () => {
@@ -158,14 +155,12 @@ describe("session serialization", () => {
 
   it("round-trips thinkingLevel", () => {
     const withThinking: PidianSession = { ...sample, thinkingLevel: "high" };
-    const json = serializePidianSession(withThinking);
-    expect(parsePidianSession(JSON.parse(json))).toEqual(withThinking);
+    expect(parseSessionFile(serializePidianSession(withThinking))).toEqual(withThinking);
   });
 
   it("round-trips forked sessions", () => {
     const forked: PidianSession = { ...sample, forkedMessageCount: 1 };
-    const json = serializePidianSession(forked);
-    expect(parsePidianSession(JSON.parse(json))).toEqual(forked);
+    expect(parseSessionFile(serializePidianSession(forked))).toEqual(forked);
   });
 
   it("round-trips compaction checkpoints", () => {
@@ -182,8 +177,7 @@ describe("session serialization", () => {
         tokensBefore: 32000,
       },
     };
-    const json = serializePidianSession(compacted);
-    expect(parsePidianSession(JSON.parse(json))).toEqual(compacted);
+    expect(parseSessionFile(serializePidianSession(compacted))).toEqual(compacted);
   });
 
   it("omits invalid compaction checkpoints", () => {
@@ -233,8 +227,7 @@ describe("session serialization", () => {
         },
       ],
     };
-    const json = serializePidianSession(withBlocks);
-    expect(parsePidianSession(JSON.parse(json))).toEqual(withBlocks);
+    expect(parseSessionFile(serializePidianSession(withBlocks))).toEqual(withBlocks);
   });
 
   it("round-trips assistant workedMs", () => {
@@ -251,8 +244,7 @@ describe("session serialization", () => {
         },
       ],
     };
-    const json = serializePidianSession(withWork);
-    expect(parsePidianSession(JSON.parse(json))).toEqual(withWork);
+    expect(parseSessionFile(serializePidianSession(withWork))).toEqual(withWork);
   });
 
   it("omits invalid workedMs values", () => {
@@ -286,16 +278,31 @@ describe("session serialization", () => {
     expect(() => migratePidianSession({ ...sample, version: 99 })).toThrow(/Unsupported session version/);
   });
 
-  it("wraps .json.md sessions in a json code fence", () => {
-    const json = serializePidianSession(sample);
-    expect(serializeSessionFile(sample, true)).toBe("```json\n" + json + "\n```\n");
+  it("serializes compact jsonl without pretty-print whitespace", () => {
+    const jsonl = serializePidianSession(sample);
+    expect(jsonl).toBe(
+      [
+        '{"version":1,"id":"abc","title":"Hello","createdAt":"2026-01-01T00:00:00.000Z","updatedAt":"2026-01-02T00:00:00.000Z","provider":"openai","model":"gpt-5"}',
+        '{"id":"m1","role":"user","text":"Hello","createdAt":"2026-01-01T00:00:00.000Z"}',
+      ].join("\n"),
+    );
+    expect(jsonl.includes("\n  ")).toBe(false);
+  });
+
+  it("wraps .jsonl.md sessions in a json code fence", () => {
+    const jsonl = serializePidianSession(sample);
+    expect(serializeSessionFile(sample, true)).toBe("```json\n" + jsonl + "\n```\n");
     expect(parseSessionFile(serializeSessionFile(sample, true))).toEqual(sample);
   });
 
-  it("reads fenced json.md and raw json session files", () => {
-    const json = serializePidianSession(sample);
-    expect(parseSessionFile("```json\n" + json + "\n```")).toEqual(sample);
-    expect(parseSessionFile(json)).toEqual(sample);
-    expect(serializeSessionFile(sample, false)).toBe(json);
+  it("reads fenced json.md, jsonl fence, raw jsonl, and legacy json session files", () => {
+    const jsonl = serializePidianSession(sample);
+    const legacyJson = JSON.stringify(sample, null, 2);
+    expect(parseSessionFile("```json\n" + jsonl + "\n```")).toEqual(sample);
+    expect(parseSessionFile("```jsonl\n" + jsonl + "\n```")).toEqual(sample);
+    expect(parseSessionFile(jsonl)).toEqual(sample);
+    expect(parseSessionFile("```json\n" + legacyJson + "\n```")).toEqual(sample);
+    expect(parseSessionFile(legacyJson)).toEqual(sample);
+    expect(serializeSessionFile(sample, false)).toBe(jsonl);
   });
 });

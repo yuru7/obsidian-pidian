@@ -120,7 +120,7 @@ export function fillModelSettingNameFromId(model: CustomProviderModel, previousM
   return true;
 }
 
-export type SessionFileFormat = "json.md" | "json";
+export type SessionFileFormat = "jsonl.md" | "jsonl";
 
 export interface PidianSettings {
   provider: string;
@@ -150,7 +150,7 @@ export const DEFAULT_SETTINGS: PidianSettings = {
     delete: "deny",
     webSearch: "deny",
   },
-  sessionFileFormat: "json.md",
+  sessionFileFormat: "jsonl.md",
   pluginDirectory: DEFAULT_PLUGIN_DIRECTORY,
   autoDeleteSessions: false,
   retentionDays: 30,
@@ -159,7 +159,7 @@ export const DEFAULT_SETTINGS: PidianSettings = {
 };
 
 export function parseSessionFileFormat(value: unknown): SessionFileFormat {
-  return value === "json" ? "json" : "json.md";
+  return value === "jsonl" || value === "json" ? "jsonl" : "jsonl.md";
 }
 
 function parseCustomProviders(raw: unknown): CustomOpenAIProvider[] {

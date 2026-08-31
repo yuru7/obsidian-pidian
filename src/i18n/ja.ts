@@ -53,7 +53,7 @@ export const ja: { [K in keyof typeof en]: string } = {
     "セッションと AGENTS.md を置く Vault 相対フォルダです。既存ファイルは移動しません。既定は pidian です。",
   settingsSessionFileFormat: "セッションファイルの記録方式",
   settingsSessionFileFormatDesc:
-    ".json.md は Obsidian の内蔵エクスプローラーに表示されます。",
+    ".jsonl.md は Obsidian の内蔵エクスプローラーに表示されます。",
   settingsAutoDelete: "古いセッションを自動削除",
   settingsAutoDeleteDesc: "初期値はオフです。オンにすると、保持期間より古いセッションを起動時に削除します。",
   settingsRetentionDays: "保持日数",
