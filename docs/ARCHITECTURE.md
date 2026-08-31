@@ -139,13 +139,14 @@ Composer
 プロンプト本文の形（`formatAgentPrompt`）:
 
 ```text
+<ISO 8601 local timestamp>
 <path> <LINE_RANGE>
 User: <user text>
 ```
 
-`LINE_RANGE` はカーソルなら `L12`、複数行選択なら `L13-L15`。ノートが無いときは `User: <user text>` のみ。
+時刻は `createdAt`（UTC）から、送信時のマシンローカルオフセット付き ISO 8601（秒まで。例 `2026-08-31T17:31:00+09:00`）。`LINE_RANGE` はカーソルなら `L12`、複数行選択なら `L13-L15`。ノートが無いときは timestamp と `User: <user text>` のみ。
 
-ユーザー発言の `text` は本文だけ保存する。送信時の `ContextSnapshot`（path と行範囲。本文は入れない）はユーザーメッセージの任意フィールド `context` に残す。再開・モデル変更で Pi を作り直すとき、`toConversation` が `formatAgentPrompt` で当時のヘッダを復元する。`context` が無い古い保存は `User: <user text>` のみ。
+ユーザー発言の `text` は本文だけ保存する。ヘッダ（時刻・path）は保存しない。送信時の `ContextSnapshot`（path と行範囲。本文は入れない）はユーザーメッセージの任意フィールド `context` に残す。再開・モデル変更で Pi を作り直すとき、`toConversation` が `formatAgentPrompt` で当時のヘッダを復元する。`context` が無い古い保存は timestamp と `User: <user text>` のみ。
 
 ノート本文はコンテキストに載せない。エージェントは `read_note` で読む。システムプロンプトは `PIDIAN_SYSTEM_PROMPT`（`src/infrastructure/pi/PiCredentials.ts`）。Vault の `pidian/AGENTS.md`（プラグインフォルダ設定に追随）は任意の追加指示。
 
@@ -250,7 +251,7 @@ interface PidianSession {
 ```
 
 - パースは `migratePidianSession`。`version !== 1` は throw。フィールド追加時は後方互換を崩さないか、version を上げて migration を足す。
-- ユーザーメッセージの任意 `context` は送信時のノート位置。UI には出さず、再開時の `formatAgentPrompt` 用。無い・不正なら無視する。
+- ユーザーメッセージの任意 `context` は送信時のノート位置。UI には出さず、再開時の `formatAgentPrompt` 用。無い・不正なら無視する。時刻ヘッダは `createdAt` から組み立て、保存 `text` には含めない。
 - アシスタントの `workedMs` は各 Work 区間が閉じるまでの時間。思考→ツール→思考は同じ Work に時系列の `items` として残し、`thinking_end` だけでは閉じない。本文が出たあと、思考 delta が途切れたとき、またはターン完了で閉じる。思考中の本文は Work の直下へ随時出す。空白だけの delta では区切らない。`blocks` が無い古い保存データは思考・ツールを1つの WorkLog にまとめる。
 - 再開は `PidianSession → AgentConversation → PiAgentAdapter`。ユーザー本文は `formatAgentPrompt` でヘッダ付きに戻す。Pi 固有オブジェクトは保存しない。
 - 破損ファイルは list 時にスキップする。

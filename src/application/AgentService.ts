@@ -196,7 +196,7 @@ export class AgentService {
     try {
       const agent = await this.ensureAgent();
       await agent.prompt({
-        text: formatAgentPrompt(trimmed, snapshot),
+        text: formatAgentPrompt(trimmed, snapshot, userMessage.createdAt),
         context: snapshot,
       });
     } catch (error) {

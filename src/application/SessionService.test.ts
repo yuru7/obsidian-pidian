@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { PidianSession, SessionRepository } from "../domain/sessions/PidianSession";
+import { formatAgentPrompt } from "./ContextService";
 import { SessionService } from "./SessionService";
 
 const unused: SessionRepository = {
@@ -100,7 +101,7 @@ describe("SessionService.toConversation", () => {
     expect(conversation.messages).toEqual([
       {
         role: "user",
-        text: "notes/example.md L12\nUser: rewrite this",
+        text: formatAgentPrompt("rewrite this", { notePath: "notes/example.md", startLine: 12, endLine: 12 }, "2026-01-01T00:00:00.000Z"),
         thinking: undefined,
         toolCalls: undefined,
         createdAt: "2026-01-01T00:00:00.000Z",
@@ -118,8 +119,12 @@ describe("SessionService.toConversation", () => {
   it("labels user text when saved context is missing", () => {
     const service = new SessionService(unused);
     const conversation = service.toConversation(session());
-    expect(conversation.messages[0]?.text).toBe("User: search");
-    expect(conversation.messages[2]?.text).toBe("User: DuckDuckGo");
+    expect(conversation.messages[0]?.text).toBe(
+      formatAgentPrompt("search", undefined, "2026-01-01T00:00:00.000Z"),
+    );
+    expect(conversation.messages[2]?.text).toBe(
+      formatAgentPrompt("DuckDuckGo", undefined, "2026-01-01T00:00:02.000Z"),
+    );
     expect(conversation.messages[1]?.text).toBe("Brave");
   });
 });

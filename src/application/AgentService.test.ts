@@ -8,7 +8,7 @@ import type { PidianSession, SessionRepository, SessionSummary } from "../domain
 import { FakeAgentEngine } from "../infrastructure/fake/FakeAgentEngine";
 import { AgentService } from "./AgentService";
 import { THINKING_IDLE_MS } from "./assistantContent";
-import { ContextService } from "./ContextService";
+import { ContextService, formatAgentPrompt } from "./ContextService";
 import { SessionService } from "./SessionService";
 
 class MemoryRepository implements SessionRepository {
@@ -75,12 +75,22 @@ class ScriptedAgentEngine implements AgentEngine {
 
 class CapturingEngine implements AgentEngine {
   lastConversation?: AgentConversation;
+  lastPrompt?: string;
 
   constructor(private readonly inner = new FakeAgentEngine()) {}
 
   async createSession(options: AgentSessionOptions): Promise<AgentSession> {
     this.lastConversation = options.conversation;
-    return this.inner.createSession(options);
+    const session = await this.inner.createSession(options);
+    return {
+      prompt: async (request) => {
+        this.lastPrompt = request.text;
+        return session.prompt(request);
+      },
+      abort: () => session.abort(),
+      subscribe: (listener) => session.subscribe(listener),
+      dispose: () => session.dispose(),
+    };
   }
 }
 
@@ -177,6 +187,19 @@ describe("AgentService.send", () => {
     expect(agent.getSession()?.messages[0]?.text).toBe("hello");
   });
 
+  it("sends the timestamp envelope without storing it in the user text", async () => {
+    const store = new MemoryRepository();
+    const engine = new CapturingEngine();
+    const snapshot: ContextSnapshot = { notePath: "notes/example.md", startLine: 12, endLine: 12 };
+    const agent = createService(store, engine, () => snapshot);
+    await agent.newChat("openai", "gpt-5");
+    await agent.send("rewrite this");
+
+    const createdAt = agent.getSession()?.messages[0]?.createdAt;
+    expect(agent.getSession()?.messages[0]?.text).toBe("rewrite this");
+    expect(engine.lastPrompt).toBe(formatAgentPrompt("rewrite this", snapshot, createdAt));
+  });
+
   it("restores the prompt envelope when the agent session is recreated", async () => {
     const store = new MemoryRepository();
     const engine = new CapturingEngine();
@@ -188,7 +211,9 @@ describe("AgentService.send", () => {
 
     await agent.openChat(sessionId);
 
-    expect(engine.lastConversation?.messages[0]?.text).toBe("notes/example.md L12\nUser: rewrite this");
+    expect(engine.lastConversation?.messages[0]?.text).toBe(
+      formatAgentPrompt("rewrite this", snapshot, agent.getSession()?.messages[0]?.createdAt),
+    );
     expect(engine.lastConversation?.messages[1]?.text).toContain("rewrite this");
     expect(agent.getSession()?.messages[0]?.text).toBe("rewrite this");
   });

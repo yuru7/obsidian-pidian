@@ -55,7 +55,10 @@ export class SessionService {
     return {
       messages: session.messages.map((message) => ({
         role: message.role,
-        text: message.role === "user" ? formatAgentPrompt(message.text, message.context) : message.text,
+        text:
+          message.role === "user"
+            ? formatAgentPrompt(message.text, message.context, message.createdAt)
+            : message.text,
         thinking: message.thinking,
         toolCalls: message.toolCalls,
         createdAt: message.createdAt,

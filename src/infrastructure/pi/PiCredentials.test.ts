@@ -76,9 +76,13 @@ describe("OpenCode credentials", () => {
 describe("PIDIAN_SYSTEM_PROMPT", () => {
   it("describes the compact user-turn header without treating it as note contents", () => {
     expect(PIDIAN_SYSTEM_PROMPT).toContain(
-      "Each user turn is `PATH LINE_RANGE` then `User:` and the message",
+      "Each user turn is an ISO 8601 local timestamp, then optional `PATH LINE_RANGE`, then `User:` and the message",
     );
-    expect(PIDIAN_SYSTEM_PROMPT).toContain("The header is location only, never note contents");
+    expect(PIDIAN_SYSTEM_PROMPT).toContain(
+      "The header is send time and location only, never note contents, and is not the user's text",
+    );
+    expect(PIDIAN_SYSTEM_PROMPT).toContain("Use the timestamp to resolve relative dates");
+    expect(PIDIAN_SYSTEM_PROMPT).toContain("prefer a date the user wrote");
   });
 
   it("forbids write tools unless the user explicitly asked to change a note", () => {
