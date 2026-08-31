@@ -76,6 +76,14 @@ describe("SearchService", () => {
     await expect(service.search("Pi")).rejects.toBeInstanceOf(SearchFailedError);
   });
 
+  it("lists registered providers in configured order", () => {
+    const registry = new SearchProviderRegistry();
+    registry.register(new FakeProvider("firecrawl", async () => ({ provider: "firecrawl", results: [] })));
+    registry.register(new FakeProvider("duckduckgo", async () => ({ provider: "duckduckgo", results: [] })));
+    const service = new SearchService(registry, ["firecrawl", "duckduckgo"]);
+    expect(service.availableProviderIds()).toEqual(["firecrawl", "duckduckgo"]);
+  });
+
   it("clamps maxResults before calling the provider", async () => {
     const provider = new FakeProvider("a", async () => ({ provider: "a", results: [] }));
     const registry = new SearchProviderRegistry();
@@ -97,6 +105,8 @@ describe("formatWebSearchText", () => {
     });
     expect(text).toBe(
       [
+        "Provider: duckduckgo",
+        "",
         "1. Pi coding agent",
         "https://example.com/pi",
         "",
@@ -112,7 +122,7 @@ describe("formatWebSearchText", () => {
 
   it("reports when there are no results", () => {
     expect(formatWebSearchText("nothing", { provider: "duckduckgo", results: [] })).toBe(
-      'No web search results for "nothing".',
+      ['Provider: duckduckgo', "", 'No web search results for "nothing".'].join("\n"),
     );
   });
 });

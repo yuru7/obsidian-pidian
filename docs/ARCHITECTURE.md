@@ -53,7 +53,7 @@ src/infrastructure/
   obsidian/                 Vault / Editor / View の Adapter
   fake/                     テスト用 FakeAgentEngine
   fetch/                    SSRF、HTML 抽出、FetchService 工場
-  search/                   DuckDuckGo、SearchService 工場
+  search/                   Firecrawl、DuckDuckGo、SearchService 工場
   http/                     cors 回避用の Web アクセス補助
 src/tools/                  PidianTool 実装。Pi の defineTool は書かない
 src/ui/                     サイドバー React。plugin / AgentService を購読する
@@ -75,7 +75,7 @@ Application / Domain
     ├── WorkspaceNavigator ───► ObsidianWorkspaceNavigator
     ├── SessionRepository ────► ObsidianSessionRepository（Vault の pidian/sessions/）
     ├── PermissionPrompter ───► ObsidianPermissionPrompter
-    └── Search / Fetch ───────► DuckDuckGo / FetchService（corsFreeFetch）
+    └── Search / Fetch ───────► Firecrawl / DuckDuckGo / FetchService（corsFreeFetch）
 ```
 
 **例外:** `application/fetch/FetchService.ts` は HTML 抽出と SSRF を infrastructure から直接 import している。新規でも、配線は `infrastructure/*/create*.ts` の工場に寄せ、Application が具象を増やさないようにする。
@@ -163,7 +163,7 @@ Line N                   Lines A-B
 | `list_files` | read | 直下のみ。再帰しない。`""` / `"/"` が Vault ルート |
 | `open_file` | read | 開いてアクティブにする。未オープンなら開く |
 | `workspace_tabs` | read | タブ一覧。`tabId` または `path` でフォーカス |
-| `web_search` | webSearch | DuckDuckGo。Pi / Obsidian に依存しない |
+| `web_search` | webSearch | Firecrawl（既定）→ DuckDuckGo。結果に `provider` を含める。Pi / Obsidian に依存しない |
 | `fetch_url` | webSearch | SSRF ガード付き取得。HTML は Markdown 化 |
 | `create_note` | create | Vault API で作成 |
 | `edit_note` | edit | 下記の編集経路 |
@@ -344,7 +344,7 @@ UI は `AgentService` と `plugin.settings` を読む。Pi 型を import しな�
 
 Pi にも Obsidian にも依存しない。`corsFreeFetch` を渡す。
 
-- 検索: `DuckDuckGoSearchProvider` → `SearchService`
+- 検索: `FirecrawlSearchProvider`（API キー任意。未設定なら Keyless）→ 失敗時 `DuckDuckGoSearchProvider` → `SearchService`。返却テキストに `Provider: <id>` を含める
 - 取得: `SsrfGuard`（プライベート IP / リンクローカル等を拒否、リダイレクト先も解決して判定）→ `FetchService` → HTML は Readability / Defuddle / Turndown
 - どちらも権限カテゴリは `webSearch`
 

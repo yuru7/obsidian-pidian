@@ -134,6 +134,7 @@ export interface PidianSettings {
   autoDeleteSessions: boolean;
   retentionDays: number;
   modelFavorites: ModelFavorite[];
+  firecrawlApiKey: string;
 }
 
 export const DEFAULT_SETTINGS: PidianSettings = {
@@ -154,6 +155,7 @@ export const DEFAULT_SETTINGS: PidianSettings = {
   autoDeleteSessions: false,
   retentionDays: 30,
   modelFavorites: [],
+  firecrawlApiKey: "",
 };
 
 export function parseSessionFileFormat(value: unknown): SessionFileFormat {
@@ -263,6 +265,7 @@ export function mergeSettings(raw: unknown): PidianSettings {
     pluginDirectory: parsePluginDirectory(input.pluginDirectory),
     thinkingLevel: parseThinkingLevel(input.thinkingLevel),
     modelFavorites: parseModelFavorites(input.modelFavorites),
+    firecrawlApiKey: typeof input.firecrawlApiKey === "string" ? input.firecrawlApiKey : DEFAULT_SETTINGS.firecrawlApiKey,
     permissions: {
       read: input.permissions?.read ?? DEFAULT_SETTINGS.permissions.read,
       edit: input.permissions?.edit ?? DEFAULT_SETTINGS.permissions.edit,

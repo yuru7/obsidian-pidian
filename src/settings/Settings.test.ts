@@ -52,6 +52,12 @@ describe("mergeSettings", () => {
     expect("includeSelectionContext" in merged).toBe(false);
   });
 
+  it("defaults firecrawlApiKey to empty and keeps an explicit value", () => {
+    expect(mergeSettings({}).firecrawlApiKey).toBe("");
+    expect(mergeSettings({ firecrawlApiKey: "fc-test" }).firecrawlApiKey).toBe("fc-test");
+    expect(mergeSettings({ firecrawlApiKey: 1 } as Record<string, unknown>).firecrawlApiKey).toBe("");
+  });
+
   it("defaults thinking level to medium and keeps a known value", () => {
     expect(mergeSettings({}).thinkingLevel).toBe("medium");
     expect(mergeSettings({ thinkingLevel: "high" }).thinkingLevel).toBe("high");

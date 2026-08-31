@@ -34,6 +34,11 @@ export const ja: { [K in keyof typeof en]: string } = {
   settingsEnvSet: '環境変数 "{name}" が設定済み',
   settingsEnvAvailable: "環境変数 {names} が使用可能",
   settingsApiKey: "API キー",
+  settingsFirecrawl: "Firecrawl",
+  settingsFirecrawlApiKey: "API キー",
+  settingsFirecrawlApiKeyDesc:
+    "任意です。空欄ならアカウント不要の Firecrawl Keyless を使います。web_search では DuckDuckGo より先に利用します。",
+  settingsFirecrawlApiKeyPlaceholder: "fc-...",
   settingsPermissionRead: "読み取り",
   settingsPermissionEdit: "編集",
   settingsPermissionCreate: "作成",

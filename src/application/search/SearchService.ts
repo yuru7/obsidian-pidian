@@ -36,8 +36,9 @@ export function clampSearchMaxResults(value: number | undefined): number {
 }
 
 export function formatWebSearchText(query: string, response: SearchResponse): string {
+  const header = `Provider: ${response.provider}`;
   if (response.results.length === 0) {
-    return `No web search results for "${query}".`;
+    return `${header}\n\nNo web search results for "${query}".`;
   }
   const blocks = response.results.map((result, index) => {
     const lines = [`${index + 1}. ${result.title}`, result.url];
@@ -46,7 +47,7 @@ export function formatWebSearchText(query: string, response: SearchResponse): st
     }
     return lines.join("\n");
   });
-  return blocks.join("\n\n");
+  return `${header}\n\n${blocks.join("\n\n")}`;
 }
 
 export class SearchService {
@@ -54,6 +55,10 @@ export class SearchService {
     private readonly registry: SearchProviderRegistry,
     private readonly providerIds: string[],
   ) {}
+
+  availableProviderIds(): string[] {
+    return this.providerIds.filter((id) => this.registry.has(id));
+  }
 
   async search(query: string, options: SearchServiceOptions = {}): Promise<WebSearchResult> {
     const searchOptions: SearchOptions = {

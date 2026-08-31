@@ -175,7 +175,9 @@ export default class PidianPlugin extends Plugin {
       () => this.settings.permissions,
       new ObsidianPermissionPrompter(this.app),
     );
-    const search = createSearchService(corsFreeFetch);
+    const search = createSearchService(corsFreeFetch, {
+      getFirecrawlApiKey: () => this.settings.firecrawlApiKey,
+    });
     const fetchService = createFetchService(corsFreeFetch);
     const credentials = this.credentials ?? createCredentialResolver(() => this.settings);
     this.credentials = credentials;

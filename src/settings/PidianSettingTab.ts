@@ -542,7 +542,24 @@ export class PidianSettingTab extends PluginSettingTab {
 
   private renderApiAuth(containerEl: HTMLElement): void {
     this.renderCredentials(containerEl, this.fallbackProviders());
+    this.renderFirecrawl(containerEl);
     this.renderCustomProviders(containerEl);
+  }
+
+  private renderFirecrawl(containerEl: HTMLElement): void {
+    new Setting(containerEl).setName(t("settingsFirecrawl")).setHeading();
+    new Setting(containerEl)
+      .setName(t("settingsFirecrawlApiKey"))
+      .setDesc(t("settingsFirecrawlApiKeyDesc"))
+      .addText((text) => {
+        text.inputEl.type = "password";
+        text.setPlaceholder(t("settingsFirecrawlApiKeyPlaceholder"));
+        text.setValue(this.plugin.settings.firecrawlApiKey);
+        text.onChange(async (value) => {
+          this.plugin.settings.firecrawlApiKey = value;
+          await this.plugin.saveSettings();
+        });
+      });
   }
 
   private readSettingsScroll(): number {

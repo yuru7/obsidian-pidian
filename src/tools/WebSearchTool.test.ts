@@ -47,7 +47,14 @@ describe("web_search", () => {
     const result = await tool.execute({ query: "Pi coding agent" });
     expect(result.isError).toBeFalsy();
     expect(result.content).toBe(
-      ["1. Pi coding agent", "https://example.com/pi", "", "Pi coding agent is ..."].join("\n"),
+      [
+        "Provider: fake",
+        "",
+        "1. Pi coding agent",
+        "https://example.com/pi",
+        "",
+        "Pi coding agent is ...",
+      ].join("\n"),
     );
   });
 

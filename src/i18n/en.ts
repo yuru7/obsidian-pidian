@@ -32,6 +32,11 @@ export const en = {
   settingsEnvSet: 'Environment variable "{name}" is set',
   settingsEnvAvailable: "Environment variable {names} is available",
   settingsApiKey: "API key",
+  settingsFirecrawl: "Firecrawl",
+  settingsFirecrawlApiKey: "API key",
+  settingsFirecrawlApiKeyDesc:
+    "Optional. Leave empty to use Firecrawl Keyless (no account required). Used first for web_search, before DuckDuckGo.",
+  settingsFirecrawlApiKeyPlaceholder: "fc-...",
   settingsPermissionRead: "Read",
   settingsPermissionEdit: "Edit",
   settingsPermissionCreate: "Create",

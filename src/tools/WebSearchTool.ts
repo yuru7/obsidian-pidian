@@ -26,7 +26,7 @@ export function createWebSearchTool(options: {
         },
         provider: {
           type: "string",
-          description: "Search provider id. Defaults to the configured provider order. Currently: duckduckgo.",
+          description: `Search provider id. Defaults to the configured provider order. Currently: ${options.search.availableProviderIds().join(", ")}.`,
         },
         domainFilters: {
           type: "array",
