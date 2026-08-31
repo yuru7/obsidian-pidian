@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ContentExtractionError } from "../../domain/fetch/FetchErrors";
-import { extractHtml, extractReadability, selectExtractedHtml } from "./htmlExtractor";
+import { classifyExtractedHtml, extractHtml, extractReadability, isJavascriptLikely } from "./htmlExtractor";
 
 const ARTICLE_PARAGRAPH = [
   "Pi coding agent is a CLI assistant that helps software engineers read,",
@@ -49,21 +48,55 @@ describe("extractReadability", () => {
 describe("extractHtml", () => {
   it("uses Readability for a long article", async () => {
     const extracted = await extractHtml(ARTICLE_HTML, "https://example.com/article");
+    expect(extracted.status).toBe("success");
+    if (extracted.status !== "success") {
+      return;
+    }
     expect(extracted.extractor).toBe("readability");
     expect(extracted.content.length).toBeGreaterThanOrEqual(500);
   });
 
   it("reports pages that appear to need JavaScript", async () => {
-    await expect(extractHtml(SPA_HTML, "https://example.com/app")).rejects.toBeInstanceOf(
-      ContentExtractionError,
-    );
-    await expect(extractHtml(SPA_HTML, "https://example.com/app")).rejects.toThrow(
-      "Page appears to require JavaScript rendering",
-    );
+    await expect(extractHtml(SPA_HTML, "https://example.com/app")).resolves.toEqual({
+      status: "javascript-required",
+    });
+  });
+
+  it("still extracts a rendered article when leftover scripts would look like an SPA", async () => {
+    const rendered = `<!DOCTYPE html>
+<html>
+<head><title>App</title></head>
+<body>
+  <div id="root">
+    <article>
+      <h1>Example</h1>
+      <p>${ARTICLE_PARAGRAPH}</p>
+      <p>${ARTICLE_PARAGRAPH}</p>
+    </article>
+  </div>
+  <script src="/app.js"></script>
+  <script src="/vendor.js"></script>
+  <script src="/chunk.js"></script>
+</body>
+</html>`;
+    const extracted = await extractHtml(rendered, "https://example.com/app", { alreadyRendered: true });
+    expect(extracted.status).toBe("success");
+    if (extracted.status !== "success") {
+      return;
+    }
+    expect(extracted.content).toContain("Pi coding agent");
+    expect(extracted.content).not.toContain("<script");
   });
 });
 
-describe("selectExtractedHtml", () => {
+describe("isJavascriptLikely", () => {
+  it("treats an empty SPA root as JavaScript-required even with one script", () => {
+    const html = `<!DOCTYPE html><html><body><div id="app"></div><script src="/app.js"></script></body></html>`;
+    expect(isJavascriptLikely(html)).toBe(true);
+  });
+});
+
+describe("classifyExtractedHtml", () => {
   it("falls back to Defuddle when Readability is missing or too short", () => {
     const defuddle = {
       title: "Defuddle",
@@ -71,15 +104,21 @@ describe("selectExtractedHtml", () => {
       extractor: "defuddle" as const,
     };
     expect(
-      selectExtractedHtml({ title: "Short", content: "too short", extractor: "readability" }, defuddle, 0),
-    ).toEqual(defuddle);
-    expect(selectExtractedHtml(undefined, defuddle, 0)).toEqual(defuddle);
+      classifyExtractedHtml({ title: "Short", content: "too short", extractor: "readability" }, defuddle, false),
+    ).toEqual({ status: "success", ...defuddle });
+    expect(classifyExtractedHtml(undefined, defuddle, false)).toEqual({ status: "success", ...defuddle });
   });
 
   it("keeps a short Readability result when Defuddle is also short", () => {
     const readability = { title: "Short", content: "hello", extractor: "readability" as const };
-    expect(selectExtractedHtml(readability, { content: "also short", extractor: "defuddle" }, 0)).toEqual(
-      readability,
-    );
+    expect(
+      classifyExtractedHtml(readability, { content: "also short", extractor: "defuddle" }, false),
+    ).toEqual({ status: "success", ...readability });
+  });
+
+  it("marks short content as javascript-required when the page looks like an SPA", () => {
+    expect(classifyExtractedHtml({ content: "hi", extractor: "readability" }, undefined, true)).toEqual({
+      status: "javascript-required",
+    });
   });
 });

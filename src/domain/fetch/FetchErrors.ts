@@ -33,10 +33,19 @@ export class UnsupportedContentTypeError extends Error {
   }
 }
 
+export const JAVASCRIPT_REQUIRED_MESSAGE = "Page appears to require JavaScript rendering";
+
 export class ContentExtractionError extends Error {
   constructor(message = "Could not extract readable content from HTML") {
     super(message);
     this.name = "ContentExtractionError";
+  }
+}
+
+export class JavascriptRequiredError extends ContentExtractionError {
+  constructor(message = JAVASCRIPT_REQUIRED_MESSAGE) {
+    super(message);
+    this.name = "JavascriptRequiredError";
   }
 }
 

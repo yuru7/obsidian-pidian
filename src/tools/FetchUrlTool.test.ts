@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { PermissionService } from "../application/PermissionService";
-import { FetchService } from "../application/fetch/FetchService";
+import { FetchOrchestrator } from "../application/fetch/FetchOrchestrator";
+import { BrowserFetcher } from "../infrastructure/fetch/BrowserFetcher";
+import { StaticFetcher } from "../infrastructure/fetch/StaticFetcher";
 import { SsrfGuard } from "../infrastructure/fetch/ssrfGuard";
 import { createFetchUrlTool } from "./FetchUrlTool";
 
@@ -15,9 +17,12 @@ function toolWith(
   handler: (url: string) => Promise<Response> | Response,
   webSearch: "allow" | "ask" | "deny" = "allow",
 ) {
-  const fetchService = new FetchService(
-    async (input) => handler(String(input)),
-    new SsrfGuard(async () => [{ address: "8.8.8.8", family: 4 }]),
+  const guard = new SsrfGuard(async () => [{ address: "8.8.8.8", family: 4 }]);
+  const fetchService = new FetchOrchestrator(
+    new StaticFetcher(async (input) => handler(String(input)), guard),
+    new BrowserFetcher(guard, () => {
+      throw new Error("browser should not run");
+    }),
   );
   return createFetchUrlTool({ permissions: permissions(webSearch), fetchService });
 }
@@ -45,11 +50,7 @@ describe("fetch_url", () => {
   });
 
   it("blocks a private URL", async () => {
-    const fetchService = new FetchService(
-      async () => new Response("secret"),
-      new SsrfGuard(async () => [{ address: "8.8.8.8", family: 4 }]),
-    );
-    const tool = createFetchUrlTool({ permissions: permissions("allow"), fetchService });
+    const tool = toolWith(async () => new Response("secret"));
     const result = await tool.execute({ url: "http://127.0.0.1/" });
     expect(result.isError).toBe(true);
     expect(result.content).toBe("URL is blocked.");

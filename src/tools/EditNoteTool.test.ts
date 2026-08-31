@@ -7,8 +7,7 @@ import { NOTE_NOT_ACTIVE_EDITOR, type NoteEditor, type Replacement } from "../do
 import type { OpenFileResult, WorkspaceNavigator, WorkspaceTab } from "../domain/workspace/WorkspaceNavigator";
 import { applyReplacementsToText } from "../application/replacements";
 import { SearchProviderRegistry, SearchService } from "../application/search/SearchService";
-import { FetchService } from "../application/fetch/FetchService";
-import { SsrfGuard } from "../infrastructure/fetch/ssrfGuard";
+import { createFetchService } from "../infrastructure/fetch/createFetchService";
 import { createEditNoteTool } from "./EditNoteTool";
 import { createPidianTools } from "./createPidianTools";
 
@@ -188,7 +187,7 @@ describe("read then edit flow", () => {
       workspace: new MemoryWorkspace(),
       tracker,
       search: new SearchService(new SearchProviderRegistry(), []),
-      fetchService: new FetchService(async () => new Response(""), new SsrfGuard(async () => [])),
+      fetchService: createFetchService(async () => new Response("")),
       permissions: new PermissionService(
         () => ({ read: "allow", create: "allow", edit: "allow", delete: "deny", webSearch: "deny" }),
         { confirm },
@@ -226,7 +225,7 @@ describe("read then edit flow", () => {
       workspace: new MemoryWorkspace(),
       tracker,
       search: new SearchService(new SearchProviderRegistry(), []),
-      fetchService: new FetchService(async () => new Response(""), new SsrfGuard(async () => [])),
+      fetchService: createFetchService(async () => new Response("")),
       permissions: new PermissionService(
         () => ({ read: "allow", create: "allow", edit: "allow", delete: "deny", webSearch: "deny" }),
         { confirm: async () => true },

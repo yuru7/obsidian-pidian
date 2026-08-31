@@ -19,7 +19,7 @@ export function createFetchUrlTool(options: {
     name: "fetch_url",
     label: "Fetch URL",
     description:
-      "Fetch and extract readable content from an HTTP or HTTPS URL. HTML pages are converted to Markdown. Use this after web_search when full page content is needed.",
+      "Fetch and extract readable content from an HTTP or HTTPS URL. HTML pages are converted to Markdown. JavaScript-rendered pages are opened in a local hidden browser. Page content is not sent to external services. Use this after web_search when full page content is needed.",
     parameters: {
       type: "object",
       properties: {

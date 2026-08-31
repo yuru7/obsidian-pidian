@@ -2,13 +2,15 @@ import { Readability } from "@mozilla/readability";
 import { Defuddle } from "defuddle/node";
 import { parseHTML } from "linkedom";
 import TurndownService from "turndown";
-import { ContentExtractionError } from "../../domain/fetch/FetchErrors";
-import { MIN_USEFUL_CONTENT_LENGTH, type FetchExtractor } from "../../domain/fetch/FetchResult";
+import type { ExtractionResult, FetchExtractor } from "../../domain/fetch/FetchResult";
+import { MIN_USEFUL_CONTENT_LENGTH } from "../../domain/fetch/FetchResult";
 
 const turndown = new TurndownService({
   headingStyle: "atx",
   codeBlockStyle: "fenced",
 });
+
+const SPA_ROOT_SELECTOR = "#root, #app, #__next, [data-reactroot]";
 
 export interface ExtractedHtml {
   title?: string;
@@ -16,36 +18,56 @@ export interface ExtractedHtml {
   extractor: Exclude<FetchExtractor, "text">;
 }
 
-export async function extractHtml(html: string, url: string): Promise<ExtractedHtml> {
+export async function extractHtml(
+  html: string,
+  url: string,
+  options?: { alreadyRendered?: boolean },
+): Promise<ExtractionResult> {
   const readability = extractReadability(html);
   const defuddle =
     readability && readability.content.length >= MIN_USEFUL_CONTENT_LENGTH
       ? undefined
       : await extractDefuddle(html, url);
-  return selectExtractedHtml(readability, defuddle, countScripts(html));
+  return classifyExtractedHtml(
+    readability,
+    defuddle,
+    options?.alreadyRendered ? false : isJavascriptLikely(html),
+  );
 }
 
-export function selectExtractedHtml(
+export function classifyExtractedHtml(
   readability: ExtractedHtml | undefined,
   defuddle: ExtractedHtml | undefined,
-  scriptCount: number,
-): ExtractedHtml {
+  javascriptLikely: boolean,
+): ExtractionResult {
   if (readability && readability.content.length >= MIN_USEFUL_CONTENT_LENGTH) {
-    return readability;
+    return { status: "success", ...readability };
   }
   if (defuddle && defuddle.content.length >= MIN_USEFUL_CONTENT_LENGTH) {
-    return defuddle;
+    return { status: "success", ...defuddle };
   }
-  if (scriptCount >= 2) {
-    throw new ContentExtractionError("Page appears to require JavaScript rendering");
+  if (javascriptLikely) {
+    return { status: "javascript-required" };
   }
   if (readability) {
-    return readability;
+    return { status: "success", ...readability };
   }
   if (defuddle) {
-    return defuddle;
+    return { status: "success", ...defuddle };
   }
-  throw new ContentExtractionError();
+  return { status: "extraction-failed" };
+}
+
+export function isJavascriptLikely(html: string): boolean {
+  const { document } = parseHTML(html);
+  if (document.querySelectorAll("script").length >= 2) {
+    return true;
+  }
+  const root = document.querySelector(SPA_ROOT_SELECTOR);
+  if (!root) {
+    return false;
+  }
+  return (root.textContent?.trim().length ?? 0) < 50;
 }
 
 export function extractReadability(html: string): ExtractedHtml | undefined {
@@ -83,9 +105,4 @@ export async function extractDefuddle(html: string, url: string): Promise<Extrac
   } catch {
     return undefined;
   }
-}
-
-function countScripts(html: string): number {
-  const { document } = parseHTML(html);
-  return document.querySelectorAll("script").length;
 }

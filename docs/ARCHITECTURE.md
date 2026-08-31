@@ -52,7 +52,7 @@ src/infrastructure/
   pi/                       Pi SDK の Adapter・stub・バンドル入口
   obsidian/                 Vault / Editor / View の Adapter
   fake/                     テスト用 FakeAgentEngine
-  fetch/                    SSRF、HTML 抽出、FetchService 工場
+  fetch/                    SSRF、HTML 抽出、Static/Browser fetcher、工場
   search/                   Firecrawl、DuckDuckGo、SearchService 工場
   http/                     cors 回避用の Web アクセス補助
 src/tools/                  PidianTool 実装。Pi の defineTool は書かない
@@ -75,10 +75,10 @@ Application / Domain
     ├── WorkspaceNavigator ───► ObsidianWorkspaceNavigator
     ├── SessionRepository ────► ObsidianSessionRepository（Vault の pidian/sessions/）
     ├── PermissionPrompter ───► ObsidianPermissionPrompter
-    └── Search / Fetch ───────► Firecrawl / DuckDuckGo / FetchService（corsFreeFetch）
+    └── Search / Fetch ───────► Firecrawl / DuckDuckGo / FetchOrchestrator（StaticFetcher + 必要時 BrowserFetcher）
 ```
 
-**例外:** `application/fetch/FetchService.ts` は HTML 抽出と SSRF を infrastructure から直接 import している。新規でも、配線は `infrastructure/*/create*.ts` の工場に寄せ、Application が具象を増やさないようにする。
+**例外:** `application/fetch/FetchOrchestrator.ts` は HTML 抽出を infrastructure から直接 import している。新規でも、配線は `infrastructure/*/create*.ts` の工場に寄せ、Application が具象を増やさないようにする。
 
 テストは対象の隣に `*.test.ts` を置く。Vitest。Obsidian `ItemView` と Pi SDK 内部はユニットテストしない。Agent のテストは `FakeAgentEngine` を使う。
 
@@ -164,7 +164,7 @@ Line N                   Lines A-B
 | `open_file` | read | 開いてアクティブにする。未オープンなら開く |
 | `workspace_tabs` | read | タブ一覧。`tabId` または `path` でフォーカス |
 | `web_search` | webSearch | Firecrawl（既定）→ DuckDuckGo。結果に `provider` を含める。Pi / Obsidian に依存しない |
-| `fetch_url` | webSearch | SSRF ガード付き取得。HTML は Markdown 化 |
+| `fetch_url` | webSearch | SSRF ガード付き取得。HTML は Markdown 化。静的取得で JS 描画と判定したらローカルの隠し BrowserWindow にフォールバック。ページ本文を外部サービスへ送らない |
 | `create_note` | create | Vault API で作成 |
 | `edit_note` | edit | 下記の編集経路 |
 | `delete_note` | delete | `fileManager.trashFile`（Obsidian のゴミ箱設定に従う） |
@@ -342,11 +342,16 @@ UI は `AgentService` と `plugin.settings` を読む。Pi 型を import しな�
 
 ## Web 検索と fetch
 
-Pi にも Obsidian にも依存しない。`corsFreeFetch` を渡す。
+検索は Pi にも Obsidian にも依存しない。`corsFreeFetch` を渡す。
 
 - 検索: `FirecrawlSearchProvider`（API キー任意。未設定なら Keyless）→ 失敗時 `DuckDuckGoSearchProvider` → `SearchService`。返却テキストに `Provider: <id>` を含める
-- 取得: `SsrfGuard`（プライベート IP / リンクローカル等を拒否、リダイレクト先も解決して判定）→ `FetchService` → HTML は Readability / Defuddle / Turndown
+- 取得: `FetchOrchestrator`（既定 `auto`）
+  - `StaticFetcher`（`corsFreeFetch` + gzip/deflate/br 展開 + `SsrfGuard`）→ `ContentExtractor`（Readability / Defuddle / Turndown）
+  - 静的 HTML が `javascript-required` のときだけ `BrowserFetcher`（Obsidian Desktop の Electron `BrowserWindow`、`show: false`）。描画後の HTML も同じ `ContentExtractor` に通す。HTTP エラーや 404 ではフォールバックしない
+  - ページ本文を Firecrawl 等の外部サービスへ送らない
 - どちらも権限カテゴリは `webSearch`
+
+`BrowserWindow` は公開 Obsidian API では作れない。プラグインはレンダラで動くため `require("electron").remote.BrowserWindow`（無ければ `BrowserWindow`）を使う。Electron / Obsidian の更新で `remote` が変わる互換性リスクがある。
 
 ---
 
@@ -379,6 +384,7 @@ Pi にも Obsidian にも依存しない。`corsFreeFetch` を渡す。
 | チャットのノートリンク | `Markdown.tsx`, `chatNoteLink.ts`, `ObsidianWorkspaceNavigator` | `openLinkText` のデフォルト、`instanceof MarkdownView` でのタブ検索 |
 | システム指示 | `PIDIAN_SYSTEM_PROMPT`, Vault `AGENTS.md` | Pi のデフォルト AGENTS 探索（fs stub で止めてある） |
 | CORS / LLM HTTP | `corsFreeFetch`, `customRequestBody` | レンダラの `fetch` に戻す |
+| JS 描画ページの取得 | `BrowserFetcher`, `FetchOrchestrator` | ページ本文を Firecrawl 等へ送る |
 | バンドル審査 | `esbuild.config.mjs` の stub と `FORBIDDEN_BUNDLE_PATTERNS` | Pi barrel の直接 import |
 
 ---

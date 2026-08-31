@@ -1,6 +1,6 @@
 import { createServer, type IncomingHttpHeaders, type Server } from "node:http";
 import type { AddressInfo } from "node:net";
-import { gzipSync } from "node:zlib";
+import { brotliCompressSync, deflateSync, gzipSync } from "node:zlib";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { ModelRuntime } from "@earendil-works/pi-coding-agent";
 import { corsFreeFetch, injectCorsFreeFetch, withCorsFreeFetch } from "./corsFreeFetch";
@@ -164,6 +164,25 @@ describe("corsFreeFetch", () => {
     expect(response.headers.get("content-encoding")).toBeNull();
     expect(response.headers.get("content-length")).toBeNull();
     expect(response.headers.get("content-type")).toBe("text/html; charset=UTF-8");
+    expect(await response.text()).toBe(html);
+  });
+
+  it.each([
+    ["deflate", "deflate", deflateSync],
+    ["br", "br", brotliCompressSync],
+  ] as const)("decompresses %s bodies", async (_name, encoding, compress) => {
+    const html = "<!doctype html><p>hello</p>";
+    await listen((_req, res) => {
+      const body = compress(html);
+      res.writeHead(200, {
+        "Content-Type": "text/html",
+        "Content-Encoding": encoding,
+      });
+      res.end(body);
+    });
+
+    const response = await corsFreeFetch(`${origin}/`);
+    expect(response.headers.get("content-encoding")).toBeNull();
     expect(await response.text()).toBe(html);
   });
 

@@ -1,6 +1,9 @@
-import { FetchService } from "../../application/fetch/FetchService";
+import { FetchOrchestrator } from "../../application/fetch/FetchOrchestrator";
+import { BrowserFetcher } from "./BrowserFetcher";
+import { StaticFetcher } from "./StaticFetcher";
 import { SsrfGuard } from "./ssrfGuard";
 
-export function createFetchService(fetchFn: typeof fetch): FetchService {
-  return new FetchService(fetchFn, new SsrfGuard());
+export function createFetchService(fetchFn: typeof fetch): FetchOrchestrator {
+  const guard = new SsrfGuard();
+  return new FetchOrchestrator(new StaticFetcher(fetchFn, guard), new BrowserFetcher(guard));
 }

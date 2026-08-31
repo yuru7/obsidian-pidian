@@ -48,12 +48,12 @@ export const corsFreeFetch: FetchFunction = async (input, init) => {
       },
       (res) => {
         try {
-          const gzip = isGzipContentEncoding(res);
+          const decoder = decoderForContentEncoding(res);
           resolve(
-            new Response(webResponseBody(res, gzip), {
+            new Response(webResponseBody(res, decoder), {
               status: res.statusCode ?? 200,
               statusText: res.statusMessage ?? "",
-              headers: incomingToHeaders(res, gzip),
+              headers: incomingToHeaders(res, Boolean(decoder)),
             }),
           );
         } catch (error) {
@@ -224,42 +224,53 @@ function incomingToHeaders(res: IncomingMessage, stripContentEncoding = false): 
 }
 
 /** Node http does not decode Content-Encoding; browser fetch does. */
-function isGzipContentEncoding(res: IncomingMessage): boolean {
+function decoderForContentEncoding(res: IncomingMessage): ContentDecoder | undefined {
   const raw = res.headers["content-encoding"];
   const value = (Array.isArray(raw) ? raw[0] : raw)?.split(",")[0]?.trim().toLowerCase();
-  return value === "gzip" || value === "x-gzip";
+  if (value === "gzip" || value === "x-gzip") {
+    return zlib.createGunzip();
+  }
+  if (value === "deflate") {
+    return zlib.createInflate();
+  }
+  if (value === "br") {
+    return zlib.createBrotliDecompress();
+  }
+  return undefined;
 }
+
+type ContentDecoder = zlib.Gunzip | zlib.Inflate | zlib.BrotliDecompress;
 
 /** Fetch forbids a body on 101/204/205/304. Chromium throws; Node's undici too. */
 function isNullBodyStatus(status: number): boolean {
   return status === 101 || status === 204 || status === 205 || status === 304;
 }
 
-function webResponseBody(res: IncomingMessage, gzip: boolean): ReadableStream<Uint8Array> | null {
+function webResponseBody(res: IncomingMessage, decoder?: ContentDecoder): ReadableStream<Uint8Array> | null {
   if (isNullBodyStatus(res.statusCode ?? 0)) {
     res.resume();
+    decoder?.destroy();
     return null;
   }
-  return incomingToWebStream(res, gzip);
+  return incomingToWebStream(res, decoder);
 }
 
-function incomingToWebStream(res: IncomingMessage, gzip: boolean): ReadableStream<Uint8Array> {
+function incomingToWebStream(res: IncomingMessage, decoder?: ContentDecoder): ReadableStream<Uint8Array> {
   let source: NodeJS.ReadableStream = res;
   return new ReadableStream({
     start(controller) {
-      if (gzip) {
-        const gunzip = zlib.createGunzip();
-        res.on("error", (error) => gunzip.destroy(error));
-        source = gunzip;
-        attachIncomingStream(gunzip, controller, res);
-        res.pipe(gunzip);
+      if (decoder) {
+        res.on("error", (error) => decoder.destroy(error));
+        source = decoder;
+        attachIncomingStream(decoder, controller, res);
+        res.pipe(decoder);
         return;
       }
       attachIncomingStream(res, controller, res);
     },
     cancel() {
       if (source !== res && "destroy" in source) {
-        (source as zlib.Gunzip).destroy();
+        (source as ContentDecoder).destroy();
       }
       res.destroy();
     },
