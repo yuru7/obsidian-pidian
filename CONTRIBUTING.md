@@ -20,6 +20,8 @@ pnpm test
 
 ## Architecture
 
+詳細とエージェント向けの変更手順は [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) を正とします。
+
 依存方向は次の通りです。
 
 ```text

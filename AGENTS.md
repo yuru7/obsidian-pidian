@@ -1,3 +1,9 @@
+## このリポジトリ
+
+実装・変更の前に [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) を読む。依存方向、ツール追加手順、Pi 隔離、パス制限、禁止事項をそこに固定する。ビルド・テスト・リリースは [CONTRIBUTING.md](CONTRIBUTING.md)。
+
+---
+
 ## Obsidian 開発リファレンス
 
 Obsidian 固有の仕様・API・推奨実装について判断する場合は、以下を優先して参照する。
