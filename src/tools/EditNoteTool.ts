@@ -41,7 +41,7 @@ export function createEditNoteTool(options: {
     name: "edit_note",
     label: "Edit note",
     description:
-      "Edit a note using exact unique text replacements. Use only when the user clearly asked to change this note. Do not use to experiment or apply unsolicited rewrites. The note must be the active editor; if it is not, call open_file (or workspace_tabs) first to open and activate it. The note must also be read first, and revision must match. For an empty note, use oldText as an empty string to insert the initial content.",
+      "Edit a note using exact unique text replacements. Call only when the user explicitly asked to change this vault note. Do not call when they only asked to produce or show text in chat (for example 出して, give me). Do not use to experiment or apply unsolicited rewrites. The note must be the active editor; if it is not, call open_file (or workspace_tabs) first to open and activate it. The note must also be read first, and revision must match. For an empty note, use oldText as an empty string to insert the initial content.",
     parameters: {
       type: "object",
       properties: {

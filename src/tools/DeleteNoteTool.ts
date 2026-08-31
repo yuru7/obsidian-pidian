@@ -11,7 +11,7 @@ export function createDeleteNoteTool(options: {
     name: "delete_note",
     label: "Delete note",
     description:
-      "Delete a Markdown note from the Obsidian vault. Use only when the user clearly asked to delete this note. Do not use to experiment. The file is moved to trash according to the user's Obsidian trash setting.",
+      "Delete a Markdown note from the Obsidian vault. Call only when the user explicitly asked to delete this specific note. Do not infer deletion from vague wording. Do not use to experiment. The file is moved to trash according to the user's Obsidian trash setting.",
     parameters: {
       type: "object",
       properties: {

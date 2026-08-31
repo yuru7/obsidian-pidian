@@ -74,13 +74,17 @@ describe("OpenCode credentials", () => {
 });
 
 describe("PIDIAN_SYSTEM_PROMPT", () => {
-  it("forbids write tools unless the user clearly asked to change a note", () => {
+  it("forbids write tools unless the user explicitly asked to change a note", () => {
     expect(PIDIAN_SYSTEM_PROMPT).toContain(
-      "Do not call create_note, edit_note, or delete_note unless the user clearly asked",
+      "Call create_note, edit_note, or delete_note only when the user explicitly asked",
+    );
+    expect(PIDIAN_SYSTEM_PROMPT).toContain("Requests that only ask to produce or show content stay in chat");
+    expect(PIDIAN_SYSTEM_PROMPT).toContain("出して");
+    expect(PIDIAN_SYSTEM_PROMPT).toContain(
+      "If it is unclear whether they want a vault change or a chat reply, put the result in chat",
     );
     expect(PIDIAN_SYSTEM_PROMPT).toContain("Do not use those tools to try them, experiment");
-    expect(PIDIAN_SYSTEM_PROMPT).toContain("If it is unclear whether the user wants a vault change, ask first");
-    expect(PIDIAN_SYSTEM_PROMPT).toContain("write a wiki link like [[folder/Note]]");
+    expect(PIDIAN_SYSTEM_PROMPT).toContain("use a Wiki link such as [[folder/Note]]");
     expect(PIDIAN_SYSTEM_PROMPT).toContain("Do not wrap it in backticks");
   });
 });

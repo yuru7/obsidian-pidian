@@ -11,7 +11,7 @@ export function createCreateNoteTool(options: {
     name: "create_note",
     label: "Create note",
     description:
-      "Create a new Markdown note in the Obsidian vault. Use only when the user clearly asked to create a note. Do not use to experiment or save your reply. Fails if the path already exists.",
+      "Create a new Markdown note in the Obsidian vault. Call only when the user explicitly asked to create or save a new note and the destination path is clear. Do not call when they only asked to produce or show content in chat (for example 出して, give me, write a summary). Do not use to experiment or save your reply. Fails if the path already exists.",
     parameters: {
       type: "object",
       properties: {
