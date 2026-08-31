@@ -1,10 +1,11 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import type { AgentEngine, AgentSessionOptions } from "../domain/agent/AgentEngine";
 import type { AgentEvent, AgentEventListener } from "../domain/agent/AgentEvent";
 import type { AgentSession } from "../domain/agent/AgentSession";
 import type { PidianSession, SessionRepository, SessionSummary } from "../domain/sessions/PidianSession";
 import { FakeAgentEngine } from "../infrastructure/fake/FakeAgentEngine";
 import { AgentService } from "./AgentService";
+import { THINKING_IDLE_MS } from "./assistantContent";
 import { ContextService } from "./ContextService";
 import { SessionService } from "./SessionService";
 
@@ -135,7 +136,7 @@ describe("AgentService.forkFrom", () => {
 });
 
 describe("AgentService.send", () => {
-  it("records workedMs on the first text_delta", async () => {
+  it("records workedMs when thinking ends before text", async () => {
     const store = new MemoryRepository();
     let agent!: AgentService;
     let workedMsAtFirstText: number | undefined;
@@ -158,6 +159,7 @@ describe("AgentService.send", () => {
           isError: false,
         });
         expect(agent.getSession()?.messages[1]?.workedMs).toBeUndefined();
+        emit({ type: "thinking_end" });
         emit({ type: "text_delta", text: "Hi" });
         workedMsAtFirstText = agent.getSession()?.messages[1]?.workedMs;
         emit({ type: "text_delta", text: " there" });
@@ -194,6 +196,7 @@ describe("AgentService.send", () => {
       store,
       new ScriptedAgentEngine(async (emit) => {
         emit({ type: "thinking_delta", text: "plan" });
+        emit({ type: "thinking_end" });
         emit({ type: "text_delta", text: "I'll look." });
         blocksAfterPreamble = [...(agent.getSession()?.messages[1]?.blocks ?? [])];
         emit({
@@ -210,6 +213,7 @@ describe("AgentService.send", () => {
           isError: false,
         });
         emit({ type: "thinking_delta", text: "more" });
+        emit({ type: "thinking_end" });
         emit({ type: "text_delta", text: " Done." });
         emit({ type: "turn_completed" });
       }),
@@ -233,5 +237,114 @@ describe("AgentService.send", () => {
       }),
       { type: "text", text: " Done." },
     ]);
+  });
+
+  it("keeps Working through think-then-tool-then-think until reply text", async () => {
+    const store = new MemoryRepository();
+    let agent!: AgentService;
+    let workedMsAfterSecondThink: unknown;
+    agent = createService(
+      store,
+      new ScriptedAgentEngine(async (emit) => {
+        emit({ type: "thinking_delta", text: "plan" });
+        emit({
+          type: "tool_started",
+          toolCallId: "1",
+          toolName: "web_search",
+          args: { query: "q" },
+        });
+        emit({
+          type: "tool_completed",
+          toolCallId: "1",
+          toolName: "web_search",
+          result: "hits",
+          isError: false,
+        });
+        emit({ type: "thinking_end" });
+        emit({ type: "thinking_delta", text: "more" });
+        const work = agent.getSession()?.messages[1]?.blocks?.[0];
+        workedMsAfterSecondThink = work?.type === "work" ? work.workedMs : "missing";
+        emit({ type: "thinking_end" });
+        emit({ type: "text_delta", text: "Done." });
+        emit({ type: "turn_completed" });
+      }),
+    );
+    await agent.newChat("openai", "gpt-5");
+    await agent.send("hello");
+
+    expect(workedMsAfterSecondThink).toBeUndefined();
+    expect(agent.getSession()?.messages[1]?.blocks).toEqual([
+      expect.objectContaining({
+        type: "work",
+        thinking: "planmore",
+        workedMs: expect.any(Number),
+      }),
+      { type: "text", text: "Done." },
+    ]);
+  });
+
+  it("keeps overlapping thinking and text in one work then one reply", async () => {
+    const store = new MemoryRepository();
+    let agent!: AgentService;
+    agent = createService(
+      store,
+      new ScriptedAgentEngine(async (emit) => {
+        emit({ type: "thinking_start" });
+        emit({ type: "thinking_delta", text: "in th" });
+        emit({ type: "text_delta", text: "はいは" });
+        const assistant = agent.getSession()?.messages[1];
+        expect(assistant?.text).toBe("はいは");
+        expect(assistant?.blocks).toEqual([
+          expect.objectContaining({ type: "work", thinking: "in th" }),
+          { type: "text", text: "はいは" },
+        ]);
+        expect(assistant?.blocks?.[0]?.type === "work" ? assistant.blocks[0].workedMs : "missing").toBeUndefined();
+        emit({ type: "thinking_delta", text: "e lazy/good person tone." });
+        emit({ type: "thinking_end" });
+        emit({ type: "text_delta", text: "い、価格.com" });
+        emit({ type: "turn_completed" });
+      }),
+    );
+    await agent.newChat("openai", "gpt-5");
+    await agent.send("hello");
+
+    expect(agent.getSession()?.messages[1]?.blocks).toEqual([
+      expect.objectContaining({
+        type: "work",
+        thinking: "in the lazy/good person tone.",
+        workedMs: expect.any(Number),
+      }),
+      { type: "text", text: "はいはい、価格.com" },
+    ]);
+  });
+
+  it("closes work after thinking deltas go idle while text is still streaming", async () => {
+    vi.useFakeTimers();
+    const store = new MemoryRepository();
+    let agent!: AgentService;
+    try {
+      agent = createService(
+        store,
+        new ScriptedAgentEngine(async (emit) => {
+          emit({ type: "thinking_delta", text: "plan" });
+          emit({ type: "text_delta", text: "Hi" });
+          const assistant = agent.getSession()?.messages[1];
+          expect(assistant?.blocks?.[0]?.type === "work" ? assistant.blocks[0].workedMs : "missing").toBeUndefined();
+          await vi.advanceTimersByTimeAsync(THINKING_IDLE_MS - 1);
+          expect(assistant?.blocks?.[0]?.type === "work" ? assistant.blocks[0].workedMs : "missing").toBeUndefined();
+          await vi.advanceTimersByTimeAsync(1);
+          expect(assistant?.blocks?.[0]?.type === "work" ? assistant.blocks[0].workedMs : "missing").toEqual(
+            expect.any(Number),
+          );
+          emit({ type: "text_delta", text: " there" });
+          emit({ type: "thinking_end" });
+        }),
+      );
+      await agent.newChat("openai", "gpt-5");
+      await agent.send("hello");
+      expect(agent.getSession()?.messages[1]?.text).toBe("Hi there");
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

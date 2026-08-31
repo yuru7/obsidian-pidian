@@ -8,9 +8,14 @@ import {
   applyAssistantError,
   applyTextDelta,
   applyThinkingDelta,
+  applyThinkingEnd,
+  applyThinkingIdle,
+  applyThinkingStart,
   applyToolCompleted,
   applyToolStarted,
   closeOpenWork,
+  isThinkingOpen,
+  THINKING_IDLE_MS,
 } from "./assistantContent";
 import { ContextService, formatAgentPrompt } from "./ContextService";
 import { SessionService } from "./SessionService";
@@ -27,6 +32,7 @@ export class AgentService {
   };
   private streaming = false;
   private error?: string;
+  private thinkingIdleTimer: ReturnType<typeof setTimeout> | undefined;
   private readonly listeners = new Set<ChatListener>();
   private createTools: (sessionId: string) => PidianTool[];
 
@@ -200,6 +206,7 @@ export class AgentService {
       }
       this.notify();
     } finally {
+      this.clearThinkingIdle();
       this.streaming = false;
       const assistant = this.latestAssistant();
       if (assistant) {
@@ -274,11 +281,24 @@ export class AgentService {
     switch (event.type) {
       case "text_delta":
         applyTextDelta(assistant, event.text);
+        if (isThinkingOpen(assistant)) {
+          this.scheduleThinkingIdle();
+        }
+        break;
+      case "thinking_start":
+        this.clearThinkingIdle();
+        applyThinkingStart(assistant);
         break;
       case "thinking_delta":
+        this.clearThinkingIdle();
         applyThinkingDelta(assistant, event.text);
         break;
+      case "thinking_end":
+        this.clearThinkingIdle();
+        applyThinkingEnd(assistant);
+        break;
       case "tool_started":
+        this.clearThinkingIdle();
         applyToolStarted(assistant, {
           id: event.toolCallId,
           name: event.toolName,
@@ -286,9 +306,11 @@ export class AgentService {
         });
         break;
       case "tool_completed":
+        this.clearThinkingIdle();
         applyToolCompleted(assistant, event.toolCallId, event.result, event.isError);
         break;
       case "error":
+        this.clearThinkingIdle();
         this.error = event.message;
         applyAssistantError(assistant, event.message);
         break;
@@ -323,10 +345,32 @@ export class AgentService {
   }
 
   private async disposeCurrent(): Promise<void> {
+    this.clearThinkingIdle();
     this.current?.unsubscribe();
     await this.current?.agent?.dispose();
     this.current = undefined;
     this.streaming = false;
+  }
+
+  private scheduleThinkingIdle(): void {
+    this.clearThinkingIdle();
+    this.thinkingIdleTimer = setTimeout(() => {
+      this.thinkingIdleTimer = undefined;
+      const assistant = this.latestAssistant();
+      if (!assistant) {
+        return;
+      }
+      applyThinkingIdle(assistant);
+      this.notify();
+    }, THINKING_IDLE_MS);
+  }
+
+  private clearThinkingIdle(): void {
+    if (this.thinkingIdleTimer === undefined) {
+      return;
+    }
+    clearTimeout(this.thinkingIdleTimer);
+    this.thinkingIdleTimer = undefined;
   }
 
   private notify(): void {

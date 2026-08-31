@@ -1,7 +1,7 @@
 import { useEffect, useState, type JSX } from "react";
 import type { App } from "obsidian";
 import { t } from "../i18n";
-import { contentBlocks, type PidianMessage } from "../domain/sessions/PidianSession";
+import { contentBlocks, workItems, type PidianMessage } from "../domain/sessions/PidianSession";
 import { Markdown } from "./Markdown";
 import { Thinking } from "./Thinking";
 import { ToolCall } from "./ToolCall";
@@ -31,15 +31,19 @@ export function Message({
       {assistant
         ? contentBlocks(message).map((block, index) => {
             if (block.type === "work") {
-              if (!block.thinking && (block.toolCalls?.length ?? 0) === 0) {
+              const items = workItems(block);
+              if (items.length === 0) {
                 return null;
               }
               return (
                 <WorkLog key={index} streaming={streaming} workedMs={block.workedMs}>
-                  {block.thinking ? <Thinking text={block.thinking} /> : null}
-                  {block.toolCalls?.map((toolCall) => (
-                    <ToolCall key={toolCall.id} toolCall={toolCall} />
-                  ))}
+                  {items.map((item, itemIndex) =>
+                    item.type === "thinking" ? (
+                      <Thinking key={`thinking-${itemIndex}`} text={item.text} />
+                    ) : (
+                      <ToolCall key={item.id} toolCall={item} />
+                    ),
+                  )}
                 </WorkLog>
               );
             }

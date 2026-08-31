@@ -4,10 +4,16 @@ import type { TokenUsage } from "../agent/AgentEvent";
 export type PidianToolCall = AgentToolCallRecord;
 export type { TokenUsage };
 
+export type PidianWorkItem =
+  | { type: "thinking"; text: string }
+  | ({ type: "tool" } & PidianToolCall);
+
 export interface PidianWorkBlock {
   type: "work";
   thinking?: string;
   toolCalls?: PidianToolCall[];
+  /** Thinking and tool calls in stream order. Missing on older saved sessions. */
+  items?: PidianWorkItem[];
   /** Milliseconds from this work segment start until the following text. */
   workedMs?: number;
   startedAt?: string;
@@ -37,6 +43,20 @@ export interface PidianMessage {
 export function contentBlocks(message: PidianMessage): PidianContentBlock[] {
   const blocks = message.blocks ?? synthesizeLegacyBlocks(message);
   return coalesceAdjacentWork(blocks);
+}
+
+export function workItems(block: PidianWorkBlock): PidianWorkItem[] {
+  if (block.items && block.items.length > 0) {
+    return block.items;
+  }
+  const items: PidianWorkItem[] = [];
+  if (block.thinking) {
+    items.push({ type: "thinking", text: block.thinking });
+  }
+  for (const toolCall of block.toolCalls ?? []) {
+    items.push({ type: "tool", ...toolCall });
+  }
+  return items;
 }
 
 function synthesizeLegacyBlocks(message: PidianMessage): PidianContentBlock[] {
@@ -77,10 +97,12 @@ function mergeWorkBlocks(left: PidianWorkBlock, right: PidianWorkBlock): PidianW
   const toolCalls = [...(left.toolCalls ?? []), ...(right.toolCalls ?? [])];
   const startedAt = left.startedAt ?? right.startedAt;
   const workedMs = combinedWorkedMs(left, right);
+  const items = left.items || right.items ? [...workItems(left), ...workItems(right)] : undefined;
   return {
     type: "work",
     ...(thinking ? { thinking } : {}),
     ...(toolCalls.length > 0 ? { toolCalls } : {}),
+    ...(items && items.length > 0 ? { items } : {}),
     ...(startedAt ? { startedAt } : {}),
     ...(workedMs !== undefined ? { workedMs } : {}),
   };

@@ -8,6 +8,14 @@ export interface ThinkingDeltaEvent {
   text: string;
 }
 
+export interface ThinkingStartEvent {
+  type: "thinking_start";
+}
+
+export interface ThinkingEndEvent {
+  type: "thinking_end";
+}
+
 export interface ToolStartedEvent {
   type: "tool_started";
   toolCallId: string;
@@ -43,6 +51,8 @@ export interface AgentErrorEvent {
 export type AgentEvent =
   | TextDeltaEvent
   | ThinkingDeltaEvent
+  | ThinkingStartEvent
+  | ThinkingEndEvent
   | ToolStartedEvent
   | ToolCompletedEvent
   | TurnCompletedEvent

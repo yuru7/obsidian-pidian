@@ -88,8 +88,14 @@ export function mapPiEvent(event: PiLikeEvent): AgentEvent | undefined {
       if (inner?.type === "text_delta" && inner.delta) {
         return { type: "text_delta", text: inner.delta };
       }
+      if (inner?.type === "thinking_start") {
+        return { type: "thinking_start" };
+      }
       if (inner?.type === "thinking_delta" && inner.delta) {
         return { type: "thinking_delta", text: inner.delta };
+      }
+      if (inner?.type === "thinking_end") {
+        return { type: "thinking_end" };
       }
       return undefined;
     }

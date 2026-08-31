@@ -1,6 +1,6 @@
 import type { TokenUsage } from "../domain/agent/AgentEvent";
 import { parseOptionalThinkingLevel } from "../domain/agent/thinkingLevel";
-import type { PidianContentBlock, PidianMessage, PidianSession } from "../domain/sessions/PidianSession";
+import type { PidianContentBlock, PidianMessage, PidianSession, PidianToolCall, PidianWorkItem } from "../domain/sessions/PidianSession";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
@@ -56,6 +56,16 @@ function parseUsage(value: unknown, field: string): TokenUsage | undefined {
   };
 }
 
+function parseToolCallRecord(item: Record<string, unknown>, field: string): PidianToolCall {
+  return {
+    id: expectString(item.id, `${field}.id`),
+    name: expectString(item.name, `${field}.name`),
+    args: item.args,
+    result: typeof item.result === "string" ? item.result : undefined,
+    isError: typeof item.isError === "boolean" ? item.isError : undefined,
+  };
+}
+
 function parseToolCalls(value: unknown): PidianMessage["toolCalls"] {
   if (value === undefined) {
     return undefined;
@@ -67,14 +77,32 @@ function parseToolCalls(value: unknown): PidianMessage["toolCalls"] {
     if (!isRecord(item)) {
       throw new Error("Invalid session field: messages.toolCalls[]");
     }
-    return {
-      id: expectString(item.id, "toolCalls.id"),
-      name: expectString(item.name, "toolCalls.name"),
-      args: item.args,
-      result: typeof item.result === "string" ? item.result : undefined,
-      isError: typeof item.isError === "boolean" ? item.isError : undefined,
-    };
+    return parseToolCallRecord(item, "toolCalls");
   });
+}
+
+function parseWorkItems(value: unknown): PidianWorkItem[] | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+  if (!Array.isArray(value)) {
+    throw new Error("Invalid session field: messages.blocks[].items");
+  }
+  const items: PidianWorkItem[] = [];
+  for (const item of value) {
+    if (!isRecord(item)) {
+      throw new Error("Invalid session field: messages.blocks[].items[]");
+    }
+    if (item.type === "thinking") {
+      items.push({ type: "thinking", text: typeof item.text === "string" ? item.text : "" });
+      continue;
+    }
+    if (item.type !== "tool") {
+      throw new Error("Invalid session field: messages.blocks[].items[].type");
+    }
+    items.push({ type: "tool", ...parseToolCallRecord(item, "items") });
+  }
+  return items.length > 0 ? items : undefined;
 }
 
 function parseContentBlocks(value: unknown): PidianContentBlock[] | undefined {
@@ -96,10 +124,12 @@ function parseContentBlocks(value: unknown): PidianContentBlock[] | undefined {
     }
     const workedMs = parseOptionalWorkedMs(item.workedMs);
     const startedAt = typeof item.startedAt === "string" && item.startedAt ? item.startedAt : undefined;
+    const items = parseWorkItems(item.items);
     return {
       type: "work",
       thinking: typeof item.thinking === "string" ? item.thinking : undefined,
       toolCalls: parseToolCalls(item.toolCalls),
+      ...(items ? { items } : {}),
       ...(workedMs !== undefined ? { workedMs } : {}),
       ...(startedAt ? { startedAt } : {}),
     };

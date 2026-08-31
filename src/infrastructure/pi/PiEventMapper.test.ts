@@ -12,9 +12,21 @@ describe("PiEventMapper", () => {
     expect(
       mapPiEvent({
         type: "message_update",
+        assistantMessageEvent: { type: "thinking_start" },
+      }),
+    ).toEqual({ type: "thinking_start" });
+    expect(
+      mapPiEvent({
+        type: "message_update",
         assistantMessageEvent: { type: "thinking_delta", delta: "hmm" },
       }),
     ).toEqual({ type: "thinking_delta", text: "hmm" });
+    expect(
+      mapPiEvent({
+        type: "message_update",
+        assistantMessageEvent: { type: "thinking_end" },
+      }),
+    ).toEqual({ type: "thinking_end" });
   });
 
   it("maps tool lifecycle and turn completion", () => {

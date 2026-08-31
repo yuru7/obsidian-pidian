@@ -129,7 +129,7 @@ Composer
 
 `AgentEvent`（`src/domain/agent/AgentEvent.ts`）だけが UI / Application のイベント面:
 
-- `text_delta` / `thinking_delta`
+- `text_delta` / `thinking_delta` / `thinking_start` / `thinking_end`
 - `tool_started` / `tool_completed`
 - `turn_completed`（token usage）
 - `error`
@@ -248,7 +248,7 @@ interface PidianSession {
 ```
 
 - パースは `migratePidianSession`。`version !== 1` は throw。フィールド追加時は後方互換を崩さないか、version を上げて migration を足す。
-- アシスタントの `workedMs` は各 Work 区間（思考・ツール）が次の見える `text_delta` に達するまでの時間。空白だけの delta では区切らない。テキストが無い区間は完了時に記録。`blocks` が無い古い保存データは思考・ツールを1つの WorkLog にまとめる。
+- アシスタントの `workedMs` は各 Work 区間が閉じるまでの時間。思考→ツール→思考は同じ Work に時系列の `items` として残し、`thinking_end` だけでは閉じない。本文が出たあと、思考 delta が途切れたとき、またはターン完了で閉じる。思考中の本文は Work の直下へ随時出す。空白だけの delta では区切らない。`blocks` が無い古い保存データは思考・ツールを1つの WorkLog にまとめる。
 - 再開は `PidianSession → AgentConversation → PiAgentAdapter`。Pi 固有オブジェクトは保存しない。
 - 破損ファイルは list 時にスキップする。
 - 自動削除は `SessionCleanupService`。既定オフ。起動時のみ。アクティブ session id は消さない。
@@ -301,7 +301,7 @@ Pi のモジュール解決や stub を足すときは、バンドルゲート�
 | --- | --- |
 | `PidianView.tsx` | `ItemView`。React root |
 | `PidianApp.tsx` | ヘッダ、Chat、Composer、ModelSelector、SessionSelector |
-| `Chat.tsx` / `Message.tsx` / `WorkLog.tsx` / `ToolCall.tsx` / `Thinking.tsx` | ストリーム表示。思考とツールは WorkLog にまとめ、`text_delta` で区切って複数出せる |
+| `Chat.tsx` / `Message.tsx` / `WorkLog.tsx` / `ToolCall.tsx` / `Thinking.tsx` | ストリーム表示。思考とツールは1つの WorkLog にまとめ、中は思考・ツールを時系列のまま出す。思考中でも本文は直下へ出せる |
 | `Composer.tsx` | 入力。`subscribeComposerFocus` でフォーカス |
 | `Markdown.tsx` | チャット内 Markdown。`[[wiki]]` はメモアイコン付きで、クリックは既存エディタタブを優先して開く |
 | `PidianSettingTab.ts` | 設定 UI（React ではない） |
