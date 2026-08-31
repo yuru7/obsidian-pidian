@@ -22,26 +22,22 @@ describe("ContextService", () => {
 
 describe("formatAgentPrompt", () => {
   it("sends the note path and cursor line without the note body", () => {
-    const prompt = formatAgentPrompt("rewrite this", snapshot);
-    expect(prompt).toContain("Current note:\nnotes/example.md");
-    expect(prompt).toContain("Cursor:\nLine 12");
-    expect(prompt).toContain("rewrite this");
-    expect(prompt).not.toContain("column");
-    expect(prompt).not.toContain("Current note content");
-    expect(prompt).not.toContain("Selected text");
+    expect(formatAgentPrompt("rewrite this", snapshot)).toBe(
+      "notes/example.md L12\nUser: rewrite this",
+    );
   });
 
   it("sends the selected line range when the selection spans lines", () => {
-    const prompt = formatAgentPrompt("rewrite this", {
-      notePath: "notes/example.md",
-      startLine: 13,
-      endLine: 15,
-    });
-    expect(prompt).toContain("Selection:\nLines 13-15");
-    expect(prompt).not.toContain("Cursor:");
+    expect(
+      formatAgentPrompt("rewrite this", {
+        notePath: "notes/example.md",
+        startLine: 13,
+        endLine: 15,
+      }),
+    ).toBe("notes/example.md L13-L15\nUser: rewrite this");
   });
 
-  it("returns the user text when there is no active note", () => {
-    expect(formatAgentPrompt("hello")).toBe("hello");
+  it("labels the user text when there is no active note", () => {
+    expect(formatAgentPrompt("hello")).toBe("User: hello");
   });
 });

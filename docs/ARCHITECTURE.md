@@ -139,14 +139,11 @@ Composer
 プロンプト本文の形（`formatAgentPrompt`）:
 
 ```text
-Current note:
-<path>
-
-Cursor:          または  Selection:
-Line N                   Lines A-B
-
-<user text>
+<path> <LINE_RANGE>
+User: <user text>
 ```
+
+`LINE_RANGE` はカーソルなら `L12`、複数行選択なら `L13-L15`。ノートが無いときは `User: <user text>` のみ。
 
 ノート本文はコンテキストに載せない。エージェントは `read_note` で読む。システムプロンプトは `PIDIAN_SYSTEM_PROMPT`（`src/infrastructure/pi/PiCredentials.ts`）。Vault の `pidian/AGENTS.md`（プラグインフォルダ設定に追随）は任意の追加指示。
 

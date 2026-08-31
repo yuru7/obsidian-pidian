@@ -74,6 +74,13 @@ describe("OpenCode credentials", () => {
 });
 
 describe("PIDIAN_SYSTEM_PROMPT", () => {
+  it("describes the compact user-turn header without treating it as note contents", () => {
+    expect(PIDIAN_SYSTEM_PROMPT).toContain(
+      "Each user turn is `PATH LINE_RANGE` then `User:` and the message",
+    );
+    expect(PIDIAN_SYSTEM_PROMPT).toContain("The header is location only, never note contents");
+  });
+
   it("forbids write tools unless the user explicitly asked to change a note", () => {
     expect(PIDIAN_SYSTEM_PROMPT).toContain(
       "Call create_note, edit_note, or delete_note only when the user explicitly asked",

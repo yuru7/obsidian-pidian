@@ -1,4 +1,5 @@
 import type { ContextSnapshot } from "../domain/notes/ContextSnapshot";
+import { formatLineRange } from "./activeMarkdown";
 
 export interface ContextProvider {
   getActiveNote(): ContextSnapshot | undefined;
@@ -13,14 +14,11 @@ export class ContextService {
 }
 
 export function formatAgentPrompt(text: string, context?: ContextSnapshot): string {
+  const user = `User: ${text}`;
   if (!context) {
-    return text;
+    return user;
   }
 
-  const location =
-    context.startLine === context.endLine
-      ? `Cursor:\nLine ${context.startLine}`
-      : `Selection:\nLines ${context.startLine}-${context.endLine}`;
-
-  return [`Current note:\n${context.notePath}`, location, text].join("\n\n");
+  const lineRange = formatLineRange(context.startLine, context.endLine);
+  return `${context.notePath} ${lineRange}\n${user}`;
 }
