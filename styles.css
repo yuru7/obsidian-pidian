@@ -691,9 +691,11 @@
 .pidian-thinking-body {
   margin: 0 0 8px;
   padding: 8px;
+  box-sizing: border-box;
   background: var(--background-secondary);
   border-radius: var(--radius-s);
   overflow: auto;
+  max-height: calc(8lh + 16px);
   font-size: var(--font-ui-smaller);
   font-family: var(--font-monospace);
 }
