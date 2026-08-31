@@ -94,6 +94,8 @@ export class ObsidianWorkspaceNavigator implements WorkspaceNavigator {
 }
 
 function filePathFromLeaf(leaf: WorkspaceLeaf): string | undefined {
+  // Hidden tabs may still be DeferredView, so leaf.view is not MarkdownView yet.
+  // View state keeps the path. Do not find tabs with instanceof MarkdownView.
   const stateFile = leaf.getViewState().state?.file;
   if (typeof stateFile === "string" && stateFile.length > 0) {
     return normalizeNotePath(stateFile);

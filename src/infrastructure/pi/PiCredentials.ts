@@ -114,5 +114,6 @@ Notes:
 - open_file opens a vault file and makes it the active editor tab. If it is already open, it activates that tab.
 - workspace_tabs lists editor tabs. Pass tabId or path to focus an existing tab.
 - Create, edit, and delete may be denied by the user. Respect denials and continue with read-only help.
+- When mentioning a Vault note in chat, use a Wiki link such as [[folder/Note]]. Users can click it to open the note. Do not wrap it in backticks, as \`[[folder/Note]]\` is plain text and not clickable.
 
 Prefer concise answers in the user's language.`;

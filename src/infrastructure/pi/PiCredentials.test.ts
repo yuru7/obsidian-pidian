@@ -80,5 +80,7 @@ describe("PIDIAN_SYSTEM_PROMPT", () => {
     );
     expect(PIDIAN_SYSTEM_PROMPT).toContain("Do not use those tools to try them, experiment");
     expect(PIDIAN_SYSTEM_PROMPT).toContain("If it is unclear whether the user wants a vault change, ask first");
+    expect(PIDIAN_SYSTEM_PROMPT).toContain("write a wiki link like [[folder/Note]]");
+    expect(PIDIAN_SYSTEM_PROMPT).toContain("Do not wrap it in backticks");
   });
 });

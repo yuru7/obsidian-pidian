@@ -305,12 +305,14 @@ Pi のモジュール解決や stub を足すときは、バンドルゲート�
 | `PidianApp.tsx` | ヘッダ、Chat、Composer、ModelSelector、SessionSelector |
 | `Chat.tsx` / `Message.tsx` / `ToolCall.tsx` / `Thinking.tsx` | ストリーム表示 |
 | `Composer.tsx` | 入力。`subscribeComposerFocus` でフォーカス |
-| `Markdown.tsx` | チャット内 Markdown |
+| `Markdown.tsx` | チャット内 Markdown。`[[wiki]]` クリックは既存エディタタブを優先して開く |
 | `PidianSettingTab.ts` | 設定 UI（React ではない） |
 
 スタイルはルート `styles.css`。クラスは `pidian-` 接頭辞。アイコン ID は `PIDIAN_ICON_ID`。
 
 UI は `AgentService` と `plugin.settings` を読む。Pi 型を import しない。モデル一覧は `plugin.modelCatalog`。
+
+チャットの内部リンクは `MarkdownRenderer` が `a.internal-link` に描画するが、カスタム `ItemView` ではクリックが付かない。`Markdown.tsx` がクリックを受け、`WorkspaceNavigator.openFile` で開く。既存タブの検索は `leaf.getViewState().state.file`（非表示タブは `DeferredView` のため `instanceof MarkdownView` は使わない）。未オープンなら root split に新しいエディタタブを開く。`openLinkText` は使わない（アクティブなサイドバー leaf を置換しうる）。
 
 ---
 
@@ -373,6 +375,7 @@ Pi にも Obsidian にも依存しない。`corsFreeFetch` を渡す。
 | コンテキスト | `ContextService`, `ObsidianContextProvider` | プロンプトにノート全文を埋め込む |
 | セッション形式 | `PidianSession`, `sessionSerialization` | Pi session JSON の保存 |
 | モデル一覧 | `PiModelCatalog`, Settings custom provider | UI での provider 特例 |
+| チャットのノートリンク | `Markdown.tsx`, `chatNoteLink.ts`, `ObsidianWorkspaceNavigator` | `openLinkText` のデフォルト、`instanceof MarkdownView` でのタブ検索 |
 | システム指示 | `PIDIAN_SYSTEM_PROMPT`, Vault `AGENTS.md` | Pi のデフォルト AGENTS 探索（fs stub で止めてある） |
 | CORS / LLM HTTP | `corsFreeFetch`, `customRequestBody` | レンダラの `fetch` に戻す |
 | バンドル審査 | `esbuild.config.mjs` の stub と `FORBIDDEN_BUNDLE_PATTERNS` | Pi barrel の直接 import |
