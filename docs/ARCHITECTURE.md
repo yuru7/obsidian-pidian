@@ -305,7 +305,7 @@ Pi のモジュール解決や stub を足すときは、バンドルゲート�
 | `PidianApp.tsx` | ヘッダ、Chat、Composer、ModelSelector、SessionSelector |
 | `Chat.tsx` / `Message.tsx` / `ToolCall.tsx` / `Thinking.tsx` | ストリーム表示 |
 | `Composer.tsx` | 入力。`subscribeComposerFocus` でフォーカス |
-| `Markdown.tsx` | チャット内 Markdown。`[[wiki]]` クリックは既存エディタタブを優先して開く |
+| `Markdown.tsx` | チャット内 Markdown。`[[wiki]]` はメモアイコン付きで、クリックは既存エディタタブを優先して開く |
 | `PidianSettingTab.ts` | 設定 UI（React ではない） |
 
 スタイルはルート `styles.css`。クラスは `pidian-` 接頭辞。アイコン ID は `PIDIAN_ICON_ID`。

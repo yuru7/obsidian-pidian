@@ -479,6 +479,29 @@
   font-size: inherit;
   user-select: text;
   -webkit-user-select: text;
+  overflow-wrap: anywhere;
+  word-break: normal;
+  white-space: normal;
+}
+
+.pidian-view .pidian-markdown a.internal-link {
+  /* Icon is a separate inline-block; without this the line can break between icon and text. */
+  white-space: nowrap;
+  margin-inline: 0.14em;
+}
+
+.pidian-view .pidian-markdown .pidian-note-link-icon {
+  display: inline-block;
+  width: 0.95em;
+  height: 0.95em;
+  margin-right: 0.07;
+  vertical-align: -0.12em;
+  color: inherit;
+}
+
+.pidian-view .pidian-markdown .pidian-note-link-icon svg {
+  width: 0.95em;
+  height: 0.95em;
 }
 
 .pidian-markdown :first-child {

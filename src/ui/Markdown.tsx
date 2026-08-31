@@ -1,5 +1,5 @@
 import { useEffect, useRef, type JSX } from "react";
-import { Component, MarkdownRenderer, Notice, type App } from "obsidian";
+import { Component, MarkdownRenderer, Notice, setIcon, type App } from "obsidian";
 import { t } from "../i18n";
 import { ObsidianWorkspaceNavigator } from "../infrastructure/obsidian/ObsidianWorkspaceNavigator";
 import { internalLinktextFromAttributes, openChatNoteLink } from "./chatNoteLink";
@@ -27,7 +27,12 @@ export function Markdown({ app, markdown }: { app: App; markdown: string }): JSX
         return;
       }
       el.empty();
-      void MarkdownRenderer.render(app, markdown, el, "", component);
+      void MarkdownRenderer.render(app, markdown, el, "", component).then(() => {
+        if (cancelled) {
+          return;
+        }
+        decorateInternalNoteLinks(el);
+      });
     });
     return () => {
       cancelled = true;
@@ -38,6 +43,19 @@ export function Markdown({ app, markdown }: { app: App; markdown: string }): JSX
   }, [app, markdown]);
 
   return <div ref={ref} className="pidian-markdown markdown-preview-view markdown-rendered" />;
+}
+
+function decorateInternalNoteLinks(root: HTMLElement): void {
+  for (const node of root.querySelectorAll("a.internal-link")) {
+    if (!(node instanceof HTMLElement) || node.querySelector(":scope > .pidian-note-link-icon")) {
+      continue;
+    }
+    const icon = document.createElement("span");
+    icon.className = "pidian-note-link-icon";
+    icon.setAttribute("aria-hidden", "true");
+    setIcon(icon, "sticky-note");
+    node.prepend(icon);
+  }
 }
 
 function handleInternalLinkClick(event: MouseEvent, app: App, workspace: ObsidianWorkspaceNavigator): void {
