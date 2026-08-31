@@ -477,6 +477,9 @@
   height: auto;
   min-height: 0;
   font-size: inherit;
+  /* Obsidian tables use --font-text-size; match surrounding chat message text. */
+  --table-text-size: 1em;
+  --table-header-size: 1em;
   user-select: text;
   -webkit-user-select: text;
   overflow-wrap: anywhere;
