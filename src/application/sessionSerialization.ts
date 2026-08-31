@@ -1,5 +1,6 @@
 import type { TokenUsage } from "../domain/agent/AgentEvent";
 import { parseOptionalThinkingLevel } from "../domain/agent/thinkingLevel";
+import type { ContextSnapshot } from "../domain/notes/ContextSnapshot";
 import type { PidianContentBlock, PidianMessage, PidianSession, PidianToolCall, PidianWorkItem } from "../domain/sessions/PidianSession";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -39,6 +40,27 @@ function parseOptionalWorkedMs(value: unknown): number | undefined {
     return undefined;
   }
   return value;
+}
+
+function isPositiveInt(value: unknown): value is number {
+  return typeof value === "number" && Number.isInteger(value) && value >= 1;
+}
+
+function parseOptionalContext(value: unknown): ContextSnapshot | undefined {
+  if (!isRecord(value)) {
+    return undefined;
+  }
+  if (typeof value.notePath !== "string" || value.notePath.length === 0) {
+    return undefined;
+  }
+  if (!isPositiveInt(value.startLine) || !isPositiveInt(value.endLine) || value.endLine < value.startLine) {
+    return undefined;
+  }
+  return {
+    notePath: value.notePath,
+    startLine: value.startLine,
+    endLine: value.endLine,
+  };
 }
 
 function parseUsage(value: unknown, field: string): TokenUsage | undefined {
@@ -147,10 +169,12 @@ function parseMessage(value: unknown): PidianMessage {
   const usage = parseUsage(value.usage, "messages.usage");
   const workedMs = parseOptionalWorkedMs(value.workedMs);
   const blocks = parseContentBlocks(value.blocks);
+  const context = role === "user" ? parseOptionalContext(value.context) : undefined;
   return {
     id: expectString(value.id, "messages.id"),
     role,
     text: typeof value.text === "string" ? value.text : "",
+    ...(context ? { context } : {}),
     thinking: typeof value.thinking === "string" ? value.thinking : undefined,
     toolCalls: parseToolCalls(value.toolCalls),
     ...(usage ? { usage } : {}),

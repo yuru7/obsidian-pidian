@@ -1,5 +1,6 @@
 import type { AgentToolCallRecord } from "../agent/AgentConversation";
 import type { TokenUsage } from "../agent/AgentEvent";
+import type { ContextSnapshot } from "../notes/ContextSnapshot";
 
 export type PidianToolCall = AgentToolCallRecord;
 export type { TokenUsage };
@@ -30,6 +31,8 @@ export interface PidianMessage {
   id: string;
   role: "user" | "assistant";
   text: string;
+  /** Active note location when this user turn was sent. Missing when none, or on older sessions. */
+  context?: ContextSnapshot;
   thinking?: string;
   toolCalls?: PidianToolCall[];
   usage?: TokenUsage;

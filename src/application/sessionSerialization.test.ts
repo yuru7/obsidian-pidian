@@ -94,6 +94,68 @@ describe("session serialization", () => {
     });
   });
 
+  it("round-trips user message context", () => {
+    const withContext: PidianSession = {
+      ...sample,
+      messages: [
+        {
+          id: "m1",
+          role: "user",
+          text: "Hello",
+          context: { notePath: "notes/example.md", startLine: 12, endLine: 15 },
+          createdAt: "2026-01-01T00:00:00.000Z",
+        },
+      ],
+    };
+    const json = serializePidianSession(withContext);
+    expect(parsePidianSession(JSON.parse(json))).toEqual(withContext);
+  });
+
+  it("omits invalid user message context", () => {
+    expect(
+      parsePidianSession({
+        ...sample,
+        messages: [
+          {
+            id: "m1",
+            role: "user",
+            text: "Hello",
+            context: { notePath: "notes/example.md", startLine: 0, endLine: 1 },
+            createdAt: "2026-01-01T00:00:00.000Z",
+          },
+        ],
+      }).messages[0]?.context,
+    ).toBeUndefined();
+    expect(
+      parsePidianSession({
+        ...sample,
+        messages: [
+          {
+            id: "m1",
+            role: "user",
+            text: "Hello",
+            context: { notePath: "", startLine: 1, endLine: 1 },
+            createdAt: "2026-01-01T00:00:00.000Z",
+          },
+        ],
+      }).messages[0]?.context,
+    ).toBeUndefined();
+    expect(
+      parsePidianSession({
+        ...sample,
+        messages: [
+          {
+            id: "m1",
+            role: "assistant",
+            text: "Hi",
+            context: { notePath: "notes/example.md", startLine: 1, endLine: 1 },
+            createdAt: "2026-01-01T00:00:00.000Z",
+          },
+        ],
+      }).messages[0]?.context,
+    ).toBeUndefined();
+  });
+
   it("round-trips thinkingLevel", () => {
     const withThinking: PidianSession = { ...sample, thinkingLevel: "high" };
     const json = serializePidianSession(withThinking);

@@ -5,6 +5,7 @@ import type {
   SessionSummary,
 } from "../domain/sessions/PidianSession";
 import type { AgentConversation } from "../domain/agent/AgentConversation";
+import { formatAgentPrompt } from "./ContextService";
 import { parsePidianSession } from "./sessionSerialization";
 import { NEW_CHAT_TITLE, titleFromUserMessage } from "./sessionTitle";
 
@@ -54,7 +55,7 @@ export class SessionService {
     return {
       messages: session.messages.map((message) => ({
         role: message.role,
-        text: message.text,
+        text: message.role === "user" ? formatAgentPrompt(message.text, message.context) : message.text,
         thinking: message.thinking,
         toolCalls: message.toolCalls,
         createdAt: message.createdAt,

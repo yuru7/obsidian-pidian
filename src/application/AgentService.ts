@@ -177,6 +177,7 @@ export class AgentService {
       id: crypto.randomUUID(),
       role: "user",
       text: trimmed,
+      ...(snapshot ? { context: { ...snapshot } } : {}),
       createdAt: new Date().toISOString(),
     };
     this.sessions.appendMessage(session, userMessage);

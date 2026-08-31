@@ -57,4 +57,69 @@ describe("SessionService.fork", () => {
     const service = new SessionService(unused);
     expect(() => service.fork(session(), "missing")).toThrow(/Message not found/);
   });
+
+  it("copies user message context into the forked session", () => {
+    const service = new SessionService(unused);
+    const source = session({
+      messages: [
+        {
+          id: "u1",
+          role: "user",
+          text: "search",
+          context: { notePath: "notes/a.md", startLine: 3, endLine: 5 },
+          createdAt: "2026-01-01T00:00:00.000Z",
+        },
+        { id: "a1", role: "assistant", text: "ok", createdAt: "2026-01-01T00:00:01.000Z" },
+      ],
+    });
+    const forked = service.fork(source, "a1");
+    expect(forked.messages[0]?.context).toEqual({ notePath: "notes/a.md", startLine: 3, endLine: 5 });
+    source.messages[0]!.context = { notePath: "changed.md", startLine: 1, endLine: 1 };
+    expect(forked.messages[0]?.context).toEqual({ notePath: "notes/a.md", startLine: 3, endLine: 5 });
+  });
+});
+
+describe("SessionService.toConversation", () => {
+  it("restores the user prompt envelope from saved context", () => {
+    const service = new SessionService(unused);
+    const conversation = service.toConversation(
+      session({
+        messages: [
+          {
+            id: "u1",
+            role: "user",
+            text: "rewrite this",
+            context: { notePath: "notes/example.md", startLine: 12, endLine: 12 },
+            createdAt: "2026-01-01T00:00:00.000Z",
+          },
+          { id: "a1", role: "assistant", text: "ok", thinking: "plan", createdAt: "2026-01-01T00:00:01.000Z" },
+        ],
+      }),
+    );
+
+    expect(conversation.messages).toEqual([
+      {
+        role: "user",
+        text: "notes/example.md L12\nUser: rewrite this",
+        thinking: undefined,
+        toolCalls: undefined,
+        createdAt: "2026-01-01T00:00:00.000Z",
+      },
+      {
+        role: "assistant",
+        text: "ok",
+        thinking: "plan",
+        toolCalls: undefined,
+        createdAt: "2026-01-01T00:00:01.000Z",
+      },
+    ]);
+  });
+
+  it("labels user text when saved context is missing", () => {
+    const service = new SessionService(unused);
+    const conversation = service.toConversation(session());
+    expect(conversation.messages[0]?.text).toBe("User: search");
+    expect(conversation.messages[2]?.text).toBe("User: DuckDuckGo");
+    expect(conversation.messages[1]?.text).toBe("Brave");
+  });
 });

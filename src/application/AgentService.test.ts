@@ -1,7 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
+import type { AgentConversation } from "../domain/agent/AgentConversation";
 import type { AgentEngine, AgentSessionOptions } from "../domain/agent/AgentEngine";
 import type { AgentEvent, AgentEventListener } from "../domain/agent/AgentEvent";
 import type { AgentSession } from "../domain/agent/AgentSession";
+import type { ContextSnapshot } from "../domain/notes/ContextSnapshot";
 import type { PidianSession, SessionRepository, SessionSummary } from "../domain/sessions/PidianSession";
 import { FakeAgentEngine } from "../infrastructure/fake/FakeAgentEngine";
 import { AgentService } from "./AgentService";
@@ -71,11 +73,26 @@ class ScriptedAgentEngine implements AgentEngine {
   }
 }
 
-function createService(store: MemoryRepository, engine: AgentEngine = new FakeAgentEngine()): AgentService {
+class CapturingEngine implements AgentEngine {
+  lastConversation?: AgentConversation;
+
+  constructor(private readonly inner = new FakeAgentEngine()) {}
+
+  async createSession(options: AgentSessionOptions): Promise<AgentSession> {
+    this.lastConversation = options.conversation;
+    return this.inner.createSession(options);
+  }
+}
+
+function createService(
+  store: MemoryRepository,
+  engine: AgentEngine = new FakeAgentEngine(),
+  getActiveNote: () => ContextSnapshot | undefined = () => undefined,
+): AgentService {
   return new AgentService(
     engine,
     new SessionService(store),
-    new ContextService({ getActiveNote: () => undefined }),
+    new ContextService({ getActiveNote }),
     () => [],
   );
 }
@@ -136,6 +153,46 @@ describe("AgentService.forkFrom", () => {
 });
 
 describe("AgentService.send", () => {
+  it("stores the active note snapshot on the user message without changing the displayed text", async () => {
+    const store = new MemoryRepository();
+    const snapshot: ContextSnapshot = { notePath: "notes/example.md", startLine: 3, endLine: 5 };
+    const agent = createService(store, new FakeAgentEngine(), () => snapshot);
+    await agent.newChat("openai", "gpt-5");
+    await agent.send("rewrite this");
+
+    expect(agent.getSession()?.messages[0]).toMatchObject({
+      role: "user",
+      text: "rewrite this",
+      context: snapshot,
+    });
+  });
+
+  it("omits context when no note is active", async () => {
+    const store = new MemoryRepository();
+    const agent = createService(store);
+    await agent.newChat("openai", "gpt-5");
+    await agent.send("hello");
+
+    expect(agent.getSession()?.messages[0]?.context).toBeUndefined();
+    expect(agent.getSession()?.messages[0]?.text).toBe("hello");
+  });
+
+  it("restores the prompt envelope when the agent session is recreated", async () => {
+    const store = new MemoryRepository();
+    const engine = new CapturingEngine();
+    const snapshot: ContextSnapshot = { notePath: "notes/example.md", startLine: 12, endLine: 12 };
+    const agent = createService(store, engine, () => snapshot);
+    await agent.newChat("openai", "gpt-5");
+    await agent.send("rewrite this");
+    const sessionId = agent.getSession()!.id;
+
+    await agent.openChat(sessionId);
+
+    expect(engine.lastConversation?.messages[0]?.text).toBe("notes/example.md L12\nUser: rewrite this");
+    expect(engine.lastConversation?.messages[1]?.text).toContain("rewrite this");
+    expect(agent.getSession()?.messages[0]?.text).toBe("rewrite this");
+  });
+
   it("records workedMs when thinking ends before text", async () => {
     const store = new MemoryRepository();
     let agent!: AgentService;
