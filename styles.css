@@ -1160,6 +1160,12 @@ button.pidian-custom-model-json-help[aria-expanded="true"] {
   background-color: transparent;
 }
 
+/* Obsidian sets body { user-select: none }; allow copying env var names. */
+.pidian-credential-setting .setting-item-description {
+  user-select: text;
+  -webkit-user-select: text;
+}
+
 .pidian-settings-using-env {
   display: inline-flex;
   align-items: center;

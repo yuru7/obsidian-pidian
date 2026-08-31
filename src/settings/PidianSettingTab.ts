@@ -814,6 +814,7 @@ export class PidianSettingTab extends PluginSettingTab {
       const usedEnvName = envNames.find((name) => Boolean(process.env[name]?.trim()));
       const usingEnv = !this.plugin.settings.apiKeys[provider.id]?.trim() && Boolean(usedEnvName);
       new Setting(containerEl)
+        .setClass("pidian-credential-setting")
         .setName(provider.name)
         .setDesc(
           usingEnv && usedEnvName
