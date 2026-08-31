@@ -23,6 +23,7 @@ export function Chat({
   onFork,
   forkDisabled,
   streaming = false,
+  onAtBottomChange,
   ref,
 }: {
   app: App;
@@ -33,12 +34,16 @@ export function Chat({
   onFork?: (messageId: string) => void;
   forkDisabled?: boolean;
   streaming?: boolean;
+  onAtBottomChange?: (atBottom: boolean) => void;
   ref?: Ref<ChatHandle>;
 }): JSX.Element {
   const rootRef = useRef<HTMLDivElement | null>(null);
   const contentRef = useRef<HTMLDivElement | null>(null);
   const stickToBottomRef = useRef(true);
   const lastScrollTopRef = useRef(0);
+  const lastAtBottomRef = useRef<boolean | null>(null);
+  const onAtBottomChangeRef = useRef(onAtBottomChange);
+  onAtBottomChangeRef.current = onAtBottomChange;
 
   useImperativeHandle(ref, () => ({
     scrollToBottom() {
@@ -49,6 +54,8 @@ export function Chat({
       stickToBottomRef.current = true;
       root.scrollTop = root.scrollHeight;
       lastScrollTopRef.current = root.scrollTop;
+      lastAtBottomRef.current = true;
+      onAtBottomChangeRef.current?.(true);
     },
   }));
 
@@ -60,6 +67,15 @@ export function Chat({
     }
 
     lastScrollTopRef.current = root.scrollTop;
+
+    const reportAtBottom = () => {
+      const atBottom = isAtBottom(root);
+      if (lastAtBottomRef.current === atBottom) {
+        return;
+      }
+      lastAtBottomRef.current = atBottom;
+      onAtBottomChangeRef.current?.(atBottom);
+    };
 
     const unstickIfScrolledUp = () => {
       if (root.scrollTop < lastScrollTopRef.current) {
@@ -81,14 +97,15 @@ export function Chat({
         stickToBottomRef.current = true;
       }
       lastScrollTopRef.current = scrollTop;
+      reportAtBottom();
     };
 
     const followIfStuck = () => {
-      if (!stickToBottomRef.current) {
-        return;
+      if (stickToBottomRef.current) {
+        root.scrollTop = root.scrollHeight;
+        lastScrollTopRef.current = root.scrollTop;
       }
-      root.scrollTop = root.scrollHeight;
-      lastScrollTopRef.current = root.scrollTop;
+      reportAtBottom();
     };
 
     root.addEventListener("wheel", onWheel, { passive: true });

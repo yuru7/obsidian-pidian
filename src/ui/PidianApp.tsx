@@ -1,4 +1,4 @@
-import { useEffect, useReducer, useRef, type JSX } from "react";
+import { useEffect, useReducer, useRef, useState, type JSX } from "react";
 import { formatLineRange } from "../application/activeMarkdown";
 import { t } from "../i18n";
 import type PidianPlugin from "../main";
@@ -17,6 +17,8 @@ function fileNameFromPath(notePath: string): string {
 export function PidianApp({ plugin }: { plugin: PidianPlugin }): JSX.Element {
   const [, rerender] = useReducer((value: number) => value + 1, 0);
   const chatRef = useRef<ChatHandle>(null);
+  const [atBottom, setAtBottom] = useState(true);
+  const sessionId = plugin.agentService?.getSession()?.id;
 
   useEffect(() => {
     const unsubAgent = plugin.agentService?.subscribe(() => rerender());
@@ -26,6 +28,10 @@ export function PidianApp({ plugin }: { plugin: PidianPlugin }): JSX.Element {
       unsubSettings();
     };
   }, [plugin]);
+
+  useEffect(() => {
+    setAtBottom(true);
+  }, [sessionId]);
 
   if (!plugin.agentService) {
     return (
@@ -84,6 +90,7 @@ export function PidianApp({ plugin }: { plugin: PidianPlugin }): JSX.Element {
         compacting={agent.isCompacting()}
         forkDisabled={streaming}
         streaming={streaming}
+        onAtBottomChange={setAtBottom}
         onFork={(messageId) => {
           void agent.forkFrom(messageId).catch((error: unknown) => {
             console.error("Pidian: failed to fork session", error);
@@ -92,11 +99,13 @@ export function PidianApp({ plugin }: { plugin: PidianPlugin }): JSX.Element {
       />
       {error ? <div className="pidian-error">{error}</div> : null}
       <footer className="pidian-footer">
-        {streaming ? (
+        {streaming || !atBottom ? (
           <div className="pidian-streaming-indicator">
             <button
               type="button"
-              className="pidian-streaming-scroll"
+              className={
+                streaming ? "pidian-streaming-scroll" : "pidian-streaming-scroll pidian-jump-to-bottom"
+              }
               aria-label={t("uiScrollToLatest")}
               title={t("uiScrollToLatest")}
               onMouseDown={(event) => event.preventDefault()}
@@ -104,7 +113,25 @@ export function PidianApp({ plugin }: { plugin: PidianPlugin }): JSX.Element {
                 chatRef.current?.scrollToBottom();
               }}
             >
-              <Spinner decorative />
+              {streaming ? (
+                <Spinner decorative />
+              ) : (
+                <svg
+                  className="pidian-icon"
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                >
+                  <circle cx="12" cy="12" r="10" />
+                  <path d="m8 12 4 4 4-4" />
+                  <path d="M12 8v8" />
+                </svg>
+              )}
             </button>
           </div>
         ) : null}

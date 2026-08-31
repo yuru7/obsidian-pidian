@@ -622,6 +622,19 @@
   color: var(--text-normal);
 }
 
+.pidian-view .pidian-jump-to-bottom {
+  opacity: 0.45;
+}
+
+.pidian-view .pidian-jump-to-bottom:hover {
+  opacity: 0.9;
+}
+
+.pidian-view .pidian-jump-to-bottom .pidian-icon {
+  width: 20px;
+  height: 20px;
+}
+
 .pidian-spinner {
   --pidian-spinner-size: 16px;
   position: relative;
