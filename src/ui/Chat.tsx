@@ -5,9 +5,18 @@ import type { PidianMessage } from "../domain/sessions/PidianSession";
 import { Message } from "./Message";
 
 const STICK_TO_BOTTOM_THRESHOLD_PX = 16;
+const JUMP_TO_BOTTOM_VIEWPORT_RATIO = 1 / 3;
+
+function distanceFromBottom(el: HTMLElement): number {
+  return el.scrollHeight - el.scrollTop - el.clientHeight;
+}
 
 function isAtBottom(el: HTMLElement): boolean {
-  return el.scrollHeight - el.scrollTop - el.clientHeight <= STICK_TO_BOTTOM_THRESHOLD_PX;
+  return distanceFromBottom(el) <= STICK_TO_BOTTOM_THRESHOLD_PX;
+}
+
+function isNearBottom(el: HTMLElement): boolean {
+  return distanceFromBottom(el) <= el.clientHeight * JUMP_TO_BOTTOM_VIEWPORT_RATIO;
 }
 
 export type ChatHandle = {
@@ -23,7 +32,7 @@ export function Chat({
   onFork,
   forkDisabled,
   streaming = false,
-  onAtBottomChange,
+  onNearBottomChange,
   ref,
 }: {
   app: App;
@@ -34,16 +43,16 @@ export function Chat({
   onFork?: (messageId: string) => void;
   forkDisabled?: boolean;
   streaming?: boolean;
-  onAtBottomChange?: (atBottom: boolean) => void;
+  onNearBottomChange?: (nearBottom: boolean) => void;
   ref?: Ref<ChatHandle>;
 }): JSX.Element {
   const rootRef = useRef<HTMLDivElement | null>(null);
   const contentRef = useRef<HTMLDivElement | null>(null);
   const stickToBottomRef = useRef(true);
   const lastScrollTopRef = useRef(0);
-  const lastAtBottomRef = useRef<boolean | null>(null);
-  const onAtBottomChangeRef = useRef(onAtBottomChange);
-  onAtBottomChangeRef.current = onAtBottomChange;
+  const lastNearBottomRef = useRef<boolean | null>(null);
+  const onNearBottomChangeRef = useRef(onNearBottomChange);
+  onNearBottomChangeRef.current = onNearBottomChange;
 
   useImperativeHandle(ref, () => ({
     scrollToBottom() {
@@ -54,8 +63,8 @@ export function Chat({
       stickToBottomRef.current = true;
       root.scrollTop = root.scrollHeight;
       lastScrollTopRef.current = root.scrollTop;
-      lastAtBottomRef.current = true;
-      onAtBottomChangeRef.current?.(true);
+      lastNearBottomRef.current = true;
+      onNearBottomChangeRef.current?.(true);
     },
   }));
 
@@ -68,13 +77,13 @@ export function Chat({
 
     lastScrollTopRef.current = root.scrollTop;
 
-    const reportAtBottom = () => {
-      const atBottom = isAtBottom(root);
-      if (lastAtBottomRef.current === atBottom) {
+    const reportNearBottom = () => {
+      const nearBottom = isNearBottom(root);
+      if (lastNearBottomRef.current === nearBottom) {
         return;
       }
-      lastAtBottomRef.current = atBottom;
-      onAtBottomChangeRef.current?.(atBottom);
+      lastNearBottomRef.current = nearBottom;
+      onNearBottomChangeRef.current?.(nearBottom);
     };
 
     const unstickIfScrolledUp = () => {
@@ -97,7 +106,7 @@ export function Chat({
         stickToBottomRef.current = true;
       }
       lastScrollTopRef.current = scrollTop;
-      reportAtBottom();
+      reportNearBottom();
     };
 
     const followIfStuck = () => {
@@ -105,7 +114,7 @@ export function Chat({
         root.scrollTop = root.scrollHeight;
         lastScrollTopRef.current = root.scrollTop;
       }
-      reportAtBottom();
+      reportNearBottom();
     };
 
     root.addEventListener("wheel", onWheel, { passive: true });

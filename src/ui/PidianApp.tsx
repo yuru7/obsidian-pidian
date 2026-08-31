@@ -17,7 +17,7 @@ function fileNameFromPath(notePath: string): string {
 export function PidianApp({ plugin }: { plugin: PidianPlugin }): JSX.Element {
   const [, rerender] = useReducer((value: number) => value + 1, 0);
   const chatRef = useRef<ChatHandle>(null);
-  const [atBottom, setAtBottom] = useState(true);
+  const [nearBottom, setNearBottom] = useState(true);
   const sessionId = plugin.agentService?.getSession()?.id;
 
   useEffect(() => {
@@ -30,7 +30,7 @@ export function PidianApp({ plugin }: { plugin: PidianPlugin }): JSX.Element {
   }, [plugin]);
 
   useEffect(() => {
-    setAtBottom(true);
+    setNearBottom(true);
   }, [sessionId]);
 
   if (!plugin.agentService) {
@@ -90,7 +90,7 @@ export function PidianApp({ plugin }: { plugin: PidianPlugin }): JSX.Element {
         compacting={agent.isCompacting()}
         forkDisabled={streaming}
         streaming={streaming}
-        onAtBottomChange={setAtBottom}
+        onNearBottomChange={setNearBottom}
         onFork={(messageId) => {
           void agent.forkFrom(messageId).catch((error: unknown) => {
             console.error("Pidian: failed to fork session", error);
@@ -99,7 +99,7 @@ export function PidianApp({ plugin }: { plugin: PidianPlugin }): JSX.Element {
       />
       {error ? <div className="pidian-error">{error}</div> : null}
       <footer className="pidian-footer">
-        {streaming || !atBottom ? (
+        {streaming || !nearBottom ? (
           <div className="pidian-streaming-indicator">
             <button
               type="button"
@@ -107,7 +107,6 @@ export function PidianApp({ plugin }: { plugin: PidianPlugin }): JSX.Element {
                 streaming ? "pidian-streaming-scroll" : "pidian-streaming-scroll pidian-jump-to-bottom"
               }
               aria-label={t("uiScrollToLatest")}
-              title={t("uiScrollToLatest")}
               onMouseDown={(event) => event.preventDefault()}
               onClick={() => {
                 chatRef.current?.scrollToBottom();
