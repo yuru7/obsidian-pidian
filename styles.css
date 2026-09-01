@@ -562,7 +562,7 @@
   display: flex;
   gap: 6px;
   align-items: center;
-  padding: 4px 2px;
+  padding: 4px 7px 4px 2px;
   margin: 4px 0;
 }
 
@@ -624,6 +624,8 @@
 
 .pidian-view .pidian-jump-to-bottom {
   opacity: 0.6;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--background-primary) 80%, transparent);
 }
 
 .pidian-view .pidian-jump-to-bottom:hover {
