@@ -109,7 +109,7 @@ export function SessionSelector({
               >
                 <div className="pidian-session-title">{sessionTitle(session.title)}</div>
                 <div className="pidian-session-meta">
-                  {session.provider}/{session.model} · {formatTime(session.updatedAt)}
+                  {formatTime(session.updatedAt)} · {session.provider}/{session.model}
                 </div>
               </button>
             ))
