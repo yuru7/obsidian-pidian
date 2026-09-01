@@ -90,6 +90,13 @@ export function Composer({
           if (event.key === "Enter" && !event.shiftKey) {
             event.preventDefault();
             send();
+            return;
+          }
+          if (event.key === "Escape" && !event.nativeEvent.isComposing) {
+            event.preventDefault();
+            if (streaming) {
+              onAbort();
+            }
           }
         }}
       />
