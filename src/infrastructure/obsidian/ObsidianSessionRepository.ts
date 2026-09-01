@@ -1,5 +1,5 @@
 import type { App } from "obsidian";
-import { toSessionSummary, type PidianSession, type SessionRepository, type SessionSummary } from "../../domain/sessions/PidianSession";
+import type { PidianSession, SessionRepository, SessionSummary } from "../../domain/sessions/PidianSession";
 import { getPluginDirectory, parsePluginDirectory, sessionsDir } from "../../application/notePath";
 import {
   isSessionFilePath,
@@ -7,8 +7,10 @@ import {
   sessionFileExtension,
   sessionIdFromFilePath,
 } from "../../application/sessionFilePath";
-import { parseSessionFile, serializeSessionFile } from "../../application/sessionSerialization";
+import { parseSessionFile, parseSessionSummary, serializeSessionFile } from "../../application/sessionSerialization";
 import type { SessionFileFormat } from "../../settings/Settings";
+
+const LIST_READ_CONCURRENCY = 8;
 
 export class ObsidianSessionRepository implements SessionRepository {
   constructor(
@@ -36,17 +38,24 @@ export class ObsidianSessionRepository implements SessionRepository {
   }
 
   async list(): Promise<SessionSummary[]> {
-    const byId = new Map<string, SessionSummary>();
-    for (const file of await this.listSessionPaths()) {
+    const files = await this.listSessionPaths();
+    const preferred = sessionFileExtension(this.getSessionFileFormat());
+    const entries = await mapLimited(files, LIST_READ_CONCURRENCY, async (file) => {
       try {
         const raw = await this.app.vault.adapter.read(file);
-        const session = parseSessionFile(raw);
-        const existing = byId.get(session.id);
-        if (!existing || file.endsWith(sessionFileExtension(this.getSessionFileFormat()))) {
-          byId.set(session.id, toSessionSummary(session));
-        }
+        return { file, summary: parseSessionSummary(raw) };
       } catch {
-        // Skip corrupt session files.
+        return undefined;
+      }
+    });
+    const byId = new Map<string, SessionSummary>();
+    for (const entry of entries) {
+      if (!entry) {
+        continue;
+      }
+      const existing = byId.get(entry.summary.id);
+      if (!existing || entry.file.endsWith(preferred)) {
+        byId.set(entry.summary.id, entry.summary);
       }
     }
     return [...byId.values()].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
@@ -98,4 +107,20 @@ export class ObsidianSessionRepository implements SessionRepository {
       }
     }
   }
+}
+
+function mapLimited<T, R>(items: readonly T[], limit: number, mapper: (item: T) => Promise<R>): Promise<R[]> {
+  if (items.length === 0) {
+    return Promise.resolve([]);
+  }
+  const results = new Array<R>(items.length);
+  let next = 0;
+  const worker = async () => {
+    while (next < items.length) {
+      const index = next;
+      next += 1;
+      results[index] = await mapper(items[index]!);
+    }
+  };
+  return Promise.all(Array.from({ length: Math.min(limit, items.length) }, () => worker())).then(() => results);
 }

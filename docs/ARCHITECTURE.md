@@ -275,7 +275,7 @@ interface PidianSession {
 - アシスタントの `workedMs` は各 Work 区間が閉じるまでの時間。思考→ツール→思考は同じ Work に時系列の `items` として残し、`thinking_end` だけでは閉じない。本文が出たあと、思考 delta が途切れたとき、またはターン完了で閉じる。思考中の本文は Work の直下へ随時出す。空白だけの delta では区切らない。`blocks` が無い古い保存データは思考・ツールを1つの WorkLog にまとめる。
 - 再開は `PidianSession → AgentConversation → PiAgentAdapter`。ユーザー本文は `formatAgentPrompt` でヘッダ付きに戻す。Pi 固有オブジェクトは保存しない。会話は Pi の `SessionManager` に全文を載せ、`compaction` があればその境界で要約エントリを足してから `createAgentSession` する。LLM 入力は SessionManager が組み直した要約 + 残したメッセージ。画面と `messages` は全文のまま。
 - Pi の自動 compaction が走ったら `compaction` を上書き保存する。fork は分岐点より前のチェックポイントだけコピーする。
-- 破損ファイルは list 時にスキップする。
+- list は JSONL のヘッダと最初の user メッセージだけパースし、ファイル読みは並列化する。破損ファイルはスキップする。
 - 自動削除は `SessionCleanupService`。既定オフ。起動時のみ。アクティブ session id は消さない。
 - fork は指定メッセージまでをコピーした新セッション。`forkedMessageCount` で UI が分岐点を出す。
 - 編集再送信は同じセッションで、対象ユーザーメッセージより前まで残して Agent を作り直してから `send` する。

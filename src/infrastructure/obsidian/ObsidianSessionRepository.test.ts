@@ -23,7 +23,14 @@ class MemoryAdapter {
     this.files.set(path, data);
   }
 
+  inflightReads = 0;
+  maxConcurrentReads = 0;
+
   async read(path: string): Promise<string> {
+    this.inflightReads += 1;
+    this.maxConcurrentReads = Math.max(this.maxConcurrentReads, this.inflightReads);
+    await Promise.resolve();
+    this.inflightReads -= 1;
     const data = this.files.get(path);
     if (data === undefined) {
       throw new Error(`Missing file: ${path}`);
@@ -149,6 +156,40 @@ describe("ObsidianSessionRepository", () => {
         model: "gpt-5",
       }),
     ]);
+  });
+
+  it("lists a jsonl session even when later message lines are corrupt", async () => {
+    const adapter = new MemoryAdapter();
+    adapter.dirs.add(SESSIONS_DIR);
+    adapter.files.set(
+      `${SESSIONS_DIR}/2026-01-01T000000.000Z_abc.jsonl`,
+      [
+        '{"version":1,"id":"abc","title":"Hello","createdAt":"2026-01-01T00:00:00.000Z","updatedAt":"2026-01-02T00:00:00.000Z","provider":"openai","model":"gpt-5"}',
+        '{"id":"m1","role":"user","text":"Hi","createdAt":"2026-01-01T00:00:00.000Z"}',
+        "{not json",
+      ].join("\n"),
+    );
+    const repository = new ObsidianSessionRepository(appWith(adapter));
+
+    await expect(repository.list()).resolves.toEqual([
+      expect.objectContaining({ id: "abc", title: "Hello", firstQuery: "Hi" }),
+    ]);
+  });
+
+  it("reads session files concurrently when listing", async () => {
+    const adapter = new MemoryAdapter();
+    adapter.dirs.add(SESSIONS_DIR);
+    for (let index = 0; index < 10; index += 1) {
+      const id = `s${index}`;
+      adapter.files.set(
+        `${SESSIONS_DIR}/2026-01-01T000000.000Z_${id}.jsonl`,
+        serializeSessionFile(session(id, id), false),
+      );
+    }
+    const repository = new ObsidianSessionRepository(appWith(adapter));
+
+    await expect(repository.list()).resolves.toHaveLength(10);
+    expect(adapter.maxConcurrentReads).toBeGreaterThan(1);
   });
 
   it("updates an existing .json file in place instead of creating .jsonl.md", async () => {

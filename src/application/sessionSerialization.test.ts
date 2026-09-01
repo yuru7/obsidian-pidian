@@ -3,10 +3,11 @@ import {
   migratePidianSession,
   parsePidianSession,
   parseSessionFile,
+  parseSessionSummary,
   serializePidianSession,
   serializeSessionFile,
 } from "./sessionSerialization";
-import { sumTokenUsage, type PidianSession } from "../domain/sessions/PidianSession";
+import { sumTokenUsage, toSessionSummary, type PidianSession } from "../domain/sessions/PidianSession";
 
 const sample: PidianSession = {
   version: 1,
@@ -304,5 +305,48 @@ describe("session serialization", () => {
     expect(parseSessionFile("```json\n" + legacyJson + "\n```")).toEqual(sample);
     expect(parseSessionFile(legacyJson)).toEqual(sample);
     expect(serializeSessionFile(sample, false)).toBe(jsonl);
+  });
+
+  it("summarizes jsonl, fenced jsonl, and legacy json sessions", () => {
+    const expected = toSessionSummary(sample);
+    const jsonl = serializePidianSession(sample);
+    expect(parseSessionSummary(jsonl)).toEqual(expected);
+    expect(parseSessionSummary(serializeSessionFile(sample, true))).toEqual(expected);
+    expect(parseSessionSummary(JSON.stringify(sample, null, 2))).toEqual(expected);
+    expect(parseSessionSummary(JSON.stringify(sample))).toEqual(expected);
+  });
+
+  it("stops jsonl summary parsing after the first user message", () => {
+    const jsonl = [
+      '{"version":1,"id":"abc","title":"Hello","createdAt":"2026-01-01T00:00:00.000Z","updatedAt":"2026-01-02T00:00:00.000Z","provider":"openai","model":"gpt-5"}',
+      '{"id":"a1","role":"assistant","text":"ignored","createdAt":"2026-01-01T00:00:00.000Z"}',
+      '{"id":"m1","role":"user","text":"First question","createdAt":"2026-01-01T00:00:01.000Z"}',
+      "{not json",
+    ].join("\n");
+    expect(parseSessionSummary(jsonl)).toEqual({
+      id: "abc",
+      title: "Hello",
+      updatedAt: "2026-01-02T00:00:00.000Z",
+      provider: "openai",
+      model: "gpt-5",
+      firstQuery: "First question",
+    });
+    expect(() => parseSessionFile(jsonl)).toThrow();
+  });
+
+  it("summarizes a header-only jsonl session and ignores a closing fence", () => {
+    const jsonl = '{"version":1,"id":"abc","title":"Hello","createdAt":"2026-01-01T00:00:00.000Z","updatedAt":"2026-01-02T00:00:00.000Z","provider":"openai","model":"gpt-5"}';
+    expect(parseSessionSummary("```json\n" + jsonl + "\n```\n")).toEqual({
+      id: "abc",
+      title: "Hello",
+      updatedAt: "2026-01-02T00:00:00.000Z",
+      provider: "openai",
+      model: "gpt-5",
+      firstQuery: "",
+    });
+  });
+
+  it("rejects unknown versions when summarizing", () => {
+    expect(() => parseSessionSummary(JSON.stringify({ ...sample, version: 99 }))).toThrow(/Unsupported session version/);
   });
 });

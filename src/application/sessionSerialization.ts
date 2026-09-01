@@ -8,6 +8,7 @@ import type {
   PidianToolCall,
   PidianWorkItem,
   SessionCompaction,
+  SessionSummary,
 } from "../domain/sessions/PidianSession";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -266,10 +267,110 @@ export function serializePidianSession(session: PidianSession): string {
   return [header, ...messages].map((record) => JSON.stringify(record)).join("\n");
 }
 
+const OPENING_FENCE = /^```jsonl?[ \t]*\r?\n/;
+
 export function unwrapSessionFileText(raw: string): string {
   const trimmed = raw.trim();
   const fenced = /^```jsonl?[ \t]*\r?\n([\s\S]*?)\r?\n```$/.exec(trimmed);
   return fenced ? fenced[1]! : trimmed;
+}
+
+/** List fields only. JSONL stops after the header and first user message. */
+export function parseSessionSummary(raw: string): SessionSummary {
+  const body = skipOpeningFence(raw);
+  const first = readJsonlLine(body, 0);
+  if (first) {
+    let parsed: unknown | undefined;
+    try {
+      parsed = JSON.parse(first.line);
+    } catch (error) {
+      if (!(error instanceof SyntaxError)) {
+        throw error;
+      }
+    }
+    if (isRecord(parsed)) {
+      if (Array.isArray(parsed.messages)) {
+        return sessionSummaryFromHeader(parsed, firstUserQuery(parsed.messages));
+      }
+      return sessionSummaryFromHeader(parsed, firstUserQueryFromJsonl(body, first.next));
+    }
+    if (parsed !== undefined) {
+      throw new Error("Session data must be an object.");
+    }
+  }
+  const parsed = JSON.parse(unwrapSessionFileText(raw));
+  if (!isRecord(parsed)) {
+    throw new Error("Session data must be an object.");
+  }
+  return sessionSummaryFromHeader(parsed, firstUserQuery(parsed.messages));
+}
+
+function skipOpeningFence(raw: string): string {
+  const trimmed = raw.trimStart();
+  const fence = OPENING_FENCE.exec(trimmed);
+  return fence ? trimmed.slice(fence[0].length) : trimmed;
+}
+
+function readJsonlLine(text: string, start: number): { line: string; next: number } | undefined {
+  let index = start;
+  while (index < text.length) {
+    const newline = text.indexOf("\n", index);
+    const end = newline === -1 ? text.length : newline;
+    let line = text.slice(index, end);
+    if (line.endsWith("\r")) {
+      line = line.slice(0, -1);
+    }
+    const next = newline === -1 ? text.length : newline + 1;
+    if (line.trim() === "```") {
+      return undefined;
+    }
+    if (line.length > 0) {
+      return { line, next };
+    }
+    index = next;
+  }
+  return undefined;
+}
+
+function firstUserQueryFromJsonl(text: string, start: number): string {
+  let index = start;
+  for (;;) {
+    const item = readJsonlLine(text, index);
+    if (!item) {
+      return "";
+    }
+    index = item.next;
+    const record = JSON.parse(item.line);
+    if (isRecord(record) && record.role === "user") {
+      return typeof record.text === "string" ? record.text : "";
+    }
+  }
+}
+
+function firstUserQuery(messages: unknown): string {
+  if (!Array.isArray(messages)) {
+    return "";
+  }
+  for (const item of messages) {
+    if (isRecord(item) && item.role === "user") {
+      return typeof item.text === "string" ? item.text : "";
+    }
+  }
+  return "";
+}
+
+function sessionSummaryFromHeader(header: Record<string, unknown>, firstQuery: string): SessionSummary {
+  if (header.version !== 1) {
+    throw new Error(`Unsupported session version: ${String(header.version)}`);
+  }
+  return {
+    id: expectString(header.id, "id"),
+    title: expectString(header.title, "title"),
+    updatedAt: expectString(header.updatedAt, "updatedAt"),
+    provider: expectString(header.provider, "provider"),
+    model: expectString(header.model, "model"),
+    firstQuery,
+  };
 }
 
 export function serializeSessionFile(session: PidianSession, markdown: boolean): string {
