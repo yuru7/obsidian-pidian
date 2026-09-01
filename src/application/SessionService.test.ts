@@ -6,7 +6,8 @@ import { SessionService } from "./SessionService";
 const unused: SessionRepository = {
   save: async () => undefined,
   load: async () => undefined,
-  list: async () => [],
+  list: async () => ({ sessions: [], totalCount: 0, hasMore: false }),
+  listAll: async () => [],
   delete: async () => undefined,
 };
 

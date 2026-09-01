@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { SessionCleanupService } from "./SessionCleanupService";
-import { toSessionSummary, type PidianSession, type SessionRepository, type SessionSummary } from "../domain/sessions/PidianSession";
+import { toSessionSummary, type PidianSession, type SessionListSnapshot, type SessionRepository, type SessionSummary } from "../domain/sessions/PidianSession";
 
 class MemorySessions implements SessionRepository {
   constructor(private readonly sessions: PidianSession[]) {}
@@ -13,7 +13,12 @@ class MemorySessions implements SessionRepository {
     return this.sessions.find((session) => session.id === id);
   }
 
-  async list(): Promise<SessionSummary[]> {
+  async list(): Promise<SessionListSnapshot> {
+    const sessions = this.sessions.map(toSessionSummary);
+    return { sessions, totalCount: sessions.length, hasMore: false };
+  }
+
+  async listAll(): Promise<SessionSummary[]> {
     return this.sessions.map(toSessionSummary);
   }
 

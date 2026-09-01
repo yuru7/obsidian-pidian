@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { toSessionSummary, type PidianSession } from "./PidianSession";
+import { clipSessionQuery, SESSION_SUMMARY_QUERY_MAX_LENGTH, toSessionSummary, type PidianSession } from "./PidianSession";
 
 function session(messages: PidianSession["messages"]): PidianSession {
   return {
@@ -45,5 +45,14 @@ describe("toSessionSummary", () => {
 
   it("uses an empty first query when there is no user message", () => {
     expect(toSessionSummary(session([])).firstQuery).toBe("");
+  });
+
+  it("clips a long first query for the list preview", () => {
+    const text = `${"a".repeat(SESSION_SUMMARY_QUERY_MAX_LENGTH)}Z`;
+    expect(toSessionSummary(session([{ id: "u", role: "user", text, createdAt: "2026-01-01T00:00:00.000Z" }])).firstQuery).toBe(
+      clipSessionQuery(text),
+    );
+    expect(clipSessionQuery(text).endsWith("…")).toBe(true);
+    expect(clipSessionQuery("short")).toBe("short");
   });
 });

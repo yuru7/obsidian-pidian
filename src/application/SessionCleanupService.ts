@@ -19,7 +19,7 @@ export class SessionCleanupService {
 
     const cutoff = Date.now() - options.retentionDays * 24 * 60 * 60 * 1000;
     const deleted: string[] = [];
-    const sessions = await this.repository.list();
+    const sessions = await this.repository.listAll();
     for (const session of sessions) {
       if (session.id === options.activeSessionId) {
         continue;

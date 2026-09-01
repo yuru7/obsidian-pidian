@@ -1,14 +1,15 @@
 import type { TokenUsage } from "../domain/agent/AgentEvent";
 import { parseOptionalThinkingLevel } from "../domain/agent/thinkingLevel";
 import type { ContextSnapshot } from "../domain/notes/ContextSnapshot";
-import type {
-  PidianContentBlock,
-  PidianMessage,
-  PidianSession,
-  PidianToolCall,
-  PidianWorkItem,
-  SessionCompaction,
-  SessionSummary,
+import {
+  clipSessionQuery,
+  type PidianContentBlock,
+  type PidianMessage,
+  type PidianSession,
+  type PidianToolCall,
+  type PidianWorkItem,
+  type SessionCompaction,
+  type SessionSummary,
 } from "../domain/sessions/PidianSession";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -369,7 +370,7 @@ function sessionSummaryFromHeader(header: Record<string, unknown>, firstQuery: s
     updatedAt: expectString(header.updatedAt, "updatedAt"),
     provider: expectString(header.provider, "provider"),
     model: expectString(header.model, "model"),
-    firstQuery,
+    firstQuery: clipSessionQuery(firstQuery),
   };
 }
 

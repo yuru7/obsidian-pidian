@@ -102,6 +102,7 @@ export const en = {
   uiSessionHistory: "Session history",
   uiLoadingSessions: "Loading sessions...",
   uiNoSessions: "No saved sessions",
+  uiLoadAllSessions: "Load all sessions",
   uiEmptyChat: "Ask Pidian about the current note, or search the vault.",
   uiYou: "You",
   uiThinking: "Thinking",

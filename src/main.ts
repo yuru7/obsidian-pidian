@@ -246,6 +246,7 @@ export default class PidianPlugin extends Plugin {
     await this.resolveDefaultModel();
     await this.startNewChat({ focus: false });
     await this.cleanupSessions();
+    await this.sessionService?.list();
   }
 
   private async resolveDefaultModel(): Promise<void> {
@@ -392,16 +393,10 @@ export default class PidianPlugin extends Plugin {
   }
 
   private async cleanupSessions(): Promise<void> {
-    if (!this.agentService) {
+    if (!this.sessionService || !this.agentService) {
       return;
     }
-    const cleanup = new SessionCleanupService(
-      new ObsidianSessionRepository(
-        this.app,
-        () => this.settings.sessionFileFormat,
-        () => this.settings.pluginDirectory,
-      ),
-    );
+    const cleanup = new SessionCleanupService(this.sessionService);
     await cleanup.cleanup({
       enabled: this.settings.autoDeleteSessions,
       retentionDays: this.settings.retentionDays,

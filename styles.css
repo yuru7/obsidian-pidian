@@ -901,6 +901,24 @@
   padding: 8px;
 }
 
+.pidian-view .pidian-session-load-all {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 8px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  font-size: var(--font-ui-smaller);
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.pidian-view .pidian-session-load-all:hover:not(:disabled) {
+  color: var(--text-normal);
+  background: var(--background-modifier-hover);
+}
+
 .pidian-session-balloon {
   position: fixed;
   z-index: var(--layer-tooltip, 60);

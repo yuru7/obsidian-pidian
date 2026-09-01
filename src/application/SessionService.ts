@@ -1,6 +1,7 @@
 import type {
   PidianMessage,
   PidianSession,
+  SessionListSnapshot,
   SessionRepository,
   SessionSummary,
 } from "../domain/sessions/PidianSession";
@@ -37,8 +38,12 @@ export class SessionService {
     return this.repository.load(id);
   }
 
-  async list(): Promise<SessionSummary[]> {
+  async list(): Promise<SessionListSnapshot> {
     return this.repository.list();
+  }
+
+  async listAll(): Promise<SessionSummary[]> {
+    return this.repository.listAll();
   }
 
   async delete(id: string): Promise<void> {

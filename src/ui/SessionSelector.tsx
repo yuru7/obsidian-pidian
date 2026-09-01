@@ -26,13 +26,18 @@ export function SessionSelector({
   const rootRef = useRef<HTMLDivElement>(null);
   const balloonRef = useRef<HTMLDivElement>(null);
   const hideTimer = useRef(0);
+  const openRef = useRef(false);
   const [open, setOpen] = useState(false);
   const [sessions, setSessions] = useState<SessionSummary[]>([]);
+  const [hasMore, setHasMore] = useState(false);
+  const [loadedAll, setLoadedAll] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [loadingAll, setLoadingAll] = useState(false);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [balloonPos, setBalloonPos] = useState<BalloonPos | null>(null);
   const activeId = plugin.agentService?.getSession()?.id;
   const hovered = sessions.find((session) => session.id === hoveredId);
+  openRef.current = open;
 
   useEffect(() => {
     if (!open) {
@@ -41,21 +46,27 @@ export function SessionSelector({
     const sessionService = plugin.sessionService;
     if (!sessionService) {
       setSessions([]);
+      setHasMore(false);
+      setLoadedAll(false);
       setLoading(false);
+      setLoadingAll(false);
       return;
     }
     let cancelled = false;
     setLoading(true);
+    setLoadedAll(false);
     void sessionService
       .list()
-      .then((list) => {
+      .then((page) => {
         if (!cancelled) {
-          setSessions(list);
+          setSessions(page.sessions);
+          setHasMore(page.hasMore);
         }
       })
       .catch(() => {
         if (!cancelled) {
           setSessions([]);
+          setHasMore(false);
         }
       })
       .finally(() => {
@@ -90,6 +101,10 @@ export function SessionSelector({
     window.clearTimeout(hideTimer.current);
     setHoveredId(null);
     setBalloonPos(null);
+    setSessions([]);
+    setHasMore(false);
+    setLoadedAll(false);
+    setLoadingAll(false);
   }, [open]);
 
   useEffect(() => () => window.clearTimeout(hideTimer.current), []);
@@ -128,6 +143,28 @@ export function SessionSelector({
     }, BALLOON_HIDE_MS);
   };
 
+  const loadAll = () => {
+    const sessionService = plugin.sessionService;
+    if (!sessionService || loadingAll) {
+      return;
+    }
+    setLoadingAll(true);
+    void sessionService
+      .listAll()
+      .then((list) => {
+        if (!openRef.current) {
+          return;
+        }
+        setSessions(list);
+        setLoadedAll(true);
+        setHasMore(false);
+      })
+      .catch(() => undefined)
+      .finally(() => {
+        setLoadingAll(false);
+      });
+  };
+
   const dismissBalloon = () => {
     window.clearTimeout(hideTimer.current);
     setHoveredId(null);
@@ -159,31 +196,42 @@ export function SessionSelector({
       </button>
       {open ? (
         <div className="pidian-session-menu" onScroll={dismissBalloon}>
-          {loading && sessions.length === 0 ? (
+          {loading && sessions.length === 0 && !hasMore ? (
             <div className="pidian-session-empty">{t("uiLoadingSessions")}</div>
-          ) : sessions.length === 0 ? (
+          ) : sessions.length === 0 && !hasMore ? (
             <div className="pidian-session-empty">{t("uiNoSessions")}</div>
           ) : (
-            sessions.map((session) => (
-              <button
-                key={session.id}
-                className={`pidian-session-item${session.id === activeId ? " is-selected" : ""}`}
-                aria-current={session.id === activeId ? "true" : undefined}
-                onPointerEnter={(event) => showBalloon(session.id, event.currentTarget)}
-                onPointerLeave={hideBalloon}
-                onClick={() => {
-                  void plugin.openSession(session.id).then(() => {
-                    setOpen(false);
-                    onChange();
-                  });
-                }}
-              >
-                <div className="pidian-session-title">{sessionTitle(session.title)}</div>
-                <div className="pidian-session-meta">
-                  {formatTime(session.updatedAt)} · {session.provider}/{session.model}
-                </div>
-              </button>
-            ))
+            <>
+              {sessions.map((session) => (
+                <button
+                  key={session.id}
+                  className={`pidian-session-item${session.id === activeId ? " is-selected" : ""}`}
+                  aria-current={session.id === activeId ? "true" : undefined}
+                  onPointerEnter={(event) => showBalloon(session.id, event.currentTarget)}
+                  onPointerLeave={hideBalloon}
+                  onClick={() => {
+                    void plugin.openSession(session.id).then(() => {
+                      setOpen(false);
+                      onChange();
+                    });
+                  }}
+                >
+                  <div className="pidian-session-title">{sessionTitle(session.title)}</div>
+                  <div className="pidian-session-meta">
+                    {formatTime(session.updatedAt)} · {session.provider}/{session.model}
+                  </div>
+                </button>
+              ))}
+              {hasMore && !loadedAll ? (
+                <button
+                  className="pidian-session-load-all"
+                  disabled={loadingAll}
+                  onClick={loadAll}
+                >
+                  {loadingAll ? t("uiLoadingSessions") : t("uiLoadAllSessions")}
+                </button>
+              ) : null}
+            </>
           )}
         </div>
       ) : null}

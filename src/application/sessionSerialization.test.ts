@@ -7,7 +7,7 @@ import {
   serializePidianSession,
   serializeSessionFile,
 } from "./sessionSerialization";
-import { sumTokenUsage, toSessionSummary, type PidianSession } from "../domain/sessions/PidianSession";
+import { sumTokenUsage, toSessionSummary, SESSION_SUMMARY_QUERY_MAX_LENGTH, type PidianSession } from "../domain/sessions/PidianSession";
 
 const sample: PidianSession = {
   version: 1,
@@ -348,5 +348,14 @@ describe("session serialization", () => {
 
   it("rejects unknown versions when summarizing", () => {
     expect(() => parseSessionSummary(JSON.stringify({ ...sample, version: 99 }))).toThrow(/Unsupported session version/);
+  });
+
+  it("clips a long first query when summarizing", () => {
+    const text = `${"a".repeat(SESSION_SUMMARY_QUERY_MAX_LENGTH)}Z`;
+    const jsonl = [
+      '{"version":1,"id":"abc","title":"Hello","createdAt":"2026-01-01T00:00:00.000Z","updatedAt":"2026-01-02T00:00:00.000Z","provider":"openai","model":"gpt-5"}',
+      JSON.stringify({ id: "m1", role: "user", text, createdAt: "2026-01-01T00:00:00.000Z" }),
+    ].join("\n");
+    expect(parseSessionSummary(jsonl).firstQuery).toBe(`${"a".repeat(SESSION_SUMMARY_QUERY_MAX_LENGTH)}…`);
   });
 });

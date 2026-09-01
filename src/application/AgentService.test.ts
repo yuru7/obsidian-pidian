@@ -4,7 +4,7 @@ import type { AgentEngine, AgentSessionOptions } from "../domain/agent/AgentEngi
 import type { AgentEvent, AgentEventListener } from "../domain/agent/AgentEvent";
 import type { AgentSession } from "../domain/agent/AgentSession";
 import type { ContextSnapshot } from "../domain/notes/ContextSnapshot";
-import { toSessionSummary, type PidianSession, type SessionRepository, type SessionSummary } from "../domain/sessions/PidianSession";
+import { toSessionSummary, type PidianSession, type SessionListSnapshot, type SessionRepository, type SessionSummary } from "../domain/sessions/PidianSession";
 import { FakeAgentEngine } from "../infrastructure/fake/FakeAgentEngine";
 import { AgentService } from "./AgentService";
 import { THINKING_IDLE_MS } from "./assistantContent";
@@ -27,7 +27,12 @@ class MemoryRepository implements SessionRepository {
     return this.sessions.find((session) => session.id === id);
   }
 
-  async list(): Promise<SessionSummary[]> {
+  async list(): Promise<SessionListSnapshot> {
+    const sessions = this.sessions.map(toSessionSummary);
+    return { sessions, totalCount: sessions.length, hasMore: false };
+  }
+
+  async listAll(): Promise<SessionSummary[]> {
     return this.sessions.map(toSessionSummary);
   }
 

@@ -276,6 +276,7 @@ interface PidianSession {
 - 再開は `PidianSession → AgentConversation → PiAgentAdapter`。ユーザー本文は `formatAgentPrompt` でヘッダ付きに戻す。Pi 固有オブジェクトは保存しない。会話は Pi の `SessionManager` に全文を載せ、`compaction` があればその境界で要約エントリを足してから `createAgentSession` する。LLM 入力は SessionManager が組み直した要約 + 残したメッセージ。画面と `messages` は全文のまま。
 - Pi の自動 compaction が走ったら `compaction` を上書き保存する。fork は分岐点より前のチェックポイントだけコピーする。
 - list は JSONL のヘッダと最初の user メッセージだけパースし、ファイル読みは並列化する。破損ファイルはスキップする。
+- 常駐の一覧キャッシュは最大 300 件。`firstQuery` は 200 字で切る。起動時（cleanup のあと）に温め、`save` / `delete` で 1 件更新する。メニューの「セッションを全件読み込む」は開いている間だけ全件を持ち、閉じたら捨てる。
 - 自動削除は `SessionCleanupService`。既定オフ。起動時のみ。アクティブ session id は消さない。
 - fork は指定メッセージまでをコピーした新セッション。`forkedMessageCount` で UI が分岐点を出す。
 - 編集再送信は同じセッションで、対象ユーザーメッセージより前まで残して Agent を作り直してから `send` する。

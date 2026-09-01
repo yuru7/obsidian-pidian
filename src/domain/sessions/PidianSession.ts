@@ -180,14 +180,33 @@ export function compactionAfterFork(
   return { ...compaction };
 }
 
+/** Long-lived history window kept in memory. */
+export const SESSION_LIST_CACHE_LIMIT = 300;
+/** Balloon / list preview only. The saved session still has the full first message. */
+export const SESSION_SUMMARY_QUERY_MAX_LENGTH = 200;
+
 export interface SessionSummary {
   id: string;
   title: string;
   updatedAt: string;
   model: string;
   provider: string;
-  /** First user message text. Empty when the session has no user messages yet. */
+  /** First user message, clipped to `SESSION_SUMMARY_QUERY_MAX_LENGTH`. Empty when none. */
   firstQuery: string;
+}
+
+export interface SessionListSnapshot {
+  sessions: SessionSummary[];
+  /** Unique session files on disk, including those outside `sessions`. */
+  totalCount: number;
+  hasMore: boolean;
+}
+
+export function clipSessionQuery(text: string): string {
+  if (text.length <= SESSION_SUMMARY_QUERY_MAX_LENGTH) {
+    return text;
+  }
+  return `${text.slice(0, SESSION_SUMMARY_QUERY_MAX_LENGTH)}…`;
 }
 
 export function toSessionSummary(session: PidianSession): SessionSummary {
@@ -197,13 +216,24 @@ export function toSessionSummary(session: PidianSession): SessionSummary {
     updatedAt: session.updatedAt,
     model: session.model,
     provider: session.provider,
-    firstQuery: session.messages.find((message) => message.role === "user")?.text ?? "",
+    firstQuery: clipSessionQuery(session.messages.find((message) => message.role === "user")?.text ?? ""),
+  };
+}
+
+export function sessionListSnapshot(sessions: readonly SessionSummary[], totalCount: number): SessionListSnapshot {
+  return {
+    sessions: [...sessions],
+    totalCount,
+    hasMore: totalCount > SESSION_LIST_CACHE_LIMIT,
   };
 }
 
 export interface SessionRepository {
   save(session: PidianSession): Promise<void>;
   load(id: string): Promise<PidianSession | undefined>;
-  list(): Promise<SessionSummary[]>;
+  /** Newest summaries, at most `SESSION_LIST_CACHE_LIMIT`. May be served from memory. */
+  list(): Promise<SessionListSnapshot>;
+  /** Every readable session. The repository does not retain this array. */
+  listAll(): Promise<SessionSummary[]>;
   delete(id: string): Promise<void>;
 }

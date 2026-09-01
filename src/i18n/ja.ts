@@ -103,6 +103,7 @@ export const ja: { [K in keyof typeof en]: string } = {
   uiSessionHistory: "セッション履歴",
   uiLoadingSessions: "セッションを読み込み中...",
   uiNoSessions: "保存されたセッションはありません",
+  uiLoadAllSessions: "セッションを全件読み込む",
   uiEmptyChat: "今開いているノートについて聞いたり、Vault を検索したりできます。",
   uiYou: "あなた",
   uiThinking: "思考",
