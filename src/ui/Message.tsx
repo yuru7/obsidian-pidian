@@ -3,9 +3,11 @@ import type { App } from "obsidian";
 import { t } from "../i18n";
 import { contentBlocks, workItems, type PidianMessage } from "../domain/sessions/PidianSession";
 import { Markdown } from "./Markdown";
+import { shouldStartMessageEdit } from "./shouldStartMessageEdit";
 import { Thinking } from "./Thinking";
 import { TokenUsageDisplay } from "./TokenUsageDisplay";
 import { ToolCall } from "./ToolCall";
+import { UserMessageEditor } from "./UserMessageEditor";
 import { WorkLog } from "./WorkLog";
 
 export function Message({
@@ -14,17 +16,50 @@ export function Message({
   onFork,
   forkDisabled,
   streaming = false,
+  editing = false,
+  editDisabled = false,
+  sendWithCtrlEnter = false,
+  onStartEdit,
+  onCancelEdit,
+  onResend,
 }: {
   app: App;
   message: PidianMessage;
   onFork?: (messageId: string) => void;
   forkDisabled?: boolean;
   streaming?: boolean;
+  editing?: boolean;
+  editDisabled?: boolean;
+  sendWithCtrlEnter?: boolean;
+  onStartEdit?: (messageId: string) => void;
+  onCancelEdit?: () => void;
+  onResend?: (messageId: string, text: string) => void;
 }): JSX.Element {
   const name = message.role === "user" ? t("uiYou") : "Pidian";
   const assistant = message.role === "assistant";
+  const user = message.role === "user";
+  const editable = user && !!onResend && !editDisabled && !editing;
+  const className = [
+    "pidian-message",
+    `pidian-message-${message.role}`,
+    editing ? "is-editing" : "",
+    editable ? "is-editable" : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
   return (
-    <article className={`pidian-message pidian-message-${message.role}`}>
+    <article
+      className={className}
+      onClick={
+        editable
+          ? (event) => {
+              if (shouldStartMessageEdit(event)) {
+                onStartEdit?.(message.id);
+              }
+            }
+          : undefined
+      }
+    >
       <div className="pidian-message-role">
         {message.role === "user" ? <YouIcon /> : <PidianIcon />}
         {name}
@@ -50,9 +85,19 @@ export function Message({
             }
             return block.text ? <Markdown key={index} app={app} markdown={block.text} /> : null;
           })
-        : message.text
-          ? <Markdown app={app} markdown={message.text} />
-          : null}
+        : editing
+          ? (
+              <UserMessageEditor
+                app={app}
+                initialText={message.text}
+                sendWithCtrlEnter={sendWithCtrlEnter}
+                onSubmit={(text) => onResend?.(message.id, text)}
+                onCancel={() => onCancelEdit?.()}
+              />
+            )
+          : message.text
+            ? <Markdown app={app} markdown={message.text} />
+            : null}
       {assistant && message.text ? (
         <div className="pidian-message-actions">
           <CopyButton markdown={message.text} />

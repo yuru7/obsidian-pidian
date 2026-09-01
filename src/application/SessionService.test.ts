@@ -179,3 +179,69 @@ describe("SessionService.toConversation", () => {
     });
   });
 });
+
+describe("SessionService.truncateBefore", () => {
+  it("drops the selected user message and everything after it", () => {
+    const service = new SessionService(unused);
+    const source = session();
+    service.truncateBefore(source, "u2");
+    expect(source.messages.map((message) => message.id)).toEqual(["u1", "a1"]);
+  });
+
+  it("keeps an empty history when the first user message is edited", () => {
+    const service = new SessionService(unused);
+    const source = session();
+    service.truncateBefore(source, "u1");
+    expect(source.messages).toEqual([]);
+  });
+
+  it("rejects an unknown message id", () => {
+    const service = new SessionService(unused);
+    expect(() => service.truncateBefore(session(), "missing")).toThrow(/Message not found/);
+  });
+
+  it("rejects assistant messages", () => {
+    const service = new SessionService(unused);
+    expect(() => service.truncateBefore(session(), "a1")).toThrow(/Only user messages/);
+  });
+
+  it("drops compaction when the kept message is no longer in the remaining history", () => {
+    const service = new SessionService(unused);
+    const source = session({
+      compaction: {
+        summary: "## Goal\nSearch",
+        firstKeptMessageId: "u2",
+        createdAt: "2026-01-01T00:00:04.000Z",
+      },
+    });
+    service.truncateBefore(source, "u2");
+    expect(source.compaction).toBeUndefined();
+  });
+
+  it("keeps compaction when the kept message remains", () => {
+    const service = new SessionService(unused);
+    const compaction = {
+      summary: "## Goal\nSearch",
+      firstKeptMessageId: "a1",
+      createdAt: "2026-01-01T00:00:04.000Z",
+    };
+    const source = session({ compaction });
+    service.truncateBefore(source, "u2");
+    expect(source.compaction).toEqual(compaction);
+  });
+
+  it("drops forkedMessageCount when it points past the remaining messages", () => {
+    const service = new SessionService(unused);
+    const source = session({ forkedMessageCount: 4 });
+    service.truncateBefore(source, "u2");
+    expect(source.forkedMessageCount).toBeUndefined();
+    expect(source.messages).toHaveLength(2);
+  });
+
+  it("keeps forkedMessageCount when it still falls inside the remaining messages", () => {
+    const service = new SessionService(unused);
+    const source = session({ forkedMessageCount: 2 });
+    service.truncateBefore(source, "u2");
+    expect(source.forkedMessageCount).toBe(2);
+  });
+});

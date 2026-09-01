@@ -166,6 +166,22 @@ export class AgentService {
     this.notify();
   }
 
+  async editAndResend(messageId: string, text: string): Promise<void> {
+    const trimmed = text.trim();
+    if (!trimmed) {
+      return;
+    }
+    if (this.streaming) {
+      throw new Error("The agent is already responding.");
+    }
+    const session = this.requireSession();
+    this.sessions.truncateBefore(session, messageId);
+    this.notify();
+    await this.recreateAgent();
+    await this.sessions.save(session);
+    await this.send(trimmed);
+  }
+
   async send(text: string): Promise<void> {
     const trimmed = text.trim();
     if (!trimmed) {

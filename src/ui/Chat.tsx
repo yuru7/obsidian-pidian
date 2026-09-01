@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useImperativeHandle, useRef, type JSX, type Ref } from "react";
+import { Fragment, useEffect, useImperativeHandle, useRef, useState, type JSX, type Ref } from "react";
 import type { App } from "obsidian";
 import { t } from "../i18n";
 import type { PidianMessage } from "../domain/sessions/PidianSession";
@@ -32,6 +32,9 @@ export function Chat({
   onFork,
   forkDisabled,
   streaming = false,
+  sendWithCtrlEnter = false,
+  editDisabled = false,
+  onResend,
   onNearBottomChange,
   ref,
 }: {
@@ -43,9 +46,13 @@ export function Chat({
   onFork?: (messageId: string) => void;
   forkDisabled?: boolean;
   streaming?: boolean;
+  sendWithCtrlEnter?: boolean;
+  editDisabled?: boolean;
+  onResend?: (messageId: string, text: string) => void;
   onNearBottomChange?: (nearBottom: boolean) => void;
   ref?: Ref<ChatHandle>;
 }): JSX.Element {
+  const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
   const rootRef = useRef<HTMLDivElement | null>(null);
   const contentRef = useRef<HTMLDivElement | null>(null);
   const stickToBottomRef = useRef(true);
@@ -53,6 +60,12 @@ export function Chat({
   const lastNearBottomRef = useRef<boolean | null>(null);
   const onNearBottomChangeRef = useRef(onNearBottomChange);
   onNearBottomChangeRef.current = onNearBottomChange;
+
+  useEffect(() => {
+    if (editDisabled || (editingMessageId && !messages.some((message) => message.id === editingMessageId))) {
+      setEditingMessageId(null);
+    }
+  }, [editDisabled, editingMessageId, messages]);
 
   useImperativeHandle(ref, () => ({
     scrollToBottom() {
@@ -154,6 +167,12 @@ export function Chat({
                   streaming={
                     streaming && message.role === "assistant" && index === messages.length - 1
                   }
+                  editing={editingMessageId === message.id}
+                  editDisabled={editDisabled}
+                  sendWithCtrlEnter={sendWithCtrlEnter}
+                  onStartEdit={setEditingMessageId}
+                  onCancelEdit={() => setEditingMessageId(null)}
+                  onResend={onResend}
                 />
                 {forkedMessageCount === index + 1 ? (
                   <p className="pidian-fork-notice">{t("uiForked")}</p>

@@ -83,6 +83,27 @@ export class SessionService {
     session.messages.push(message);
   }
 
+  /** Drop the selected user message and everything after it. Keeps the prior turn. */
+  truncateBefore(session: PidianSession, messageId: string): void {
+    const index = session.messages.findIndex((message) => message.id === messageId);
+    if (index < 0) {
+      throw new Error(`Message not found: ${messageId}`);
+    }
+    if (session.messages[index]?.role !== "user") {
+      throw new Error("Only user messages can be edited.");
+    }
+    session.messages = session.messages.slice(0, index);
+    const compaction = compactionAfterFork(session.compaction, session.messages);
+    if (compaction) {
+      session.compaction = compaction;
+    } else {
+      delete session.compaction;
+    }
+    if (session.forkedMessageCount !== undefined && session.forkedMessageCount > session.messages.length) {
+      delete session.forkedMessageCount;
+    }
+  }
+
   fork(source: PidianSession, messageId: string): PidianSession {
     const index = source.messages.findIndex((message) => message.id === messageId);
     if (index < 0) {

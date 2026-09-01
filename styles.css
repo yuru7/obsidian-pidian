@@ -455,6 +455,10 @@
   background-color: var(--background-modifier-hover);
 }
 
+.pidian-message-user.is-editable {
+  cursor: pointer;
+}
+
 .pidian-message-role {
   display: flex;
   align-items: center;
@@ -548,6 +552,33 @@
 .pidian-view .pidian-fork-button:hover,
 .pidian-view .pidian-token-button:hover {
   color: var(--text-normal);
+}
+
+.pidian-message-edit {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.pidian-view textarea.pidian-message-edit-input {
+  min-height: calc(1lh + 12px + 2px);
+  max-height: calc(3lh + 12px + 2px);
+}
+
+.pidian-view .pidian-message-edit-send {
+  align-self: flex-end;
+  margin-top: 4px;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pidian-view .pidian-message-edit-send .pidian-icon {
+  width: 14px;
+  height: 14px;
 }
 
 .pidian-view .pidian-token-button {

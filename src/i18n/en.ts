@@ -111,6 +111,7 @@ export const en = {
   uiWorkedFor: "Worked for {seconds}s",
   uiCopy: "Copy",
   uiCopied: "Copied",
+  uiEditMessage: "Edit message",
   uiFork: "Fork conversation",
   uiForked: "Forked this conversation",
   uiCompacted: "Older messages were summarized to free context",

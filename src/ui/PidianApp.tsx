@@ -91,10 +91,17 @@ export function PidianApp({ plugin }: { plugin: PidianPlugin }): JSX.Element {
         compacting={agent.isCompacting()}
         forkDisabled={streaming}
         streaming={streaming}
+        sendWithCtrlEnter={plugin.settings.sendWithCtrlEnter}
+        editDisabled={streaming || agent.isCompacting() || !session?.provider || !session?.model}
         onNearBottomChange={setNearBottom}
         onFork={(messageId) => {
           void agent.forkFrom(messageId).catch((error: unknown) => {
             console.error("Pidian: failed to fork session", error);
+          });
+        }}
+        onResend={(messageId, text) => {
+          void agent.editAndResend(messageId, text).catch((error: unknown) => {
+            console.error("Pidian: failed to resend message", error);
           });
         }}
       />

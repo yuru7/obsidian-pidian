@@ -156,6 +156,85 @@ describe("AgentService.forkFrom", () => {
   });
 });
 
+describe("AgentService.editAndResend", () => {
+  it("rewinds the same session to the turn before the edited message and resends", async () => {
+    const store = new MemoryRepository();
+    const engine = new CapturingEngine();
+    const agent = createService(store, engine);
+    await agent.newChat("openai", "gpt-5");
+    await agent.send("first");
+    await agent.send("second");
+    const sessionId = agent.getSession()!.id;
+    const secondUser = agent.getSession()!.messages[2]!;
+
+    await agent.editAndResend(secondUser.id, "second edited");
+
+    const current = agent.getSession();
+    expect(current?.id).toBe(sessionId);
+    expect(current?.messages).toHaveLength(4);
+    expect(current?.messages.map((message) => message.role)).toEqual([
+      "user",
+      "assistant",
+      "user",
+      "assistant",
+    ]);
+    expect(current?.messages[0]?.text).toBe("first");
+    expect(current?.messages[2]?.text).toBe("second edited");
+    expect(current?.messages[2]?.id).not.toBe(secondUser.id);
+    expect(store.sessions).toHaveLength(1);
+    expect(store.sessions[0]?.messages[2]?.text).toBe("second edited");
+    expect(engine.lastConversation?.messages.map((message) => message.id)).toEqual([
+      current?.messages[0]?.id,
+      current?.messages[1]?.id,
+    ]);
+    expect(engine.lastPrompt).toBe(
+      formatAgentPrompt("second edited", undefined, current?.messages[2]?.createdAt),
+    );
+  });
+
+  it("replaces the whole transcript when the first user message is edited", async () => {
+    const store = new MemoryRepository();
+    const agent = createService(store);
+    await agent.newChat("openai", "gpt-5");
+    await agent.send("first");
+    await agent.send("second");
+    const firstUser = agent.getSession()!.messages[0]!;
+
+    await agent.editAndResend(firstUser.id, "first edited");
+
+    const current = agent.getSession();
+    expect(current?.messages).toHaveLength(2);
+    expect(current?.messages[0]?.text).toBe("first edited");
+    expect(current?.title).toBe("first edited");
+    expect(store.sessions[0]?.messages).toHaveLength(2);
+  });
+
+  it("does not rewind when the replacement text is empty", async () => {
+    const store = new MemoryRepository();
+    const agent = createService(store);
+    await agent.newChat("openai", "gpt-5");
+    await agent.send("first");
+    await agent.send("second");
+    const ids = agent.getSession()!.messages.map((message) => message.id);
+
+    await agent.editAndResend(ids[2]!, "   ");
+
+    expect(agent.getSession()?.messages.map((message) => message.id)).toEqual(ids);
+  });
+
+  it("rejects assistant messages and unknown ids without changing history", async () => {
+    const store = new MemoryRepository();
+    const agent = createService(store);
+    await agent.newChat("openai", "gpt-5");
+    await agent.send("hello");
+    const ids = agent.getSession()!.messages.map((message) => message.id);
+
+    await expect(agent.editAndResend(ids[1]!, "nope")).rejects.toThrow(/Only user messages/);
+    await expect(agent.editAndResend("missing", "nope")).rejects.toThrow(/Message not found/);
+    expect(agent.getSession()?.messages.map((message) => message.id)).toEqual(ids);
+  });
+});
+
 describe("AgentService.send", () => {
   it("stores the active note snapshot on the user message without changing the displayed text", async () => {
     const store = new MemoryRepository();

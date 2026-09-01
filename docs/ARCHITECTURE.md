@@ -127,6 +127,19 @@ Composer
                       → Chat がストリーム表示
 ```
 
+ユーザーメッセージをクリックすると同じセッション内で編集再送信できる。確定すると `AgentService.editAndResend` が当該メッセージ以降を削除し（1つ前の会話まで保持）、Agent を作り直してから `send` する。Esc は編集キャンセル。送信キーは Composer と同じ（Enter または Ctrl+Enter）。
+
+```text
+ユーザーメッセージをクリック
+  → 本文が textarea（1〜3行。超過分はスクロール）
+  → Enter / Ctrl+Enter / 送信ボタン
+      → AgentService.editAndResend(messageId, text)
+          → SessionService.truncateBefore
+          → Agent を残った会話で作り直す
+          → AgentService.send(text)
+  → Esc でフォーカスを外して編集キャンセル
+```
+
 `AgentEvent`（`src/domain/agent/AgentEvent.ts`）だけが UI / Application のイベント面:
 
 - `text_delta` / `thinking_delta` / `thinking_start` / `thinking_end`
@@ -265,6 +278,7 @@ interface PidianSession {
 - 破損ファイルは list 時にスキップする。
 - 自動削除は `SessionCleanupService`。既定オフ。起動時のみ。アクティブ session id は消さない。
 - fork は指定メッセージまでをコピーした新セッション。`forkedMessageCount` で UI が分岐点を出す。
+- 編集再送信は同じセッションで、対象ユーザーメッセージより前まで残して Agent を作り直してから `send` する。
 
 ---
 
@@ -313,7 +327,7 @@ Pi のモジュール解決や stub を足すときは、バンドルゲート�
 | --- | --- |
 | `PidianView.tsx` | `ItemView`。React root |
 | `PidianApp.tsx` | ヘッダ、Chat、Composer、ModelSelector、SessionSelector |
-| `Chat.tsx` / `Message.tsx` / `WorkLog.tsx` / `ToolCall.tsx` / `Thinking.tsx` | ストリーム表示。思考とツールは1つの WorkLog にまとめ、中は思考・ツールを時系列のまま出す。思考中でも本文は直下へ出せる |
+| `Chat.tsx` / `Message.tsx` / `UserMessageEditor.tsx` / `WorkLog.tsx` / `ToolCall.tsx` / `Thinking.tsx` | ストリーム表示。思考とツールは1つの WorkLog にまとめ、中は思考・ツールを時系列のまま出す。思考中でも本文は直下へ出せる。ユーザーメッセージのクリックで編集再送信 |
 | `Composer.tsx` | 入力。`subscribeComposerFocus` でフォーカス |
 | `Markdown.tsx` | チャット内 Markdown。`[[wiki]]` はメモアイコン付きで、クリックは既存エディタタブを優先して開く |
 | `PidianSettingTab.ts` | 設定 UI（React ではない） |
