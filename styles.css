@@ -530,21 +530,36 @@
 }
 
 .pidian-view .pidian-copy-button,
-.pidian-view .pidian-fork-button {
+.pidian-view .pidian-fork-button,
+.pidian-view .pidian-token-button {
   width: 20px;
   height: 20px;
   color: var(--text-muted);
 }
 
 .pidian-view .pidian-copy-button .pidian-icon,
-.pidian-view .pidian-fork-button .pidian-icon {
+.pidian-view .pidian-fork-button .pidian-icon,
+.pidian-view .pidian-token-button .pidian-icon {
   width: 14px;
   height: 14px;
 }
 
 .pidian-view .pidian-copy-button:hover,
-.pidian-view .pidian-fork-button:hover {
+.pidian-view .pidian-fork-button:hover,
+.pidian-view .pidian-token-button:hover {
   color: var(--text-normal);
+}
+
+.pidian-view .pidian-token-button {
+  cursor: default;
+}
+
+.pidian-message-token-selector {
+  margin-left: auto;
+}
+
+.pidian-message-token-selector:hover {
+  z-index: 11;
 }
 
 .pidian-view .pidian-fork-button:disabled {

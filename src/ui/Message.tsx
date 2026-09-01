@@ -4,6 +4,7 @@ import { t } from "../i18n";
 import { contentBlocks, workItems, type PidianMessage } from "../domain/sessions/PidianSession";
 import { Markdown } from "./Markdown";
 import { Thinking } from "./Thinking";
+import { TokenUsageDisplay } from "./TokenUsageDisplay";
 import { ToolCall } from "./ToolCall";
 import { WorkLog } from "./WorkLog";
 
@@ -60,6 +61,9 @@ export function Message({
               disabled={forkDisabled}
               onFork={() => onFork(message.id)}
             />
+          ) : null}
+          {message.usage ? (
+            <TokenUsageDisplay usage={message.usage} label={t("uiTokens")} variant="message" />
           ) : null}
         </div>
       ) : null}

@@ -112,6 +112,7 @@ export const en = {
   uiCompacted: "Older messages were summarized to free context",
   uiCompacting: "Summarizing older messages...",
   uiTokens: "Tokens",
+  uiTotalTokens: "Total tokens",
   uiTokenRead: "Read",
   uiTokenCacheRead: "Cache Read",
   uiTokenWrite: "Write",
