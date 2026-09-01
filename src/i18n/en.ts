@@ -97,6 +97,7 @@ export const en = {
   uiStop: "Stop",
   uiSend: "Send",
   uiSessionHistory: "Session history",
+  uiLoadingSessions: "Loading sessions...",
   uiNoSessions: "No saved sessions",
   uiEmptyChat: "Ask Pidian about the current note, or search the vault.",
   uiYou: "You",

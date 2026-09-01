@@ -98,6 +98,7 @@ export const ja: { [K in keyof typeof en]: string } = {
   uiStop: "停止",
   uiSend: "送信",
   uiSessionHistory: "セッション履歴",
+  uiLoadingSessions: "セッションを読み込み中...",
   uiNoSessions: "保存されたセッションはありません",
   uiEmptyChat: "今開いているノートについて聞いたり、Vault を検索したりできます。",
   uiYou: "あなた",

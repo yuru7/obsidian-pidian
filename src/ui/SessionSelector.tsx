@@ -14,18 +14,41 @@ export function SessionSelector({
   const rootRef = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(false);
   const [sessions, setSessions] = useState<SessionSummary[]>([]);
+  const [loading, setLoading] = useState(false);
   const activeId = plugin.agentService?.getSession()?.id;
 
   useEffect(() => {
     if (!open) {
       return;
     }
-    const sessions = plugin.sessionService;
-    if (!sessions) {
+    const sessionService = plugin.sessionService;
+    if (!sessionService) {
       setSessions([]);
+      setLoading(false);
       return;
     }
-    void sessions.list().then(setSessions).catch(() => setSessions([]));
+    let cancelled = false;
+    setLoading(true);
+    void sessionService
+      .list()
+      .then((list) => {
+        if (!cancelled) {
+          setSessions(list);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setSessions([]);
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [open, plugin]);
 
   useEffect(() => {
@@ -67,7 +90,9 @@ export function SessionSelector({
       </button>
       {open ? (
         <div className="pidian-session-menu">
-          {sessions.length === 0 ? (
+          {loading && sessions.length === 0 ? (
+            <div className="pidian-session-empty">{t("uiLoadingSessions")}</div>
+          ) : sessions.length === 0 ? (
             <div className="pidian-session-empty">{t("uiNoSessions")}</div>
           ) : (
             sessions.map((session) => (
