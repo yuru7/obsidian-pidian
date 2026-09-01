@@ -13,7 +13,7 @@ import type { SessionFileFormat } from "../../settings/Settings";
 export class ObsidianSessionRepository implements SessionRepository {
   constructor(
     private readonly app: App,
-    private readonly getSessionFileFormat: () => SessionFileFormat = () => "jsonl.md",
+    private readonly getSessionFileFormat: () => SessionFileFormat = () => "jsonl",
     private readonly resolvePluginDirectory: () => string = getPluginDirectory,
   ) {}
 

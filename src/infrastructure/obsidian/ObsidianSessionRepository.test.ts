@@ -66,28 +66,28 @@ function session(id: string, title = id): PidianSession {
 }
 
 describe("ObsidianSessionRepository", () => {
-  it("writes new session files as timestamp_id.jsonl.md with a json fence", async () => {
+  it("writes new session files as timestamp_id.jsonl without a fence", async () => {
     const adapter = new MemoryAdapter();
     const repository = new ObsidianSessionRepository(appWith(adapter));
     const saved = session("abc", "Hello");
 
     await repository.save(saved);
 
-    const path = `${SESSIONS_DIR}/2026-01-01T000000.000Z_abc.jsonl.md`;
-    expect(adapter.files.get(path)).toBe(serializeSessionFile(saved, true));
-    expect(adapter.files.has(`${SESSIONS_DIR}/abc.jsonl`)).toBe(false);
+    const path = `${SESSIONS_DIR}/2026-01-01T000000.000Z_abc.jsonl`;
+    expect(adapter.files.get(path)).toBe(serializeSessionFile(saved, false));
+    expect(adapter.files.has(`${SESSIONS_DIR}/abc.jsonl.md`)).toBe(false);
   });
 
-  it("writes new session files as timestamp_id.jsonl without a fence when format is jsonl", async () => {
+  it("writes new session files as timestamp_id.jsonl.md with a json fence when format is jsonl.md", async () => {
     const adapter = new MemoryAdapter();
-    const repository = new ObsidianSessionRepository(appWith(adapter), () => "jsonl");
+    const repository = new ObsidianSessionRepository(appWith(adapter), () => "jsonl.md");
     const saved = session("abc", "Hello");
 
     await repository.save(saved);
 
-    const path = `${SESSIONS_DIR}/2026-01-01T000000.000Z_abc.jsonl`;
-    expect(adapter.files.get(path)).toBe(serializeSessionFile(saved, false));
-    expect([...adapter.files.keys()].some((file) => file.endsWith(".jsonl.md"))).toBe(false);
+    const path = `${SESSIONS_DIR}/2026-01-01T000000.000Z_abc.jsonl.md`;
+    expect(adapter.files.get(path)).toBe(serializeSessionFile(saved, true));
+    expect([...adapter.files.keys()].some((file) => file.endsWith(".jsonl") && !file.endsWith(".jsonl.md"))).toBe(false);
   });
 
   it("loads timestamped .jsonl.md, id-only .jsonl.md, and legacy .json session files", async () => {
@@ -105,20 +105,20 @@ describe("ObsidianSessionRepository", () => {
     await expect(repository.load("json")).resolves.toMatchObject({ id: "json", title: "Legacy" });
   });
 
-  it("lists both extensions and prefers .jsonl.md when both exist", async () => {
+  it("lists both extensions and prefers .jsonl when both exist", async () => {
     const adapter = new MemoryAdapter();
     adapter.dirs.add(SESSIONS_DIR);
     adapter.files.set(`${SESSIONS_DIR}/both.json`, JSON.stringify(session("both", "Legacy"), null, 2));
     adapter.files.set(
-      `${SESSIONS_DIR}/2026-01-01T000000.000Z_both.jsonl.md`,
-      serializeSessionFile(session("both", "Markdown"), true),
+      `${SESSIONS_DIR}/2026-01-01T000000.000Z_both.jsonl`,
+      serializeSessionFile(session("both", "Plain"), false),
     );
     adapter.files.set(`${SESSIONS_DIR}/legacy.json`, JSON.stringify(session("legacy", "Only JSON"), null, 2));
     adapter.files.set(`${SESSIONS_DIR}/notes.md`, "not a session");
     const repository = new ObsidianSessionRepository(appWith(adapter));
 
     await expect(repository.list()).resolves.toEqual([
-      expect.objectContaining({ id: "both", title: "Markdown", firstQuery: "" }),
+      expect.objectContaining({ id: "both", title: "Plain", firstQuery: "" }),
       expect.objectContaining({ id: "legacy", title: "Only JSON", firstQuery: "" }),
     ]);
   });

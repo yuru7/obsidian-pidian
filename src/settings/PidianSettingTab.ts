@@ -924,8 +924,8 @@ export class PidianSettingTab extends PluginSettingTab {
       .setName(t("settingsSessionFileFormat"))
       .setDesc(t("settingsSessionFileFormatDesc"))
       .addDropdown((dropdown) => {
-        dropdown.addOption("jsonl.md", ".jsonl.md");
         dropdown.addOption("jsonl", ".jsonl");
+        dropdown.addOption("jsonl.md", ".jsonl.md");
         dropdown.setValue(this.plugin.settings.sessionFileFormat);
         dropdown.onChange(async (value) => {
           this.plugin.settings.sessionFileFormat = parseSessionFileFormat(value);

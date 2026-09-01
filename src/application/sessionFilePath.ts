@@ -7,7 +7,7 @@ export const PLAIN_SESSION_FILE_EXTENSION = ".jsonl";
 
 const SESSION_FILE_EXTENSIONS = [".jsonl.md", ".json.md", ".jsonl", ".json"] as const;
 
-export function sessionFileExtension(format: SessionFileFormat = "jsonl.md"): string {
+export function sessionFileExtension(format: SessionFileFormat = "jsonl"): string {
   return format === "jsonl" ? PLAIN_SESSION_FILE_EXTENSION : SESSION_FILE_EXTENSION;
 }
 
@@ -17,7 +17,7 @@ export function sessionFileTimestamp(createdAt: string): string {
 
 export function newSessionFilePath(
   session: { id: string; createdAt: string },
-  format: SessionFileFormat = "jsonl.md",
+  format: SessionFileFormat = "jsonl",
   pluginDirectory?: string,
 ): string {
   return `${sessionsDir(pluginDirectory)}/${sessionFileTimestamp(session.createdAt)}_${session.id}${sessionFileExtension(format)}`;

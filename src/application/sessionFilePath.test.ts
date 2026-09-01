@@ -8,17 +8,17 @@ import {
 } from "./sessionFilePath";
 
 describe("sessionFilePath", () => {
-  it("uses timestamp_id.jsonl.md for newly placed session files", () => {
-    expect(SESSION_FILE_EXTENSION).toBe(".jsonl.md");
+  it("uses timestamp_id.jsonl for newly placed session files", () => {
     expect(sessionFileTimestamp("2026-01-01T00:00:00.000Z")).toBe("2026-01-01T000000.000Z");
     expect(newSessionFilePath({ id: "abc", createdAt: "2026-01-01T00:00:00.000Z" })).toBe(
-      "pidian/sessions/2026-01-01T000000.000Z_abc.jsonl.md",
+      "pidian/sessions/2026-01-01T000000.000Z_abc.jsonl",
     );
   });
 
-  it("uses timestamp_id.jsonl when the jsonl format is selected", () => {
-    expect(newSessionFilePath({ id: "abc", createdAt: "2026-01-01T00:00:00.000Z" }, "jsonl")).toBe(
-      "pidian/sessions/2026-01-01T000000.000Z_abc.jsonl",
+  it("uses timestamp_id.jsonl.md when the jsonl.md format is selected", () => {
+    expect(SESSION_FILE_EXTENSION).toBe(".jsonl.md");
+    expect(newSessionFilePath({ id: "abc", createdAt: "2026-01-01T00:00:00.000Z" }, "jsonl.md")).toBe(
+      "pidian/sessions/2026-01-01T000000.000Z_abc.jsonl.md",
     );
   });
 

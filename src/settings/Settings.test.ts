@@ -87,12 +87,12 @@ describe("mergeSettings", () => {
     );
   });
 
-  it("defaults session files to jsonl.md and keeps jsonl when set", () => {
-    expect(mergeSettings({}).sessionFileFormat).toBe("jsonl.md");
-    expect(mergeSettings({ sessionFileFormat: "jsonl" }).sessionFileFormat).toBe("jsonl");
-    expect(mergeSettings({ sessionFileFormat: "json" }).sessionFileFormat).toBe("jsonl");
+  it("defaults session files to jsonl and keeps jsonl.md when set", () => {
+    expect(mergeSettings({}).sessionFileFormat).toBe("jsonl");
+    expect(mergeSettings({ sessionFileFormat: "jsonl.md" }).sessionFileFormat).toBe("jsonl.md");
     expect(mergeSettings({ sessionFileFormat: "json.md" }).sessionFileFormat).toBe("jsonl.md");
-    expect(mergeSettings({ sessionFileFormat: "nope" } as Record<string, unknown>).sessionFileFormat).toBe("jsonl.md");
+    expect(mergeSettings({ sessionFileFormat: "json" }).sessionFileFormat).toBe("jsonl");
+    expect(mergeSettings({ sessionFileFormat: "nope" } as Record<string, unknown>).sessionFileFormat).toBe("jsonl");
   });
 
   it("defaults the plugin directory to pidian and keeps a valid custom folder", () => {
