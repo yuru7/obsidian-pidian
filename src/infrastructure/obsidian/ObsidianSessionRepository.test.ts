@@ -118,8 +118,36 @@ describe("ObsidianSessionRepository", () => {
     const repository = new ObsidianSessionRepository(appWith(adapter));
 
     await expect(repository.list()).resolves.toEqual([
-      expect.objectContaining({ id: "both", title: "Markdown" }),
-      expect.objectContaining({ id: "legacy", title: "Only JSON" }),
+      expect.objectContaining({ id: "both", title: "Markdown", firstQuery: "" }),
+      expect.objectContaining({ id: "legacy", title: "Only JSON", firstQuery: "" }),
+    ]);
+  });
+
+  it("includes the first user query when listing sessions", async () => {
+    const adapter = new MemoryAdapter();
+    adapter.dirs.add(SESSIONS_DIR);
+    const saved: PidianSession = {
+      ...session("abc", "Short title"),
+      messages: [
+        {
+          id: "m1",
+          role: "user",
+          text: "A long first query\nwith multiple lines",
+          createdAt: "2026-01-01T00:00:00.000Z",
+        },
+      ],
+    };
+    adapter.files.set(`${SESSIONS_DIR}/2026-01-01T000000.000Z_abc.jsonl.md`, serializeSessionFile(saved, true));
+    const repository = new ObsidianSessionRepository(appWith(adapter));
+
+    await expect(repository.list()).resolves.toEqual([
+      expect.objectContaining({
+        id: "abc",
+        title: "Short title",
+        firstQuery: "A long first query\nwith multiple lines",
+        provider: "openai",
+        model: "gpt-5",
+      }),
     ]);
   });
 

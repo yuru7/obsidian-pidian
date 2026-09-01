@@ -186,6 +186,19 @@ export interface SessionSummary {
   updatedAt: string;
   model: string;
   provider: string;
+  /** First user message text. Empty when the session has no user messages yet. */
+  firstQuery: string;
+}
+
+export function toSessionSummary(session: PidianSession): SessionSummary {
+  return {
+    id: session.id,
+    title: session.title,
+    updatedAt: session.updatedAt,
+    model: session.model,
+    provider: session.provider,
+    firstQuery: session.messages.find((message) => message.role === "user")?.text ?? "",
+  };
 }
 
 export interface SessionRepository {

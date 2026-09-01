@@ -870,6 +870,58 @@
   padding: 8px;
 }
 
+.pidian-session-balloon {
+  position: fixed;
+  z-index: var(--layer-tooltip, 60);
+  box-sizing: border-box;
+  padding: 8px;
+  background: var(--background-secondary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--radius-s);
+  box-shadow: var(--shadow-s);
+  color: var(--text-normal);
+  font-size: var(--font-ui-small);
+  text-align: left;
+  white-space: normal;
+}
+
+.pidian-session-balloon::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 8px;
+}
+
+.pidian-session-balloon.is-left::before {
+  left: 100%;
+}
+
+.pidian-session-balloon.is-right::before {
+  right: 100%;
+}
+
+.pidian-session-balloon-query {
+  line-height: 1.5;
+  max-height: 9em;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.pidian-session-balloon-meta {
+  margin-top: 8px;
+  font-size: var(--font-ui-smaller);
+  color: var(--text-muted);
+  overflow-wrap: anywhere;
+}
+
+.pidian-session-balloon-model {
+  margin-top: 2px;
+}
+
 .pidian-favorite-toolbar {
   margin-bottom: 8px;
 }

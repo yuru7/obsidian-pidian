@@ -1,5 +1,5 @@
 import type { App } from "obsidian";
-import type { PidianSession, SessionRepository, SessionSummary } from "../../domain/sessions/PidianSession";
+import { toSessionSummary, type PidianSession, type SessionRepository, type SessionSummary } from "../../domain/sessions/PidianSession";
 import { getPluginDirectory, parsePluginDirectory, sessionsDir } from "../../application/notePath";
 import {
   isSessionFilePath,
@@ -43,13 +43,7 @@ export class ObsidianSessionRepository implements SessionRepository {
         const session = parseSessionFile(raw);
         const existing = byId.get(session.id);
         if (!existing || file.endsWith(sessionFileExtension(this.getSessionFileFormat()))) {
-          byId.set(session.id, {
-            id: session.id,
-            title: session.title,
-            updatedAt: session.updatedAt,
-            model: session.model,
-            provider: session.provider,
-          });
+          byId.set(session.id, toSessionSummary(session));
         }
       } catch {
         // Skip corrupt session files.
