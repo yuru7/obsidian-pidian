@@ -54,7 +54,7 @@ export const en = {
     ".jsonl.md files appear in Obsidian's built-in file explorer.",
   settingsAutoDelete: "Automatically delete old sessions",
   settingsAutoDeleteDesc:
-    "Off by default. When enabled, sessions older than the retention period are deleted on startup.",
+    "Sessions older than the retention period are deleted on startup.",
   settingsRetentionDays: "Retention days",
   settingsRetentionCustom: "Custom",
   settingsRetentionCustomDays: "Custom retention days",

@@ -55,7 +55,7 @@ export const ja: { [K in keyof typeof en]: string } = {
   settingsSessionFileFormatDesc:
     ".jsonl.md は Obsidian の内蔵エクスプローラーに表示されます。",
   settingsAutoDelete: "古いセッションを自動削除",
-  settingsAutoDeleteDesc: "初期値はオフです。オンにすると、保持期間より古いセッションを起動時に削除します。",
+  settingsAutoDeleteDesc: "保持期間より古いセッションを起動時に削除します。",
   settingsRetentionDays: "保持日数",
   settingsRetentionCustom: "カスタム",
   settingsRetentionCustomDays: "カスタム保持日数",
