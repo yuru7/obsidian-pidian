@@ -77,8 +77,8 @@
 }
 
 .pidian-view .pidian-send-button {
-  width: 28px;
-  height: 28px;
+  width: 26px;
+  height: 26px;
 }
 
 .pidian-view .pidian-icon-button {
@@ -569,10 +569,10 @@
 
 .pidian-view .pidian-message-edit-send {
   align-self: flex-end;
-  margin-top: 4px;
-  width: 20px;
-  height: 20px;
-  padding: 0;
+  margin-top: 6px;
+  width: 21px;
+  height: 21px;
+  padding: 0 0 0 2px;
   display: flex;
   align-items: center;
   justify-content: center;
