@@ -52,6 +52,13 @@ describe("mergeSettings", () => {
     expect("includeSelectionContext" in merged).toBe(false);
   });
 
+  it("defaults sendWithCtrlEnter to false and keeps true", () => {
+    expect(mergeSettings({}).sendWithCtrlEnter).toBe(false);
+    expect(mergeSettings({ sendWithCtrlEnter: true }).sendWithCtrlEnter).toBe(true);
+    expect(mergeSettings({ sendWithCtrlEnter: false }).sendWithCtrlEnter).toBe(false);
+    expect(mergeSettings({ sendWithCtrlEnter: "yes" } as Record<string, unknown>).sendWithCtrlEnter).toBe(false);
+  });
+
   it("defaults firecrawlApiKey to empty and keeps an explicit value", () => {
     expect(mergeSettings({}).firecrawlApiKey).toBe("");
     expect(mergeSettings({ firecrawlApiKey: "fc-test" }).firecrawlApiKey).toBe("fc-test");

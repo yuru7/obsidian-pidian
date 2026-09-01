@@ -46,6 +46,9 @@ export const en = {
   settingsPermissionAsk: "Ask every time",
   settingsPermissionDeny: "Deny",
   settingsOther: "Other",
+  settingsSendWithCtrlEnter: "Send with Ctrl+Enter",
+  settingsSendWithCtrlEnterDesc:
+    "Use Ctrl+Enter (Cmd+Enter on macOS) to send. Enter inserts a new line.",
   settingsPluginDirectory: "Plugin folder",
   settingsPluginDirectoryDesc:
     "Vault-relative folder for sessions and AGENTS.md. Existing files are not moved. Default: pidian",

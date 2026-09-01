@@ -1,6 +1,8 @@
+import { Scope } from "obsidian";
 import { useLayoutEffect, useRef, useState, type JSX } from "react";
 import { t } from "../i18n";
 import type PidianPlugin from "../main";
+import { shouldSendOnKeyDown } from "./composerSendKey";
 
 const MIN_ROWS = 2;
 const MAX_ROWS = 4;
@@ -46,6 +48,21 @@ export function Composer({
 }): JSX.Element {
   const [text, setText] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const textRef = useRef(text);
+  const sendRef = useRef<() => void>(() => undefined);
+  const sendWithCtrlEnter = plugin.settings.sendWithCtrlEnter;
+  textRef.current = text;
+
+  const send = () => {
+    const trimmed = textRef.current.trim();
+    if (!trimmed || disabled || streaming) {
+      return;
+    }
+    textRef.current = "";
+    setText("");
+    onSend(trimmed);
+  };
+  sendRef.current = send;
 
   useLayoutEffect(() => {
     const el = textareaRef.current;
@@ -66,14 +83,49 @@ export function Composer({
     return plugin.subscribeComposerFocus(tryFocus);
   }, [plugin, disabled]);
 
-  const send = () => {
-    const trimmed = text.trim();
-    if (!trimmed || disabled || streaming) {
+  // Obsidian's default Mod+Enter (toggle checkbox) is consumed by the app keymap
+  // before the textarea keydown. Push a child scope while the composer is focused.
+  useLayoutEffect(() => {
+    if (!sendWithCtrlEnter) {
       return;
     }
-    setText("");
-    onSend(trimmed);
-  };
+    const el = textareaRef.current;
+    if (!el) {
+      return;
+    }
+    const keymap = plugin.app.keymap;
+    const scope = new Scope(plugin.app.scope);
+    scope.register(["Mod"], "Enter", (event) => {
+      if (event.isComposing) {
+        return;
+      }
+      sendRef.current();
+      return false;
+    });
+    let pushed = false;
+    const push = (): void => {
+      if (!pushed) {
+        keymap.pushScope(scope);
+        pushed = true;
+      }
+    };
+    const pop = (): void => {
+      if (pushed) {
+        keymap.popScope(scope);
+        pushed = false;
+      }
+    };
+    el.addEventListener("focus", push);
+    el.addEventListener("blur", pop);
+    if (el.isActiveElement()) {
+      push();
+    }
+    return () => {
+      el.removeEventListener("focus", push);
+      el.removeEventListener("blur", pop);
+      pop();
+    };
+  }, [plugin, sendWithCtrlEnter]);
 
   return (
     <div className="pidian-composer">
@@ -87,7 +139,7 @@ export function Composer({
         onFocus={(event) => fitTextarea(event.currentTarget)}
         onChange={(event) => setText(event.target.value)}
         onKeyDown={(event) => {
-          if (event.key === "Enter" && !event.shiftKey) {
+          if (shouldSendOnKeyDown(event, sendWithCtrlEnter)) {
             event.preventDefault();
             send();
             return;

@@ -885,6 +885,16 @@ export class PidianSettingTab extends PluginSettingTab {
 
   private renderOther(containerEl: HTMLElement): void {
     new Setting(containerEl).setName(t("settingsOther")).setHeading();
+    new Setting(containerEl)
+      .setName(t("settingsSendWithCtrlEnter"))
+      .setDesc(t("settingsSendWithCtrlEnterDesc"))
+      .addToggle((toggle) => {
+        toggle.setValue(this.plugin.settings.sendWithCtrlEnter);
+        toggle.onChange(async (value) => {
+          this.plugin.settings.sendWithCtrlEnter = value;
+          await this.plugin.saveSettings();
+        });
+      });
     this.renderPluginDirectory(containerEl);
   }
 

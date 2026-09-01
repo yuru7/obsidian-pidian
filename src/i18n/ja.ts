@@ -48,6 +48,9 @@ export const ja: { [K in keyof typeof en]: string } = {
   settingsPermissionAsk: "毎回確認",
   settingsPermissionDeny: "拒否",
   settingsOther: "その他",
+  settingsSendWithCtrlEnter: "Ctrl+Enter で送信",
+  settingsSendWithCtrlEnterDesc:
+    "Ctrl+Enter（macOS では Cmd+Enter）で送信します。Enter は改行になります。",
   settingsPluginDirectory: "プラグイン用フォルダ",
   settingsPluginDirectoryDesc:
     "セッションと AGENTS.md を置く Vault 相対フォルダです。既存ファイルは移動しません。既定は pidian です。",
