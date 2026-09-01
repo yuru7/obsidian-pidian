@@ -93,6 +93,8 @@ export const en = {
 
   uiNotInitialized: "Pidian is not fully initialized. Check the developer console.",
   uiNewChat: "New chat",
+  uiOpenActiveSession: "Open session from the open session file",
+  uiSessionFileInvalid: "This session file could not be read because it is not a valid session.",
   uiNoActiveNote: "No active Markdown note",
   uiNoModel: "No model selected",
   uiThinkingLevel: "Thinking",

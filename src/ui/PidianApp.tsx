@@ -6,6 +6,7 @@ import { sumTokenUsage, type PidianMessage } from "../domain/sessions/PidianSess
 import { Chat, type ChatHandle } from "./Chat";
 import { Composer } from "./Composer";
 import { ModelSelector } from "./ModelSelector";
+import { OpenActiveSessionButton } from "./OpenActiveSessionButton";
 import { SessionSelector } from "./SessionSelector";
 import { Spinner } from "./Thinking";
 import { TokenUsageDisplay } from "./TokenUsageDisplay";
@@ -53,6 +54,7 @@ export function PidianApp({ plugin }: { plugin: PidianPlugin }): JSX.Element {
         <div className="pidian-header-row">
           <div className="pidian-title">Pidian</div>
           <div className="pidian-header-actions">
+            <OpenActiveSessionButton plugin={plugin} />
             <button
               type="button"
               className="pidian-icon-button"

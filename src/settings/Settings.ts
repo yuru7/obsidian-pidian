@@ -151,7 +151,7 @@ export const DEFAULT_SETTINGS: PidianSettings = {
     delete: "deny",
     webSearch: "deny",
   },
-  sessionFileFormat: "jsonl",
+  sessionFileFormat: "jsonl.md",
   pluginDirectory: DEFAULT_PLUGIN_DIRECTORY,
   autoDeleteSessions: false,
   retentionDays: 90,
@@ -161,7 +161,7 @@ export const DEFAULT_SETTINGS: PidianSettings = {
 };
 
 export function parseSessionFileFormat(value: unknown): SessionFileFormat {
-  return value === "jsonl.md" || value === "json.md" ? "jsonl.md" : "jsonl";
+  return value === "jsonl" || value === "json" ? "jsonl" : "jsonl.md";
 }
 
 function parseCustomProviders(raw: unknown): CustomOpenAIProvider[] {

@@ -32,6 +32,10 @@ describe("lookup", () => {
     expect(lookup("ja", "settingsTabSession")).toBe("セッション");
     expect(lookup("ja", "settingsThinkingLevel")).toBe("思考量");
     expect(lookup("en", "settingsThinkingLevel")).toBe("Thinking");
+    expect(lookup("ja", "uiNewChat")).toBe("新しいチャット");
+    expect(lookup("ja", "uiOpenActiveSession")).toBe("開いているセッションファイルからセッションを開く");
+    expect(lookup("en", "uiOpenActiveSession")).toBe("Open session from the open session file");
+    expect(lookup("ja", "uiSessionFileInvalid")).toBe("このセッションファイルは不正な形式のため読み取れません。");
   });
 
   it("interpolates placeholders", () => {

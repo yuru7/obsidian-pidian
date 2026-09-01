@@ -296,6 +296,23 @@ describe("AgentService.send", () => {
     expect(agent.getSession()?.messages[0]?.text).toBe("rewrite this");
   });
 
+  it("restores a parsed session without loading it by id", async () => {
+    const store = new MemoryRepository();
+    const engine = new CapturingEngine();
+    const agent = createService(store, engine);
+    await agent.newChat("openai", "gpt-5");
+    await agent.send("from disk");
+    const parsed = structuredClone(agent.getSession()!);
+    parsed.title = "Opened from file";
+
+    await agent.newChat("openai", "gpt-5");
+    await agent.restoreChat(parsed);
+
+    expect(agent.getSession()?.id).toBe(parsed.id);
+    expect(agent.getSession()?.title).toBe("Opened from file");
+    expect(engine.lastConversation?.messages[0]?.text).toContain("from disk");
+  });
+
   it("passes the compaction checkpoint when the agent session is recreated", async () => {
     const store = new MemoryRepository();
     const engine = new CapturingEngine();

@@ -119,21 +119,13 @@ export class AgentService {
     if (!loaded) {
       throw new Error(`Session not found: ${id}`);
     }
-    await this.disposeCurrent();
-    this.current = {
-      session: loaded,
-      unsubscribe: () => undefined,
-    };
-    this.error = undefined;
-    if (loaded.provider && loaded.model) {
-      try {
-        await this.ensureAgent();
-      } catch (error) {
-        this.error = error instanceof Error ? error.message : String(error);
-      }
-    }
-    this.notify();
+    await this.bindSession(loaded);
     return loaded;
+  }
+
+  async restoreChat(session: PidianSession): Promise<PidianSession> {
+    await this.bindSession(session);
+    return session;
   }
 
   async setModel(provider: string, model: string, thinkingLevel?: string): Promise<void> {
@@ -404,6 +396,23 @@ export class AgentService {
       throw new Error("No active chat session.");
     }
     return this.current.session;
+  }
+
+  private async bindSession(session: PidianSession): Promise<void> {
+    await this.disposeCurrent();
+    this.current = {
+      session,
+      unsubscribe: () => undefined,
+    };
+    this.error = undefined;
+    if (session.provider && session.model) {
+      try {
+        await this.ensureAgent();
+      } catch (error) {
+        this.error = error instanceof Error ? error.message : String(error);
+      }
+    }
+    this.notify();
   }
 
   private async disposeCurrent(): Promise<void> {

@@ -94,6 +94,8 @@ export const ja: { [K in keyof typeof en]: string } = {
 
   uiNotInitialized: "Pidian の初期化が完了していません。開発者コンソールを確認してください。",
   uiNewChat: "新しいチャット",
+  uiOpenActiveSession: "開いているセッションファイルからセッションを開く",
+  uiSessionFileInvalid: "このセッションファイルは不正な形式のため読み取れません。",
   uiNoActiveNote: "アクティブな Markdown ノートがありません",
   uiNoModel: "モデル未選択",
   uiThinkingLevel: "思考量",

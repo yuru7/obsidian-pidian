@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   isSessionFilePath,
+  isStoredSessionFile,
   newSessionFilePath,
   SESSION_FILE_EXTENSION,
   sessionFileTimestamp,
@@ -8,17 +9,17 @@ import {
 } from "./sessionFilePath";
 
 describe("sessionFilePath", () => {
-  it("uses timestamp_id.jsonl for newly placed session files", () => {
+  it("uses timestamp_id.jsonl.md for newly placed session files", () => {
     expect(sessionFileTimestamp("2026-01-01T00:00:00.000Z")).toBe("2026-01-01T000000.000Z");
     expect(newSessionFilePath({ id: "abc", createdAt: "2026-01-01T00:00:00.000Z" })).toBe(
-      "pidian/sessions/2026-01-01T000000.000Z_abc.jsonl",
+      "pidian/sessions/2026-01-01T000000.000Z_abc.jsonl.md",
     );
   });
 
-  it("uses timestamp_id.jsonl.md when the jsonl.md format is selected", () => {
+  it("uses timestamp_id.jsonl when the jsonl format is selected", () => {
     expect(SESSION_FILE_EXTENSION).toBe(".jsonl.md");
-    expect(newSessionFilePath({ id: "abc", createdAt: "2026-01-01T00:00:00.000Z" }, "jsonl.md")).toBe(
-      "pidian/sessions/2026-01-01T000000.000Z_abc.jsonl.md",
+    expect(newSessionFilePath({ id: "abc", createdAt: "2026-01-01T00:00:00.000Z" }, "jsonl")).toBe(
+      "pidian/sessions/2026-01-01T000000.000Z_abc.jsonl",
     );
   });
 
@@ -45,5 +46,14 @@ describe("sessionFilePath", () => {
     expect(sessionIdFromFilePath("pidian/sessions/abc.json.md")).toBe("abc");
     expect(sessionIdFromFilePath("pidian/sessions/abc.json")).toBe("abc");
     expect(sessionIdFromFilePath("pidian/sessions/notes.md")).toBeUndefined();
+  });
+
+  it("recognizes stored session files under the plugin sessions directory", () => {
+    expect(isStoredSessionFile("pidian/sessions/2026-01-01T000000.000Z_abc.jsonl.md")).toBe(true);
+    expect(isStoredSessionFile("pidian/sessions/abc.jsonl")).toBe(true);
+    expect(isStoredSessionFile("notes/abc.jsonl.md")).toBe(false);
+    expect(isStoredSessionFile("pidian/sessions/notes.md")).toBe(false);
+    expect(isStoredSessionFile("agent-data/sessions/abc.jsonl.md", "agent-data")).toBe(true);
+    expect(isStoredSessionFile("pidian/sessions/abc.jsonl.md", "agent-data")).toBe(false);
   });
 });

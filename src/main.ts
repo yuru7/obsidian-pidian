@@ -7,6 +7,7 @@ import { PermissionService } from "./application/PermissionService";
 import { ReadRevisionTracker } from "./application/ReadRevisionTracker";
 import { SessionCleanupService } from "./application/SessionCleanupService";
 import { SessionService } from "./application/SessionService";
+import { parseSessionFile } from "./application/sessionSerialization";
 import { connectionConfigFingerprint, reconcileModelSelection } from "./application/modelSelection";
 import { bindConfigDir, bindPluginDirectory } from "./application/notePath";
 import { isThinkingLevel } from "./domain/agent/thinkingLevel";
@@ -306,6 +307,14 @@ export default class PidianPlugin extends Plugin {
       const message = error instanceof Error ? error.message : String(error);
       new Notice(t("noticeError", { error: message }));
     }
+  }
+
+  async openSessionFile(path: string): Promise<void> {
+    if (!this.agentService) {
+      throw new Error(t("noticeNotInitialized"));
+    }
+    const raw = await this.app.vault.adapter.read(path);
+    await this.agentService.restoreChat(parseSessionFile(raw));
   }
 
   async changeModel(provider: string, model: string, thinkingLevel?: string): Promise<void> {

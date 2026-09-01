@@ -1,5 +1,5 @@
 import type { SessionFileFormat } from "../settings/Settings";
-import { sessionsDir } from "./notePath";
+import { normalizeNotePath, sessionsDir } from "./notePath";
 
 /** `.jsonl.md` so session files appear in Obsidian's file explorer. */
 export const SESSION_FILE_EXTENSION = ".jsonl.md";
@@ -7,7 +7,7 @@ export const PLAIN_SESSION_FILE_EXTENSION = ".jsonl";
 
 const SESSION_FILE_EXTENSIONS = [".jsonl.md", ".json.md", ".jsonl", ".json"] as const;
 
-export function sessionFileExtension(format: SessionFileFormat = "jsonl"): string {
+export function sessionFileExtension(format: SessionFileFormat = "jsonl.md"): string {
   return format === "jsonl" ? PLAIN_SESSION_FILE_EXTENSION : SESSION_FILE_EXTENSION;
 }
 
@@ -17,7 +17,7 @@ export function sessionFileTimestamp(createdAt: string): string {
 
 export function newSessionFilePath(
   session: { id: string; createdAt: string },
-  format: SessionFileFormat = "jsonl",
+  format: SessionFileFormat = "jsonl.md",
   pluginDirectory?: string,
 ): string {
   return `${sessionsDir(pluginDirectory)}/${sessionFileTimestamp(session.createdAt)}_${session.id}${sessionFileExtension(format)}`;
@@ -25,6 +25,16 @@ export function newSessionFilePath(
 
 export function isSessionFilePath(path: string): boolean {
   return sessionExtensionOf(path) !== undefined;
+}
+
+/** True when `path` is a session file stored under the plugin sessions directory. */
+export function isStoredSessionFile(path: string, pluginDirectory?: string): boolean {
+  const normalized = normalizeNotePath(path);
+  if (!isSessionFilePath(normalized)) {
+    return false;
+  }
+  const directory = sessionsDir(pluginDirectory);
+  return normalized.startsWith(`${directory}/`);
 }
 
 export function sessionIdFromFilePath(path: string): string | undefined {

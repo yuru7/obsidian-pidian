@@ -27,7 +27,7 @@ export class ObsidianSessionRepository implements SessionRepository {
 
   constructor(
     private readonly app: App,
-    private readonly getSessionFileFormat: () => SessionFileFormat = () => "jsonl",
+    private readonly getSessionFileFormat: () => SessionFileFormat = () => "jsonl.md",
     private readonly resolvePluginDirectory: () => string = getPluginDirectory,
   ) {}
 
