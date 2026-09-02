@@ -71,6 +71,22 @@ describe("OpenCode credentials", () => {
     }));
     expect(resolver.resolve("custom-1")).toEqual({ source: "settings", apiKey: "local-key" });
   });
+
+  it("treats a stored OAuth credential as configured", () => {
+    const resolver = createCredentialResolver(() => ({
+      ...DEFAULT_SETTINGS,
+      oauthCredentials: {
+        "openai-codex": {
+          type: "oauth",
+          access: "access",
+          refresh: "refresh",
+          expires: 1,
+        },
+      },
+    }));
+    expect(resolver.resolve("openai-codex")).toEqual({ source: "oauth" });
+    expect(resolver.hasCredential("openai-codex")).toBe(true);
+  });
 });
 
 describe("pidianSystemPrompt", () => {

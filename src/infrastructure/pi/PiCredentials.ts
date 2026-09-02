@@ -81,6 +81,10 @@ export function createCredentialResolver(getSettings: () => PidianSettings): Cre
       }
       return settings.customProviders.find((item) => item.id === providerId)?.apiKey;
     },
+    getOAuth: (providerId) => {
+      const credential = getSettings().oauthCredentials[providerId];
+      return credential?.type === "oauth";
+    },
     getEnv: (providerId) => {
       if (getSettings().customProviders.some((item) => item.id === providerId)) {
         return undefined;

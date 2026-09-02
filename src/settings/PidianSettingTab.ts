@@ -7,6 +7,8 @@ import type { Permission } from "../domain/permissions/Permission";
 import { DEFAULT_PLUGIN_DIRECTORY, agentsFilePath, isValidPluginDirectory, normalizeNotePath } from "../application/notePath";
 import { listKnownCredentialProviders } from "../infrastructure/pi/PiCredentials";
 import { ObsidianWorkspaceNavigator } from "../infrastructure/obsidian/ObsidianWorkspaceNavigator";
+import { isSubscriptionLoginAbort, ObsidianSubscriptionLoginModal } from "../infrastructure/obsidian/ObsidianSubscriptionLoginModal";
+import { ENABLED_SUBSCRIPTION_PROVIDERS } from "../application/subscriptionProviders";
 import { addFavorite, moveFavorite, removeFavoriteById, type ModelFavorite } from "./modelFavorites";
 import { parseExtraRequestBody } from "../infrastructure/pi/customRequestBody";
 import {
@@ -534,9 +536,83 @@ export class PidianSettingTab extends PluginSettingTab {
   }
 
   private renderApiAuth(containerEl: HTMLElement): void {
+    this.renderSubscriptions(containerEl);
     this.renderCredentials(containerEl, this.fallbackProviders());
     this.renderFirecrawl(containerEl);
     this.renderCustomProviders(containerEl);
+  }
+
+  private renderSubscriptions(containerEl: HTMLElement): void {
+    const providers = ENABLED_SUBSCRIPTION_PROVIDERS;
+    if (providers.length === 0) {
+      return;
+    }
+    new Setting(containerEl).setName(t("settingsSubscriptions")).setHeading();
+    for (const provider of providers) {
+      this.renderSubscriptionRow(containerEl, provider);
+    }
+  }
+
+  private renderSubscriptionRow(containerEl: HTMLElement, provider: { id: string; name: string }): void {
+    const loggedIn = Boolean(this.plugin.settings.oauthCredentials[provider.id]);
+    new Setting(containerEl)
+      .setName(provider.name)
+      .setDesc(loggedIn ? t("settingsSubscriptionLoggedIn") : t("settingsSubscriptionLoggedOut"))
+      .addButton((button) => {
+        if (loggedIn) {
+          button.setButtonText(t("settingsSubscriptionLogout")).onClick(() => {
+            void this.logoutSubscription(provider);
+          });
+          return;
+        }
+        button
+          .setButtonText(t("settingsSubscriptionLogin"))
+          .setCta()
+          .onClick(() => {
+            void this.loginSubscription(provider);
+          });
+      });
+  }
+
+  private async loginSubscription(provider: { id: string; name: string }): Promise<void> {
+    const auth = this.plugin.subscriptionAuth;
+    if (!auth) {
+      new Notice(t("noticeNotInitialized"));
+      return;
+    }
+    const modal = new ObsidianSubscriptionLoginModal(this.app);
+    modal.open();
+    try {
+      await auth.login(provider.id, modal);
+      modal.finishSuccess();
+      await this.plugin.saveSettings();
+      this.refreshSettings();
+      new Notice(t("settingsSubscriptionLoginDone", { name: provider.name }));
+    } catch (error) {
+      modal.finishSuccess();
+      if (isSubscriptionLoginAbort(error)) {
+        return;
+      }
+      const message = error instanceof Error ? error.message : String(error);
+      new Notice(t("settingsSubscriptionLoginFailed", { error: message }));
+    }
+  }
+
+  private async logoutSubscription(provider: { id: string; name: string }): Promise<void> {
+    const auth = this.plugin.subscriptionAuth;
+    if (!auth) {
+      new Notice(t("noticeNotInitialized"));
+      return;
+    }
+    try {
+      await auth.logout(provider.id);
+      await this.plugin.saveSettings();
+      this.refreshSettings();
+      new Notice(t("settingsSubscriptionLogoutDone", { name: provider.name }));
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      new Notice(t("noticeError", { error: message }));
+    }
   }
 
   private renderFirecrawl(containerEl: HTMLElement): void {
@@ -810,9 +886,11 @@ export class PidianSettingTab extends PluginSettingTab {
   }
 
   private renderCredentials(containerEl: HTMLElement, providers: CatalogProvider[]): void {
-    containerEl.createEl("p", {
-      text: t("settingsCredentialsHelp"),
-    });
+    new Setting(containerEl)
+      .setClass("pidian-settings-section")
+      .setName(t("settingsApiKeys"))
+      .setDesc(t("settingsCredentialsHelp"))
+      .setHeading();
     for (const provider of sortProviders(providers.filter((item) => !item.isCustom))) {
       const envNames = provider.envVarNames;
       const usedEnvName = envNames.find((name) => Boolean(process.env[name]?.trim()));

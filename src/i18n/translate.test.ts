@@ -29,6 +29,12 @@ describe("lookup", () => {
     expect(lookup("ja", "settingsTabFavorites")).toBe("お気に入り");
     expect(lookup("ja", "settingsTabPermissions")).toBe("権限");
     expect(lookup("ja", "settingsTabApiAuth")).toBe("API認証");
+    expect(lookup("ja", "settingsSubscriptions")).toBe("サブスクリプション");
+    expect(lookup("en", "settingsSubscriptions")).toBe("Subscriptions");
+    expect(lookup("ja", "settingsApiKeys")).toBe("API キー設定");
+    expect(lookup("en", "settingsApiKeys")).toBe("API keys");
+    expect(lookup("ja", "settingsSubscriptionLoggedOut")).toBe("未ログイン");
+    expect(lookup("ja", "settingsSubscriptionLoggedIn")).toBe("ログイン済み");
     expect(lookup("ja", "settingsTabSession")).toBe("セッション");
     expect(lookup("ja", "settingsThinkingLevel")).toBe("思考量");
     expect(lookup("en", "settingsThinkingLevel")).toBe("Thinking");

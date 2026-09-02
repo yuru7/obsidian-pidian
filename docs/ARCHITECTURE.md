@@ -290,13 +290,15 @@ interface PidianSession {
 
 ## 認証とモデル
 
-優先順位: **Pidian 設定の API キー > 環境変数**。`~/.pi/agent/auth.json` は読まない（`InMemoryCredentialStore`）。
+優先順位: **Pidian 設定の API キー > プラグイン data の OAuth > 環境変数**。`~/.pi/agent/auth.json` は読まない（`PidianCredentialStore` → `InMemoryCredentialStore`）。
 
 - 既知プロバイダの env 名は `src/infrastructure/pi/PiCredentials.ts` の `PROVIDER_ENV_VARS`。本体にプロバイダ分岐を足さない。
+- サブスク OAuth は `src/application/subscriptionProviders.ts` の `ENABLED_SUBSCRIPTION_PROVIDERS` が唯一の有効化リスト。いまは `openai-codex` だけ。足すときはこの配列に id と表示名を足す。ログイン実装は Pi の `ModelRuntime.login("oauth")` に任せ、プロバイダ専用フローを本体に書かない。`browser` 選択肢があればそれを選ぶ。Pi の OAuth 本体は `registerBundledOAuth.ts` で静的登録する（動的 `import("./openai-codex.js")` は Obsidian では失敗する）。
+- トークンは `Settings.oauthCredentials`（Plugin.saveData）。Pi の refresh は Store の `modify` 経由で同じ場所へ書き戻す。
+- 実行時キーは `setRuntimeApiKey`。OAuth だけのプロバイダには上書きをかけない（`credentialRuntimePlan`）。
 - Custom OpenAI Compatible は Settings の `customProviders`。`ModelRuntime.registerProvider`（api: `openai-completions`）。env は使わない。各モデルの `supportsImages`（既定オフ）が true のときだけ Pi の `input` を `["text", "image"]` にする。カタログモデルは Pi の `model.input` を使う。どちらも `CatalogModel.supportsImages` に載せ、UI のモデル選択が Vision 対応アイコンを出す。
-- 実行時キーは `setRuntimeApiKey`。
 - モデル一覧は `PiModelCatalog`。動的カタログは `{plugin install dir}/dynamicModels.json`。無い、または 1 日以上古いときだけ `runtime.refresh({ allowNetwork: true, force: true })`。
-- 接続設定（キー・custom provider・Vision フラグ）が変わったら `AgentService.reloadModel()`。削除された provider は `reconcileModelSelection` で落とす。
+- 接続設定（キー・OAuth の有無・custom provider・Vision フラグ）が変わったら `AgentService.reloadModel()`。削除された provider は `reconcileModelSelection` で落とす。
 - thinking は `src/domain/agent/thinkingLevel.ts`。モデルが支持する集合へ clamp する。
 
 ---
@@ -307,7 +309,8 @@ Pi を Obsidian の eval 環境で動かすための隔離が `src/infrastructur
 
 | ファイル | 役割 |
 | --- | --- |
-| `PiAgentAdapter.ts` | `AgentEngine` 実装。`SessionManager.inMemory()`、再開時は会話を SessionManager に載せる。`noTools: "builtin"` |
+| `PiAgentAdapter.ts` | `AgentEngine` + `SubscriptionAuth` 実装。`SessionManager.inMemory()`、再開時は会話を SessionManager に載せる。`noTools: "builtin"` |
+| `registerBundledOAuth.ts` | Pi の OAuth を静的登録。Obsidian は `import("./openai-codex.js")` を `app://obsidian.md/` から取れない |
 | `piCodingAgentSdk.ts` | パッケージ barrel の代わり。CLI / self-update をバンドルに入れない |
 | `PiEventMapper.ts` | Pi イベント → `AgentEvent` |
 | `PiToolAdapter.ts` | `PidianTool` → `defineTool`。`read_image` のバイトは image ブロックにし、セッションへは出さない。非 Vision なら image ブロックを付けない |
@@ -392,6 +395,7 @@ UI は `AgentService` と `plugin.settings` を読む。Pi 型を import しな�
 `CONTRIBUTING.md` と同じ。特に次を壊さない:
 
 - `CredentialResolver`
+- サブスク OAuth の Store / `ENABLED_SUBSCRIPTION_PROVIDERS`
 - `PermissionService`
 - `ContextService`
 - `SessionCleanupService` / `sessionSerialization` / migration / compaction checkpoint
@@ -418,6 +422,7 @@ UI は `AgentService` と `plugin.settings` を読む。Pi 型を import しな�
 | チャットのノートリンク | `Markdown.tsx`, `chatNoteLink.ts`, `ObsidianWorkspaceNavigator` | `openLinkText` のデフォルト、`instanceof MarkdownView` でのタブ検索 |
 | システム指示 | `pidianSystemPrompt`, Vault `AGENTS.md` | Pi のデフォルト AGENTS 探索（fs stub で止めてある） |
 | CORS / LLM HTTP | `corsFreeFetch`, `customRequestBody` | レンダラの `fetch` に戻す |
+| サブスク OAuth | `subscriptionProviders.ts`, `PidianCredentialStore`, `subscriptionLogin.ts`, Settings API認証 | `~/.pi/agent/auth.json`、プロバイダ専用ログインの本体実装 |
 | JS 描画ページの取得 | `BrowserFetcher`, `FetchOrchestrator` | ページ本文を Firecrawl 等へ送る |
 | バンドル審査 | `esbuild.config.mjs` の stub と `FORBIDDEN_BUNDLE_PATTERNS` | Pi barrel の直接 import |
 

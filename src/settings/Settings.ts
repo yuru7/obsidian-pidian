@@ -126,11 +126,20 @@ export function fillModelSettingNameFromId(model: CustomProviderModel, previousM
 
 export type SessionFileFormat = "jsonl" | "jsonl.md";
 
+export interface StoredOAuthCredential {
+  type: "oauth";
+  access: string;
+  refresh: string;
+  expires: number;
+  [key: string]: unknown;
+}
+
 export interface PidianSettings {
   provider: string;
   model: string;
   thinkingLevel: ThinkingLevel;
   apiKeys: Record<string, string>;
+  oauthCredentials: Record<string, StoredOAuthCredential>;
   customProviders: CustomOpenAIProvider[];
   permissions: PermissionSettings;
   sessionFileFormat: SessionFileFormat;
@@ -149,6 +158,7 @@ export const DEFAULT_SETTINGS: PidianSettings = {
   model: "gpt-5",
   thinkingLevel: DEFAULT_THINKING_LEVEL,
   apiKeys: {},
+  oauthCredentials: {},
   customProviders: [],
   permissions: {
     read: "allow",
@@ -267,6 +277,40 @@ function parsePositiveInt(raw: unknown, fallback: number): number {
   return typeof raw === "number" && Number.isInteger(raw) && raw > 0 ? raw : fallback;
 }
 
+function parseOAuthCredentials(raw: unknown): Record<string, StoredOAuthCredential> {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
+    return {};
+  }
+  const parsed: Record<string, StoredOAuthCredential> = {};
+  for (const [providerId, value] of Object.entries(raw as Record<string, unknown>)) {
+    const credential = parseOAuthCredential(value);
+    if (credential) {
+      parsed[providerId] = credential;
+    }
+  }
+  return parsed;
+}
+
+export function parseOAuthCredential(raw: unknown): StoredOAuthCredential | null {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
+    return null;
+  }
+  const item = raw as Record<string, unknown>;
+  if (item.type !== "oauth") {
+    return null;
+  }
+  if (typeof item.access !== "string" || !item.access.trim()) {
+    return null;
+  }
+  if (typeof item.refresh !== "string" || !item.refresh.trim()) {
+    return null;
+  }
+  if (typeof item.expires !== "number" || !Number.isFinite(item.expires)) {
+    return null;
+  }
+  return { ...item, type: "oauth", access: item.access, refresh: item.refresh, expires: item.expires };
+}
+
 export function mergeSettings(raw: unknown): PidianSettings {
   const rawObject = raw && typeof raw === "object" ? { ...(raw as Record<string, unknown>) } : {};
   delete rawObject.maxEditableNotes;
@@ -276,6 +320,7 @@ export function mergeSettings(raw: unknown): PidianSettings {
     ...DEFAULT_SETTINGS,
     ...input,
     apiKeys: { ...DEFAULT_SETTINGS.apiKeys, ...(input.apiKeys ?? {}) },
+    oauthCredentials: parseOAuthCredentials(input.oauthCredentials),
     customProviders: parseCustomProviders(input.customProviders),
     sessionFileFormat: parseSessionFileFormat(input.sessionFileFormat),
     pluginDirectory: parsePluginDirectory(input.pluginDirectory),

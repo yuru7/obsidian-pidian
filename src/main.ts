@@ -10,7 +10,9 @@ import { SessionService } from "./application/SessionService";
 import { parseSessionFile } from "./application/sessionSerialization";
 import { connectionConfigFingerprint, reconcileModelSelection } from "./application/modelSelection";
 import { bindConfigDir, bindPluginDirectory } from "./application/notePath";
+import { subscriptionProviderIds } from "./application/subscriptionProviders";
 import { isThinkingLevel } from "./domain/agent/thinkingLevel";
+import type { SubscriptionAuth } from "./domain/agent/SubscriptionAuth";
 import { corsFreeFetch } from "./infrastructure/pi/corsFreeFetch";
 import {
   createDynamicModelsFile,
@@ -43,6 +45,7 @@ export default class PidianPlugin extends Plugin {
   sessionService?: SessionService;
   modelCatalog?: PiModelCatalog;
   credentials?: CredentialResolver;
+  subscriptionAuth?: SubscriptionAuth;
   private readonly editorContextListeners = new Set<() => void>();
   private readonly settingsListeners = new Set<() => void>();
   private readonly composerFocusListeners = new Set<() => boolean>();
@@ -203,10 +206,17 @@ export default class PidianPlugin extends Plugin {
     const adapter = new PiAgentAdapter({
       credentials,
       getCustomProviders: () => this.settings.customProviders,
+      getOAuthCredentials: () => this.settings.oauthCredentials,
+      persistOAuthCredentials: async (next) => {
+        this.settings.oauthCredentials = next;
+        await this.saveData(this.settings);
+        this.notifySettings();
+      },
       readAgentsFile: () => new ObsidianInstructionReader(this.app).read(),
       modelsStore: new DynamicModelsStore(dynamicModelsFile),
       shouldRefreshDynamicCatalog: async () => shouldRefreshDynamicModels(await dynamicModelsFile.mtimeMs()),
     });
+    this.subscriptionAuth = adapter;
     this.modelCatalog = new PiModelCatalog(
       () => adapter.getRuntime(),
       () => this.settings.customProviders,
@@ -378,7 +388,10 @@ export default class PidianPlugin extends Plugin {
   }
 
   private async syncActiveSession(connectionChanged: boolean): Promise<void> {
-    const known = new Set(listKnownCredentialProviders().map((item) => item.id));
+    const known = new Set([
+      ...listKnownCredentialProviders().map((item) => item.id),
+      ...subscriptionProviderIds(),
+    ]);
     const nextSettings = reconcileModelSelection(
       { provider: this.settings.provider, model: this.settings.model },
       this.settings.customProviders,

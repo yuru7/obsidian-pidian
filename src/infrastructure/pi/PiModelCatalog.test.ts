@@ -93,6 +93,19 @@ describe("PiModelCatalog.listProviders", () => {
     expect(listed).toEqual([]);
   });
 
+  it("lists a subscription provider when OAuth is stored", async () => {
+    const listed = await catalog({
+      providerIds: ["openai-codex"],
+      credentials: createCredentialResolver(() => ({
+        ...DEFAULT_SETTINGS,
+        oauthCredentials: {
+          "openai-codex": { type: "oauth", access: "a", refresh: "r", expires: 1 },
+        },
+      })),
+    }).listProviders();
+    expect(listed.map((provider) => provider.id)).toEqual(["openai-codex"]);
+  });
+
   it("includes a configured custom provider even without an API key", async () => {
     const custom: CustomOpenAIProvider[] = [
       customProvider("ollama", "Ollama", ["llama"]),

@@ -57,7 +57,8 @@ Pi から Obsidian へ直接アクセスする経路は作りません。
 - `noTools: "builtin"` で Pi 標準ツールを無効化
 - Pidian Tool だけを `customTools` として渡す
 - Pi の session ファイルは使わず `SessionManager.inMemory()`
-- API キーは `setRuntimeApiKey` で runtime override する（Pidian 設定 → 環境変数 → Pi 既定）
+- API キーは `setRuntimeApiKey` で runtime override する（Pidian 設定 → OAuth → 環境変数）。`~/.pi/agent/auth.json` は読まない
+- サブスク OAuth は `ENABLED_SUBSCRIPTION_PROVIDERS`（いまは OpenAI Codex）と `ModelRuntime.login`。トークンは plugin data
 - 起動時に `{manifest.dir}/dynamicModels.json` が無い、または更新から1日以上経っているときだけ `runtime.refresh({ allowNetwork: true, force: true })` する。新しいときはキャッシュから復元する
 
 ## Obsidian Tool architecture

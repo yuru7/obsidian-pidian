@@ -80,6 +80,25 @@ describe("connectionConfigFingerprint", () => {
     expect(connectionConfigFingerprint(base)).not.toBe(connectionConfigFingerprint({ ...base, apiKeys: { openai: "sk" } }));
   });
 
+  it("changes when a subscription is logged in, not when the token rotates", () => {
+    const base = { apiKeys: {}, customProviders: [ollama], oauthCredentials: {} };
+    const loggedIn = {
+      ...base,
+      oauthCredentials: {
+        "openai-codex": { type: "oauth" as const, access: "a", refresh: "r", expires: 1 },
+      },
+    };
+    expect(connectionConfigFingerprint(base)).not.toBe(connectionConfigFingerprint(loggedIn));
+    expect(connectionConfigFingerprint(loggedIn)).toBe(
+      connectionConfigFingerprint({
+        ...base,
+        oauthCredentials: {
+          "openai-codex": { type: "oauth" as const, access: "rotated", refresh: "new", expires: 99 },
+        },
+      }),
+    );
+  });
+
   it("changes when a custom model vision flag changes", () => {
     const base = { apiKeys: {}, customProviders: [ollama] };
     const withVision = {

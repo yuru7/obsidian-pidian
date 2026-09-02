@@ -5,43 +5,92 @@ import {
   SettingsManager,
   type ResourceLoader,
 } from "@earendil-works/pi-coding-agent";
-import { clampThinkingLevel, InMemoryCredentialStore } from "@earendil-works/pi-ai";
+import { clampThinkingLevel } from "@earendil-works/pi-ai";
 import type { ModelsStore } from "@earendil-works/pi-ai";
 import type { AgentEngine, AgentSessionOptions } from "../../domain/agent/AgentEngine";
 import type { AgentEventListener } from "../../domain/agent/AgentEvent";
 import type { AgentPrompt, AgentSession } from "../../domain/agent/AgentSession";
+import type {
+  SubscriptionAuth,
+  SubscriptionLoginInteraction,
+  SubscriptionProvider,
+} from "../../domain/agent/SubscriptionAuth";
 import { isThinkingLevel } from "../../domain/agent/thinkingLevel";
 import {
   customModelDisplayName,
   customProviderModels,
   isConfiguredCustomProvider,
   type CustomOpenAIProvider,
+  type StoredOAuthCredential,
 } from "../../settings/Settings";
-import { CredentialResolver } from "../../application/CredentialResolver";
+import { CredentialResolver, credentialRuntimePlan } from "../../application/CredentialResolver";
+import {
+  ENABLED_SUBSCRIPTION_PROVIDERS,
+  isEnabledSubscriptionProvider,
+} from "../../application/subscriptionProviders";
 import { injectCorsFreeFetch, withCorsFreeFetch } from "./corsFreeFetch";
 import { createCustomRequestBodyFetch } from "./customRequestBody";
+import { PidianCredentialStore } from "./PidianCredentialStore";
 import { PidianResourceLoader } from "./PidianResourceLoader";
 import { normalizeAgentsContent, pidianAgentsFiles } from "./pidianAgentsFiles";
 import { pidianSystemPrompt } from "./PiCredentials";
 import { mapPiCompactionEvent, mapPiEvent } from "./PiEventMapper";
 import { hydratePiSession } from "./piSessionHydration";
 import { toPiTools } from "./PiToolAdapter";
+import { toPiAuthInteraction } from "./subscriptionLogin";
 import { modelSupportsImages, toolsVisibleToModel } from "./visionModel";
+import "./registerBundledOAuth";
 
 const MODEL_CATALOG_REFRESH_TIMEOUT_MS = 15_000;
 
 export interface PiAgentAdapterOptions {
   credentials: CredentialResolver;
   getCustomProviders: () => CustomOpenAIProvider[];
+  getOAuthCredentials: () => Record<string, StoredOAuthCredential>;
+  persistOAuthCredentials: (next: Record<string, StoredOAuthCredential>) => Promise<void>;
   readAgentsFile: () => Promise<string | undefined>;
   modelsStore?: ModelsStore;
   shouldRefreshDynamicCatalog?: () => Promise<boolean>;
 }
 
-export class PiAgentAdapter implements AgentEngine {
+export class PiAgentAdapter implements AgentEngine, SubscriptionAuth {
   private runtimePromise?: Promise<ModelRuntime>;
+  private readonly credentialStore: PidianCredentialStore;
 
-  constructor(private readonly options: PiAgentAdapterOptions) {}
+  constructor(private readonly options: PiAgentAdapterOptions) {
+    this.credentialStore = new PidianCredentialStore({
+      load: options.getOAuthCredentials,
+      persist: options.persistOAuthCredentials,
+    });
+  }
+
+  listEnabled(): readonly SubscriptionProvider[] {
+    return ENABLED_SUBSCRIPTION_PROVIDERS;
+  }
+
+  hasSession(providerId: string): boolean {
+    return Boolean(this.options.getOAuthCredentials()[providerId]);
+  }
+
+  async login(providerId: string, interaction: SubscriptionLoginInteraction): Promise<void> {
+    if (!isEnabledSubscriptionProvider(providerId)) {
+      throw new Error(`Subscription login is not enabled for ${providerId}`);
+    }
+    const runtime = await this.getRuntime();
+    await this.applyCredentials(runtime);
+    await withCorsFreeFetch(
+      () => runtime.login(providerId, "oauth", toPiAuthInteraction(interaction)),
+      createCustomRequestBodyFetch(this.options.getCustomProviders),
+    );
+  }
+
+  async logout(providerId: string): Promise<void> {
+    if (!isEnabledSubscriptionProvider(providerId)) {
+      throw new Error(`Subscription login is not enabled for ${providerId}`);
+    }
+    const runtime = await this.getRuntime();
+    await runtime.logout(providerId);
+  }
 
   getRuntime(): Promise<ModelRuntime> {
     if (!this.runtimePromise) {
@@ -56,8 +105,8 @@ export class PiAgentAdapter implements AgentEngine {
       await ModelRuntime.create({
         modelsPath: null,
         modelsStore: this.options.modelsStore,
-        // Do not read ~/.pi/agent/auth.json. Keys come from settings and env.
-        credentials: new InMemoryCredentialStore(),
+        // Do not read ~/.pi/agent/auth.json. Keys and OAuth stay in plugin data.
+        credentials: this.credentialStore,
         allowModelNetwork: false,
         refreshOnCreate: false,
       }),
@@ -146,16 +195,16 @@ export class PiAgentAdapter implements AgentEngine {
     for (const providerId of providerIds) {
       const resolved = this.options.credentials.resolve(providerId);
       const custom = customById.get(providerId);
-      if (resolved.source === "none" && !custom) {
-        try {
-          await runtime.removeRuntimeApiKey(providerId);
-        } catch {
-          // Provider may not support runtime keys.
-        }
+      const plan = credentialRuntimePlan(resolved, custom ? customApiKey(custom) : undefined);
+      if (plan.action === "set") {
+        await runtime.setRuntimeApiKey(providerId, plan.apiKey);
         continue;
       }
-      const apiKey = resolved.source === "none" ? customApiKey(custom) : resolved.apiKey;
-      await runtime.setRuntimeApiKey(providerId, apiKey);
+      try {
+        await runtime.removeRuntimeApiKey(providerId);
+      } catch {
+        // Provider may not support runtime keys. OAuth stays in the credential store.
+      }
     }
   }
 
@@ -194,7 +243,7 @@ class PiWrappedSession implements AgentSession {
   constructor(private readonly session: PiSession) {}
 
   async prompt(request: AgentPrompt): Promise<void> {
-    await this.session.prompt(request.text, { expandPromptTemplates: false });
+    await withCorsFreeFetch(() => this.session.prompt(request.text, { expandPromptTemplates: false }));
     const errorMessage = this.session.agent.state.errorMessage;
     if (errorMessage) {
       throw new Error(errorMessage);

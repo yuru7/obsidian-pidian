@@ -1471,6 +1471,10 @@ button.pidian-settings-tab.is-active {
   border-top: 1px solid var(--background-modifier-border);
 }
 
+.setting-item-heading.pidian-settings-section .setting-item-description {
+  font-size: var(--font-ui-small);
+}
+
 .pidian-settings-model-select {
   position: relative;
 }
@@ -1574,4 +1578,84 @@ button.pidian-settings-model-menu-item:hover {
   margin-top: 24px;
   padding-top: 8px;
   border-top: 1px solid var(--background-modifier-border);
+}
+
+.modal.pidian-login-modal {
+  width: min(42rem, 92vw);
+}
+
+.modal.pidian-login-modal,
+.modal.pidian-login-modal .modal-title,
+.modal.pidian-login-modal .modal-content {
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+.pidian-login-modal .modal-content {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.pidian-login-status,
+.pidian-login-paste-label {
+  margin: 0;
+}
+
+.pidian-login-detail,
+.pidian-login-prompt,
+.pidian-login-paste {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.pidian-login-url {
+  display: block;
+  width: 100%;
+  overflow-wrap: anywhere;
+  word-break: break-all;
+}
+
+.pidian-login-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-start;
+  gap: 8px;
+}
+
+.pidian-login-paste-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.pidian-login-paste-row input {
+  flex: 1 1 16rem;
+  min-width: 0;
+}
+
+.pidian-login-footer {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 4px;
+}
+
+.pidian-login-code-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.pidian-login-code-label {
+  color: var(--text-muted);
+}
+
+.pidian-login-code {
+  font-size: var(--font-ui-medium);
+  font-weight: var(--font-semibold, 600);
+  letter-spacing: 0.06em;
 }

@@ -6,10 +6,12 @@ import {
 
 export function connectionConfigFingerprint(settings: {
   apiKeys: Record<string, string>;
+  oauthCredentials?: Record<string, unknown>;
   customProviders: CustomOpenAIProvider[];
 }): string {
   return JSON.stringify({
     apiKeys: settings.apiKeys,
+    oauthProviders: Object.keys(settings.oauthCredentials ?? {}).sort(),
     customProviders: settings.customProviders.map((provider) => ({
       id: provider.id,
       baseUrl: provider.baseUrl.trim(),

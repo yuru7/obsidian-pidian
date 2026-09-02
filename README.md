@@ -30,11 +30,11 @@ To build from source, see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 When you enable the plugin, the Pidian sidebar opens on the right. After you close it, reopen it from the left ribbon, or from the command palette with **Open Pidian**.
 
-1. Go to Settings → Pidian → **API credentials** and enter an API key for the service you use
+1. Go to Settings → Pidian → **API credentials**. Sign in under **Subscriptions** for ChatGPT Plus/Pro (Codex), or enter an API key for the service you use
 2. Choose a provider and model under **General**, or at the bottom of the sidebar
 3. With a note or other vault file open, type a message in the sidebar
 
-If you leave the API key blank, Pidian uses environment variables.
+If you leave the API key blank, Pidian uses environment variables. ChatGPT Plus or Pro can sign in from **Subscriptions** instead of an API key.
 
 Start a new conversation with **New chat** in the sidebar, or with the **New Pidian chat** command.
 
@@ -84,8 +84,9 @@ API keys are stored in Obsidian plugin data.
 
 Priority, from highest to lowest:
 
-1. Pidian settings
-2. Environment variables
+1. Pidian settings API key
+2. Subscription sign-in (ChatGPT Plus/Pro Codex)
+3. Environment variables
 
 Example environment variables:
 

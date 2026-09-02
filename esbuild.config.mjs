@@ -94,6 +94,8 @@ const obsidianCompatPlugin = {
         "import(__rewriteRelativeImportExtension(",
         "__pidianDynImport(__rewriteRelativeImportExtension(",
       );
+      contents = contents.replaceAll('import("node:', '__pidianDynImport("node:');
+      contents = contents.replaceAll("import('node:", "__pidianDynImport('node:");
       return { contents, loader: "js" };
     });
 

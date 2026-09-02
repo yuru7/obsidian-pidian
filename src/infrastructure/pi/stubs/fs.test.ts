@@ -34,8 +34,19 @@ describe("fs stub", () => {
 });
 
 describe("Pi keeps credentials off the home directory", () => {
-  it("creates the model runtime with in-memory auth storage", () => {
+  it("creates the model runtime with plugin-owned in-memory auth storage", () => {
     const source = readFileSync(path.join(process.cwd(), "src/infrastructure/pi/PiAgentAdapter.ts"), "utf8");
-    expect(source).toContain("new InMemoryCredentialStore()");
+    expect(source).toContain("new PidianCredentialStore");
+    expect(source).not.toContain("authPath");
+  });
+
+  it("registers bundled OAuth flows instead of dynamically importing openai-codex.js", () => {
+    const adapter = readFileSync(path.join(process.cwd(), "src/infrastructure/pi/PiAgentAdapter.ts"), "utf8");
+    const register = readFileSync(
+      path.join(process.cwd(), "src/infrastructure/pi/registerBundledOAuth.ts"),
+      "utf8",
+    );
+    expect(adapter).toContain("./registerBundledOAuth");
+    expect(register).toContain("registerBunOAuthFlows");
   });
 });

@@ -79,6 +79,37 @@ describe("mergeSettings", () => {
     expect(mergeSettings({ firecrawlApiKey: 1 } as Record<string, unknown>).firecrawlApiKey).toBe("");
   });
 
+  it("keeps valid OAuth credentials and drops invalid ones", () => {
+    expect(mergeSettings({}).oauthCredentials).toEqual({});
+    expect(
+      mergeSettings({
+        oauthCredentials: {
+          "openai-codex": {
+            type: "oauth",
+            access: "access",
+            refresh: "refresh",
+            expires: 1700000000000,
+            accountId: "acct",
+          },
+          broken: { type: "oauth", access: "x" },
+          key: { type: "api_key", key: "sk" },
+        },
+      }),
+    ).toEqual(
+      expect.objectContaining({
+        oauthCredentials: {
+          "openai-codex": {
+            type: "oauth",
+            access: "access",
+            refresh: "refresh",
+            expires: 1700000000000,
+            accountId: "acct",
+          },
+        },
+      }),
+    );
+  });
+
   it("defaults thinking level to medium and keeps a known value", () => {
     expect(mergeSettings({}).thinkingLevel).toBe("medium");
     expect(mergeSettings({ thinkingLevel: "high" }).thinkingLevel).toBe("high");
@@ -120,6 +151,12 @@ describe("mergeSettings", () => {
   it("builds a fresh copy so a settings reset does not mutate defaults", () => {
     const restored = mergeSettings({});
     restored.apiKeys.openai = "mutated";
+    restored.oauthCredentials["openai-codex"] = {
+      type: "oauth",
+      access: "a",
+      refresh: "r",
+      expires: 1,
+    };
     restored.permissions.read = "deny";
     restored.customProviders.push({
       id: "custom-2",
@@ -130,6 +167,7 @@ describe("mergeSettings", () => {
     });
     restored.modelFavorites.push({ id: "fav-1", provider: "openai", model: "gpt-5" });
     expect(mergeSettings({}).apiKeys).toEqual({});
+    expect(mergeSettings({}).oauthCredentials).toEqual({});
     expect(mergeSettings({}).permissions.read).toBe("allow");
     expect(mergeSettings({}).customProviders).toEqual([]);
     expect(mergeSettings({}).modelFavorites).toEqual([]);
