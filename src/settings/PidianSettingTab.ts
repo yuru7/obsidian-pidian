@@ -919,6 +919,31 @@ export class PidianSettingTab extends PluginSettingTab {
           await this.plugin.saveSettings();
         });
       });
+    new Setting(containerEl).setName(t("settingsAutoDeleteHeading")).setHeading();
+    new Setting(containerEl)
+      .setName(t("settingsSessionCountLimit"))
+      .setDesc(t("settingsSessionCountLimitDesc"))
+      .addToggle((toggle) => {
+        toggle.setValue(this.plugin.settings.limitSessionCount);
+        toggle.onChange(async (value) => {
+          this.plugin.settings.limitSessionCount = value;
+          await this.plugin.saveSettings();
+          this.refreshSettings();
+        });
+      });
+    if (this.plugin.settings.limitSessionCount) {
+      new Setting(containerEl).setName(t("settingsMaxSessionCount")).addText((text) => {
+        text.setValue(String(this.plugin.settings.maxSessionCount));
+        text.onChange(async (value) => {
+          const parsed = Number(value);
+          if (!Number.isInteger(parsed) || parsed <= 0) {
+            return;
+          }
+          this.plugin.settings.maxSessionCount = parsed;
+          await this.plugin.saveSettings();
+        });
+      });
+    }
     new Setting(containerEl)
       .setName(t("settingsAutoDelete"))
       .setDesc(t("settingsAutoDeleteDesc"))

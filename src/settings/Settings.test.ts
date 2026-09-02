@@ -52,6 +52,20 @@ describe("mergeSettings", () => {
     expect("includeSelectionContext" in merged).toBe(false);
   });
 
+  it("defaults session auto-delete and the count limit to off", () => {
+    expect(mergeSettings({}).autoDeleteSessions).toBe(false);
+    expect(mergeSettings({ autoDeleteSessions: true }).autoDeleteSessions).toBe(true);
+    expect(mergeSettings({ autoDeleteSessions: false }).autoDeleteSessions).toBe(false);
+    expect(mergeSettings({ autoDeleteSessions: "yes" } as Record<string, unknown>).autoDeleteSessions).toBe(false);
+    expect(mergeSettings({}).limitSessionCount).toBe(false);
+    expect(mergeSettings({}).maxSessionCount).toBe(5000);
+    expect(mergeSettings({ limitSessionCount: true, maxSessionCount: 100 }).limitSessionCount).toBe(true);
+    expect(mergeSettings({ limitSessionCount: true, maxSessionCount: 100 }).maxSessionCount).toBe(100);
+    expect(mergeSettings({ limitSessionCount: "yes" } as Record<string, unknown>).limitSessionCount).toBe(false);
+    expect(mergeSettings({ maxSessionCount: 0 }).maxSessionCount).toBe(5000);
+    expect(mergeSettings({ maxSessionCount: -1 }).maxSessionCount).toBe(5000);
+  });
+
   it("defaults sendWithCtrlEnter to false and keeps true", () => {
     expect(mergeSettings({}).sendWithCtrlEnter).toBe(false);
     expect(mergeSettings({ sendWithCtrlEnter: true }).sendWithCtrlEnter).toBe(true);

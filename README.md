@@ -66,7 +66,7 @@ When you send a message, Pidian includes the path of the active file. For Markdo
 
 Conversations are saved in a plugin folder in the vault (default: `pidian/sessions/`). You can change the location under Settings → Pidian → **General** → Plugin folder.
 
-When you turn on automatic deletion of old conversations, conversations older than the retention period are deleted on startup.
+Under Settings → Pidian → **Session**, you can automatically delete conversations on startup: older than the retention period, over a retained-count limit, or both.
 
 ### Extra instructions (optional)
 

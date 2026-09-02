@@ -410,8 +410,10 @@ export default class PidianPlugin extends Plugin {
     }
     const cleanup = new SessionCleanupService(this.sessionService);
     await cleanup.cleanup({
-      enabled: this.settings.autoDeleteSessions,
+      retentionEnabled: this.settings.autoDeleteSessions,
       retentionDays: this.settings.retentionDays,
+      countLimitEnabled: this.settings.limitSessionCount,
+      maxSessionCount: this.settings.maxSessionCount,
       activeSessionId: this.agentService.getSession()?.id,
     });
   }

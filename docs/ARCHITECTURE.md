@@ -281,7 +281,7 @@ interface PidianSession {
 - Pi の自動 compaction が走ったら `compaction` を上書き保存する。fork は分岐点より前のチェックポイントだけコピーする。
 - list は JSONL のヘッダと最初の user メッセージだけパースし、ファイル読みは並列化する。破損ファイルはスキップする。
 - 常駐の一覧キャッシュは最大 300 件。`firstQuery` は 200 字で切る。起動時（cleanup のあと）に温め、`save` / `delete` で 1 件更新する。メニューの「セッションを全件読み込む」は開いている間だけ全件を持ち、閉じたら捨てる。
-- 自動削除は `SessionCleanupService`。既定オフ。起動時のみ。アクティブ session id は消さない。
+- 自動削除は `SessionCleanupService`。保持日数と保持数上限はそれぞれ既定オフ。起動時のみ。両方オンならいずれかの条件を超えたセッションを消す。アクティブ session id は消さない。
 - fork は指定メッセージまでをコピーした新セッション。`forkedMessageCount` で UI が分岐点を出す。
 - 編集再送信は同じセッションで、対象ユーザーメッセージより前まで残して Agent を作り直してから `send` する。
 

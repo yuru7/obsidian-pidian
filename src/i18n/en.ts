@@ -55,6 +55,11 @@ export const en = {
   settingsSessionFileFormat: "Session file format",
   settingsSessionFileFormatDesc:
     ".jsonl.md files appear in Obsidian's built-in file explorer.",
+  settingsAutoDeleteHeading: "Automatic session deletion",
+  settingsSessionCountLimit: "Maximum retained sessions",
+  settingsSessionCountLimitDesc:
+    "When retained sessions exceed the limit, the oldest sessions are deleted on startup.",
+  settingsMaxSessionCount: "Maximum count",
   settingsAutoDelete: "Automatically delete old sessions",
   settingsAutoDeleteDesc:
     "Sessions older than the retention period are deleted on startup.",

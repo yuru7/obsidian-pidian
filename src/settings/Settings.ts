@@ -137,6 +137,8 @@ export interface PidianSettings {
   pluginDirectory: string;
   autoDeleteSessions: boolean;
   retentionDays: number;
+  limitSessionCount: boolean;
+  maxSessionCount: number;
   modelFavorites: ModelFavorite[];
   firecrawlApiKey: string;
   sendWithCtrlEnter: boolean;
@@ -159,6 +161,8 @@ export const DEFAULT_SETTINGS: PidianSettings = {
   pluginDirectory: DEFAULT_PLUGIN_DIRECTORY,
   autoDeleteSessions: false,
   retentionDays: 90,
+  limitSessionCount: false,
+  maxSessionCount: 5000,
   modelFavorites: [],
   firecrawlApiKey: "",
   sendWithCtrlEnter: false,
@@ -259,6 +263,10 @@ function emptyPlaceholderModel(): CustomProviderModel {
   return { id: "", name: "", modelId: "", extraRequestBody: "", supportsImages: false };
 }
 
+function parsePositiveInt(raw: unknown, fallback: number): number {
+  return typeof raw === "number" && Number.isInteger(raw) && raw > 0 ? raw : fallback;
+}
+
 export function mergeSettings(raw: unknown): PidianSettings {
   const rawObject = raw && typeof raw === "object" ? { ...(raw as Record<string, unknown>) } : {};
   delete rawObject.maxEditableNotes;
@@ -275,6 +283,9 @@ export function mergeSettings(raw: unknown): PidianSettings {
     modelFavorites: parseModelFavorites(input.modelFavorites),
     firecrawlApiKey: typeof input.firecrawlApiKey === "string" ? input.firecrawlApiKey : DEFAULT_SETTINGS.firecrawlApiKey,
     sendWithCtrlEnter: input.sendWithCtrlEnter === true,
+    autoDeleteSessions: input.autoDeleteSessions === true,
+    limitSessionCount: input.limitSessionCount === true,
+    maxSessionCount: parsePositiveInt(input.maxSessionCount, DEFAULT_SETTINGS.maxSessionCount),
     permissions: {
       read: input.permissions?.read ?? DEFAULT_SETTINGS.permissions.read,
       edit: input.permissions?.edit ?? DEFAULT_SETTINGS.permissions.edit,
