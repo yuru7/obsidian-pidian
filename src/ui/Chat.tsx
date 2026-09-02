@@ -34,6 +34,7 @@ export function Chat({
   streaming = false,
   sendWithCtrlEnter = false,
   editDisabled = false,
+  editToolbar,
   onResend,
   onNearBottomChange,
   ref,
@@ -48,6 +49,7 @@ export function Chat({
   streaming?: boolean;
   sendWithCtrlEnter?: boolean;
   editDisabled?: boolean;
+  editToolbar?: JSX.Element;
   onResend?: (messageId: string, text: string) => void;
   onNearBottomChange?: (nearBottom: boolean) => void;
   ref?: Ref<ChatHandle>;
@@ -170,6 +172,7 @@ export function Chat({
                   editing={editingMessageId === message.id}
                   editDisabled={editDisabled}
                   sendWithCtrlEnter={sendWithCtrlEnter}
+                  editToolbar={editingMessageId === message.id ? editToolbar : undefined}
                   onStartEdit={setEditingMessageId}
                   onCancelEdit={() => setEditingMessageId(null)}
                   onResend={onResend}

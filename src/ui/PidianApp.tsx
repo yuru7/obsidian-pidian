@@ -95,6 +95,7 @@ export function PidianApp({ plugin }: { plugin: PidianPlugin }): JSX.Element {
         streaming={streaming}
         sendWithCtrlEnter={plugin.settings.sendWithCtrlEnter}
         editDisabled={streaming || agent.isCompacting() || !session?.provider || !session?.model}
+        editToolbar={<ModelSelector plugin={plugin} onChange={rerender} />}
         onNearBottomChange={setNearBottom}
         onFork={(messageId) => {
           void agent.forkFrom(messageId).catch((error: unknown) => {

@@ -12,12 +12,14 @@ export function UserMessageEditor({
   app,
   initialText,
   sendWithCtrlEnter,
+  toolbar,
   onSubmit,
   onCancel,
 }: {
   app: App;
   initialText: string;
   sendWithCtrlEnter: boolean;
+  toolbar?: JSX.Element;
   onSubmit: (text: string) => void;
   onCancel: () => void;
 }): JSX.Element {
@@ -83,28 +85,31 @@ export function UserMessageEditor({
           }
         }}
       />
-      <button
-        type="button"
-        className="pidian-button pidian-button-primary pidian-message-edit-send"
-        disabled={!text.trim()}
-        onClick={submit}
-        aria-label={t("uiSend")}
-        title={t("uiSend")}
-      >
-        <svg
-          className="pidian-icon"
-          xmlns="http://www.w3.org/2000/svg"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          aria-hidden="true"
+      <div className="pidian-message-edit-actions">
+        {toolbar}
+        <button
+          type="button"
+          className="pidian-button pidian-button-primary pidian-message-edit-send"
+          disabled={!text.trim()}
+          onClick={submit}
+          aria-label={t("uiSend")}
+          title={t("uiSend")}
         >
-          <polygon points="21.368 12.001 3 21.609 3 14 11 12 3 9.794 3 2.394" />
-        </svg>
-      </button>
+          <svg
+            className="pidian-icon"
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+          >
+            <polygon points="21.368 12.001 3 21.609 3 14 11 12 3 9.794 3 2.394" />
+          </svg>
+        </button>
+      </div>
     </div>
   );
 }

@@ -19,6 +19,7 @@ export function Message({
   editing = false,
   editDisabled = false,
   sendWithCtrlEnter = false,
+  editToolbar,
   onStartEdit,
   onCancelEdit,
   onResend,
@@ -31,6 +32,7 @@ export function Message({
   editing?: boolean;
   editDisabled?: boolean;
   sendWithCtrlEnter?: boolean;
+  editToolbar?: JSX.Element;
   onStartEdit?: (messageId: string) => void;
   onCancelEdit?: () => void;
   onResend?: (messageId: string, text: string) => void;
@@ -91,6 +93,7 @@ export function Message({
                 app={app}
                 initialText={message.text}
                 sendWithCtrlEnter={sendWithCtrlEnter}
+                toolbar={editToolbar}
                 onSubmit={(text) => onResend?.(message.id, text)}
                 onCancel={() => onCancelEdit?.()}
               />

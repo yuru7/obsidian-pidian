@@ -24,7 +24,8 @@
 .pidian-header-actions,
 .pidian-model-selector,
 .pidian-token-selector,
-.pidian-composer-actions {
+.pidian-composer-actions,
+.pidian-message-edit-actions {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -556,6 +557,11 @@
   color: var(--text-normal);
 }
 
+.pidian-message-user.is-editing {
+  position: relative;
+  z-index: 12;
+}
+
 .pidian-message-edit {
   display: flex;
   flex-direction: column;
@@ -567,9 +573,17 @@
   max-height: calc(3lh + 12px + 2px);
 }
 
-.pidian-view .pidian-message-edit-send {
-  align-self: flex-end;
+.pidian-message-edit-actions {
   margin-top: 6px;
+}
+
+.pidian-message-edit .pidian-model-balloon {
+  bottom: auto;
+  top: calc(100% + 6px);
+}
+
+.pidian-view .pidian-message-edit-send {
+  flex-shrink: 0;
   width: 21px;
   height: 21px;
   padding: 0 0 0 2px;
