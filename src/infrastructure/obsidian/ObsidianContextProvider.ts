@@ -19,11 +19,11 @@ export class ObsidianContextProvider implements ContextProvider {
 
   rememberCurrentFile(): void {
     const activeFile = this.app.workspace.getActiveFile();
-    if (activeFile && !isMarkdownFile(activeFile) && this.snapshotForNonMarkdown(activeFile.path)) {
+    if (activeFile && this.rememberIfNonMarkdown(activeFile)) {
       return;
     }
     const recentFile = this.fileFromLeaf(this.app.workspace.getMostRecentLeaf(this.app.workspace.rootSplit));
-    if (recentFile && !isMarkdownFile(recentFile) && this.snapshotForNonMarkdown(recentFile.path)) {
+    if (recentFile && this.rememberIfNonMarkdown(recentFile)) {
       return;
     }
     const view =
@@ -33,7 +33,9 @@ export class ObsidianContextProvider implements ContextProvider {
     if (view?.file) {
       this.lastMarkdownView = view;
       this.lastNonMarkdownPath = undefined;
+      return;
     }
+    this.validLastNonMarkdownPath();
   }
 
   getActiveNote(): ContextSnapshot | undefined {
@@ -50,27 +52,18 @@ export class ObsidianContextProvider implements ContextProvider {
       }
     }
     if (activeFile && !isMarkdownFile(activeFile)) {
-      const snapshot = this.snapshotForNonMarkdown(activeFile.path);
-      if (snapshot) {
-        return snapshot;
-      }
+      return this.snapshotForVisibleNonMarkdown(activeFile);
     }
 
     const recentRoot = this.app.workspace.getMostRecentLeaf(this.app.workspace.rootSplit);
     const recent = this.app.workspace.getMostRecentLeaf();
     const recentRootFile = this.fileFromLeaf(recentRoot);
     if (recentRootFile && !isMarkdownFile(recentRootFile)) {
-      const snapshot = this.snapshotForNonMarkdown(recentRootFile.path);
-      if (snapshot) {
-        return snapshot;
-      }
+      return this.snapshotForVisibleNonMarkdown(recentRootFile);
     }
     const recentFile = this.fileFromLeaf(recent);
     if (recentFile && !isMarkdownFile(recentFile)) {
-      const snapshot = this.snapshotForNonMarkdown(recentFile.path);
-      if (snapshot) {
-        return snapshot;
-      }
+      return this.snapshotForVisibleNonMarkdown(recentFile);
     }
 
     const source = pickMarkdownSource([
@@ -83,8 +76,9 @@ export class ObsidianContextProvider implements ContextProvider {
       this.rememberMarkdown(source.notePath);
       return snapshotFromEditorSource(source);
     }
-    if (this.lastNonMarkdownPath) {
-      return this.snapshotForNonMarkdown(this.lastNonMarkdownPath);
+    const lastPath = this.validLastNonMarkdownPath();
+    if (lastPath) {
+      return this.snapshotForNonMarkdown(lastPath);
     }
     return undefined;
   }
@@ -95,6 +89,25 @@ export class ObsidianContextProvider implements ContextProvider {
     }
     this.lastNonMarkdownPath = path;
     return { notePath: path };
+  }
+
+  /** Visible non-markdown file: canvas snapshot, or undefined without falling back to another tab. */
+  private snapshotForVisibleNonMarkdown(file: TFile): ContextSnapshot | undefined {
+    const snapshot = this.snapshotForNonMarkdown(file.path);
+    if (snapshot) {
+      return snapshot;
+    }
+    this.lastMarkdownView = undefined;
+    this.lastNonMarkdownPath = undefined;
+    return undefined;
+  }
+
+  private rememberIfNonMarkdown(file: TFile): boolean {
+    if (isMarkdownFile(file)) {
+      return false;
+    }
+    this.snapshotForVisibleNonMarkdown(file);
+    return true;
   }
 
   private rememberMarkdown(notePath: string): void {
@@ -145,6 +158,26 @@ export class ObsidianContextProvider implements ContextProvider {
       return undefined;
     }
     return view;
+  }
+
+  /** Drop a remembered canvas when no editor tab still shows that file (e.g. the same tab opened a PNG). */
+  private validLastNonMarkdownPath(): string | undefined {
+    const path = this.lastNonMarkdownPath;
+    if (!path || !this.isOpenInRoot(path)) {
+      this.lastNonMarkdownPath = undefined;
+      return undefined;
+    }
+    return path;
+  }
+
+  private isOpenInRoot(path: string): boolean {
+    let open = false;
+    this.app.workspace.iterateRootLeaves((leaf) => {
+      if (!open && this.fileFromLeaf(leaf)?.path === path) {
+        open = true;
+      }
+    });
+    return open;
   }
 
   private fileFromLeaf(leaf: WorkspaceLeaf | null | undefined): TFile | undefined {
