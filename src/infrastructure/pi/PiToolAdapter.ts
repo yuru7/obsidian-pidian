@@ -1,6 +1,7 @@
 import { Type, type TSchema } from "typebox";
 import { defineTool } from "@earendil-works/pi-coding-agent";
 import type { JsonSchemaObject, JsonSchemaProperty, PidianTool } from "../../domain/tools/PidianTool";
+import { toPiToolContent } from "./prepareToolImage";
 
 function toTypeBox(schema: JsonSchemaProperty): TSchema {
   switch (schema.type) {
@@ -46,7 +47,7 @@ export function toPiTools(tools: PidianTool[]) {
       execute: async (_toolCallId, params) => {
         const result = await tool.execute(params);
         return {
-          content: [{ type: "text" as const, text: result.content }],
+          content: await toPiToolContent(result),
           details: { isError: Boolean(result.isError) },
         };
       },

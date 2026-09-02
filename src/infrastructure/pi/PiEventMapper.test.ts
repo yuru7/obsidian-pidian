@@ -83,6 +83,26 @@ describe("PiEventMapper", () => {
     expect(
       mapPiEvent({
         type: "tool_execution_end",
+        toolCallId: "1",
+        toolName: "read_image",
+        result: {
+          content: [
+            { type: "text", text: '{"path":"img/photo.png"}' },
+            { type: "image", data: "AAAA", mimeType: "image/png" },
+          ],
+        },
+        isError: false,
+      }),
+    ).toEqual({
+      type: "tool_completed",
+      toolCallId: "1",
+      toolName: "read_image",
+      result: '{"path":"img/photo.png"}',
+      isError: false,
+    });
+    expect(
+      mapPiEvent({
+        type: "tool_execution_end",
         toolCallId: "2",
         toolName: "edit_markdown",
         result: { content: [{ type: "text", text: "denied" }], details: { isError: true } },

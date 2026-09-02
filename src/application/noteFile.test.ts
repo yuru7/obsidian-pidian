@@ -1,6 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { bindConfigDir } from "./notePath";
-import { assertMarkdownFilePath, assertNoteFilePath, fileExtensionOf, isNoteExtension, isNoteFilePath } from "./noteFile";
+import {
+  assertMarkdownFilePath,
+  assertNoteFilePath,
+  fileExtensionOf,
+  isContextFilePath,
+  isNoteExtension,
+  isNoteFilePath,
+} from "./noteFile";
 
 bindConfigDir(() => "vault-config");
 
@@ -15,6 +22,8 @@ describe("noteFile", () => {
     expect(isNoteFilePath("maps/board.canvas")).toBe(true);
     expect(isNoteFilePath("img/photo.png")).toBe(false);
     expect(isNoteFilePath("data.json")).toBe(false);
+    expect(isContextFilePath("img/photo.png")).toBe(true);
+    expect(isContextFilePath("img/photo.gif")).toBe(false);
   });
 
   it("reads the last extension from a vault path", () => {

@@ -267,14 +267,14 @@ describe("AgentService.send", () => {
 
   it("stores a path-only snapshot when the active file has no cursor", async () => {
     const store = new MemoryRepository();
-    const snapshot: ContextSnapshot = { notePath: "maps/board.canvas" };
+    const snapshot: ContextSnapshot = { notePath: "img/photo.png" };
     const agent = createService(store, new FakeAgentEngine(), () => snapshot);
     await agent.newChat("openai", "gpt-5");
-    await agent.send("summarize this");
+    await agent.send("what is this");
 
     expect(agent.getSession()?.messages[0]).toMatchObject({
       role: "user",
-      text: "summarize this",
+      text: "what is this",
       context: snapshot,
     });
   });

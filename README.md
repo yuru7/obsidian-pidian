@@ -16,8 +16,9 @@ Desktop only. Mobile is not supported.
 
 The AI agent decides on its own when to read, write, and search notes.
 
-- Ask about the note you currently have open
+- Ask about the note or image you currently have open
 - Find notes in the vault
+- Read PNG, JPEG, and WebP images from the vault
 - Edit notes
 - Restrict edits, web search, and similar actions with permissions
 
@@ -45,7 +46,7 @@ To prevent accidental changes, everything except read is restricted by default. 
 
 | Action | Default | What it covers |
 | --- | --- | --- |
-| Read | Always allow | Read notes, search the vault, list folders, open and switch tabs |
+| Read | Always allow | Read notes and PNG/JPEG/WebP images, search the vault, list folders, open and switch tabs |
 | Edit | Ask every time | Change an existing note. The target file and a diff are shown before running |
 | Create | Deny | Create a new note |
 | Delete | Deny | Trash a note according to Obsidian's trash settings |
@@ -59,7 +60,7 @@ Edits go through Obsidian, so you can undo them with Obsidian's standard Undo.
 
 ## Context
 
-When you send a message, Pidian includes the path of the active file. For Markdown notes, it also includes the cursor position or selection.
+When you send a message, Pidian includes the path of the active file. For Markdown notes, it also includes the cursor position or selection. Canvas and PNG, JPEG, or WebP images include the path only. The agent reads an image with `read_image` when it needs to see it.
 
 ## Saving conversations
 

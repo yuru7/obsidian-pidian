@@ -12,8 +12,14 @@ export interface JsonSchemaObject {
   required?: string[];
 }
 
+export interface ToolImage {
+  mimeType: string;
+  bytes: Uint8Array;
+}
+
 export interface ToolExecuteResult {
   content: string;
+  images?: ToolImage[];
   isError?: boolean;
 }
 

@@ -40,7 +40,7 @@ Obsidian Desktop のサイドバーから [Pi](https://github.com/badlogic/pi-mo
 src/main.ts                 合成ルート。Plugin lifecycle、配線、command、view
 src/domain/                 型・ポート・純粋な値。Obsidian / Pi を知らない
   agent/                    AgentEngine, AgentSession, AgentEvent, ModelCatalog
-  notes/                    NoteRepository, NoteEditor, ContextSnapshot
+  notes/                    NoteRepository, NoteEditor, ContextSnapshot, ImageRepository
   permissions/              Permission, ToolCategory, PermissionPrompter
   sessions/                 PidianSession, SessionRepository
   tools/                    PidianTool（Pi 非依存）
@@ -71,6 +71,7 @@ Application / Domain
     │
     ├── AgentEngine ──────────► PiAgentAdapter ──► pi-coding-agent
     ├── NoteRepository ───────► ObsidianNoteRepository
+    ├── ImageRepository ──────► ObsidianImageRepository
     ├── NoteEditor ───────────► ObsidianNoteEditor
     ├── WorkspaceNavigator ───► ObsidianWorkspaceNavigator
     ├── SessionRepository ────► ObsidianSessionRepository（Vault の pidian/sessions/）
@@ -100,6 +101,7 @@ Application / Domain
 | 役割 | 具象 |
 | --- | --- |
 | notes | `ObsidianNoteRepository` |
+| images | `ObsidianImageRepository` |
 | editor | `ObsidianNoteEditor` |
 | workspace | `ObsidianWorkspaceNavigator` |
 | sessions | `SessionService` + `ObsidianSessionRepository` |
@@ -118,7 +120,7 @@ UI は `plugin.agentService.subscribe` と `plugin.subscribeSettings` で再描�
 ```text
 Composer
   → AgentService.send(text)
-      → ContextService.snapshot()（現在ファイルの path。Markdown なら 1-based 行範囲。本文は入れない）
+      → ContextService.snapshot()（現在ファイルの path。Markdown なら 1-based 行範囲。Canvas と PNG/JPEG/WebP は path のみ。本文・画像バイトは入れない）
       → ユーザー発言 + 空の assistant を PidianSession に追加して保存
       → AgentSession.prompt({ text: formatAgentPrompt(...), context })
           → PiAgentAdapter（Pi イベント）
@@ -158,11 +160,11 @@ Composer
 User: <user text>
 ```
 
-時刻は `createdAt`（UTC）から、送信時のマシンローカルオフセット付き ISO 8601（秒まで。例 `2026-08-31T17:31:00+09:00`）。`LINE_RANGE` は Markdown のカーソルなら `L12`、複数行選択なら `L13-L15`。Canvas などカーソルが取れないファイルは path のみ。ファイルが無いときは timestamp と `User: <user text>` のみ。
+時刻は `createdAt`（UTC）から、送信時のマシンローカルオフセット付き ISO 8601（秒まで。例 `2026-08-31T17:31:00+09:00`）。`LINE_RANGE` は Markdown のカーソルなら `L12`、複数行選択なら `L13-L15`。Canvas や PNG/JPEG/WebP などカーソルが取れないファイルは path のみ。ファイルが無いときは timestamp と `User: <user text>` のみ。
 
 ユーザー発言の `text` は本文だけ保存する。ヘッダ（時刻・path）は保存しない。送信時の `ContextSnapshot`（path と、Markdown なら行範囲。本文は入れない）はユーザーメッセージの任意フィールド `context` に残す。再開・モデル変更で Pi を作り直すとき、`toConversation` が `formatAgentPrompt` で当時のヘッダを復元する。`context` が無い古い保存は timestamp と `User: <user text>` のみ。
 
-ファイル本文はコンテキストに載せない。エージェントは `read_note` で読む。システムプロンプトは `PIDIAN_SYSTEM_PROMPT`（`src/infrastructure/pi/PiCredentials.ts`）。Vault の `pidian/AGENTS.md`（プラグインフォルダ設定に追随）は任意の追加指示。
+ファイル本文はコンテキストに載せない。エージェントは `read_note` でノートを、`read_image` で PNG/JPEG/WebP を読む。システムプロンプトは `PIDIAN_SYSTEM_PROMPT`（`src/infrastructure/pi/PiCredentials.ts`）。Vault の `pidian/AGENTS.md`（プラグインフォルダ設定に追随）は任意の追加指示。
 
 ---
 
@@ -173,6 +175,7 @@ User: <user text>
 | name | 権限 | 役割 |
 | --- | --- | --- |
 | `read_note` | read | `.md` / `.canvas` を行範囲で読む。revision を返す。`ReadRevisionTracker` に記録。Canvas は offset 1 から |
+| `read_image` | read | PNG / JPEG / WebP を読む。このターンだけ image ブロックを Pi に付ける。セッション jsonl には path のテキストだけ残す。復元時は付け直さない |
 | `search_notes` | read | `.md` / `.canvas` のファイル名 + 本文検索。`AGENTS.md` と制限パスは除外 |
 | `list_files` | read | 直下のみ。再帰しない。`""` / `"/"` が Vault ルート |
 | `open_file` | read | 開いてアクティブにする。未オープンなら開く |
@@ -187,7 +190,7 @@ Pi 起動時は `noTools: "builtin"` で標準ツールを切り、`customTools`
 
 ### ツールを足す
 
-1. `src/tools/FooTool.ts` に `PidianTool` を実装する。パスは `assertSafeNotePath`。読む・検索する対象は `assertNoteFilePath`（`.md` / `.canvas`）。Markdown の編集は `assertMarkdownFilePath`。権限は `PermissionService.authorize`。
+1. `src/tools/FooTool.ts` に `PidianTool` を実装する。パスは `assertSafeNotePath`。読む・検索する対象は `assertNoteFilePath`（`.md` / `.canvas`）。画像は `assertImageFilePath`（`.png` / `.jpg` / `.jpeg` / `.webp`）。Markdown の編集は `assertMarkdownFilePath`。権限は `PermissionService.authorize`。
 2. 新しい権限カテゴリが必要なら `ToolCategory` と Settings の `permissions` と i18n を同時に足す。
 3. `createPidianTools()` に登録する。
 4. 隣に `*.test.ts` を書く。Pi の型や `defineTool` は tools 配下に書かない。
@@ -271,7 +274,8 @@ interface PidianSession {
 ```
 
 - パースは `migratePidianSession`。`version !== 1` は throw。フィールド追加時は後方互換を崩さないか、version を上げて migration を足す。
-- ユーザーメッセージの任意 `context` は送信時のファイル位置。Markdown なら行範囲、それ以外は path のみ。UI には出さず、再開時の `formatAgentPrompt` 用。無い・不正なら無視する。時刻ヘッダは `createdAt` から組み立て、保存 `text` には含めない。
+- ユーザーメッセージの任意 `context` は送信時のファイル位置。Markdown なら行範囲、Canvas と PNG/JPEG/WebP は path のみ。UI には出さず、再開時の `formatAgentPrompt` 用。無い・不正なら無視する。時刻ヘッダは `createdAt` から組み立て、保存 `text` には含めない。
+- ツール結果の画像バイトはセッションに書かない。`PiEventMapper` が text だけを `toolCall.result` に残す。再開・モデル変更で Pi を作り直したあとは path の履歴だけ。もう一度見るときは `read_image` する。
 - アシスタントの `workedMs` は各 Work 区間が閉じるまでの時間。思考→ツール→思考は同じ Work に時系列の `items` として残し、`thinking_end` だけでは閉じない。本文が出たあと、思考 delta が途切れたとき、またはターン完了で閉じる。思考中の本文は Work の直下へ随時出す。空白だけの delta では区切らない。`blocks` が無い古い保存データは思考・ツールを1つの WorkLog にまとめる。
 - 再開は `PidianSession → AgentConversation → PiAgentAdapter`。ユーザー本文は `formatAgentPrompt` でヘッダ付きに戻す。Pi 固有オブジェクトは保存しない。会話は Pi の `SessionManager` に全文を載せ、`compaction` があればその境界で要約エントリを足してから `createAgentSession` する。LLM 入力は SessionManager が組み直した要約 + 残したメッセージ。画面と `messages` は全文のまま。
 - Pi の自動 compaction が走ったら `compaction` を上書き保存する。fork は分岐点より前のチェックポイントだけコピーする。
@@ -305,7 +309,8 @@ Pi を Obsidian の eval 環境で動かすための隔離が `src/infrastructur
 | `PiAgentAdapter.ts` | `AgentEngine` 実装。`SessionManager.inMemory()`、再開時は会話を SessionManager に載せる。`noTools: "builtin"` |
 | `piCodingAgentSdk.ts` | パッケージ barrel の代わり。CLI / self-update をバンドルに入れない |
 | `PiEventMapper.ts` | Pi イベント → `AgentEvent` |
-| `PiToolAdapter.ts` | `PidianTool` → `defineTool` |
+| `PiToolAdapter.ts` | `PidianTool` → `defineTool`。`read_image` のバイトは image ブロックにし、セッションへは出さない |
+| `prepareToolImage.ts` | インライン上限。Photon はスタブなので、超過分だけ Canvas で縮小 |
 | `PidianResourceLoader.ts` | システムプロンプトと AGENTS.md だけ。拡張ローダは使わない |
 | `corsFreeFetch.ts` | Chromium `fetch` の CORS を避けるため Node `http`/`https` |
 | `customRequestBody.ts` | custom model の extra JSON body |
@@ -391,6 +396,7 @@ UI は `AgentService` と `plugin.settings` を読む。Pi 型を import しな�
 - `PiEventMapper`
 - `revision` / `replacements`
 - `notePath`（制限パス）
+- `imageFile`（PNG / JPEG / WebP）
 - 各 Tool の失敗系（未読 edit、非アクティブ edit、deny、SSRF）
 
 実行: `pnpm test`。環境は node。`vitest.setup.ts` が `window` を補う。
@@ -402,6 +408,7 @@ UI は `AgentService` と `plugin.settings` を読む。Pi 型を import しな�
 | やりたいこと | 触る場所 | 触らない場所 |
 | --- | --- | --- |
 | ツール追加 | `src/tools/`, `createPidianTools` | `infrastructure/pi` の `defineTool` 直書き、Pi 標準ツール有効化 |
+| 画像読み | `ReadImageTool`, `ImageRepository`, `prepareToolImage` | Pi 標準 `read`、jsonl への base64 保存、復元時の再添付 |
 | 編集ルール | `EditMarkdownTool`, `replacements.ts`, `ObsidianNoteEditor` | editor を飛ばした `vault.modify` |
 | コンテキスト | `ContextService`, `ObsidianContextProvider` | プロンプトにノート全文を埋め込む |
 | セッション形式 | `PidianSession`, `sessionSerialization` | Pi session JSON の保存 |

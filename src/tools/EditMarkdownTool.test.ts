@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { PermissionService } from "../application/PermissionService";
 import { ReadRevisionTracker } from "../application/ReadRevisionTracker";
 import { computeRevision } from "../application/revision";
+import type { ImageRepository, VaultImage } from "../domain/notes/ImageRepository";
 import type { Note, NoteRepository, SearchHit } from "../domain/notes/NoteRepository";
 import { NOTE_NOT_ACTIVE_EDITOR, type NoteEditor, type Replacement } from "../domain/notes/NoteEditor";
 import type { OpenFileResult, WorkspaceNavigator, WorkspaceTab } from "../domain/workspace/WorkspaceNavigator";
@@ -44,6 +45,12 @@ class MemoryNotes implements NoteRepository {
 
   async exists(path: string): Promise<boolean> {
     return this.files.has(path);
+  }
+}
+
+class MemoryImages implements ImageRepository {
+  async read(path: string): Promise<VaultImage> {
+    throw new Error(`unused image ${path}`);
   }
 }
 
@@ -208,6 +215,7 @@ describe("read then edit flow", () => {
     const tools = createPidianTools({
       sessionId: "s1",
       notes,
+      images: new MemoryImages(),
       editor,
       workspace: new MemoryWorkspace(),
       tracker,
@@ -246,6 +254,7 @@ describe("read then edit flow", () => {
     const tools = createPidianTools({
       sessionId: "s1",
       notes,
+      images: new MemoryImages(),
       editor,
       workspace: new MemoryWorkspace(),
       tracker,

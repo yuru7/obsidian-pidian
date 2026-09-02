@@ -2,7 +2,7 @@ import { FileView, MarkdownView, TFile, type App, type Editor, type MarkdownFile
 import type { ContextSnapshot } from "../../domain/notes/ContextSnapshot";
 import type { ContextProvider } from "../../application/ContextService";
 import { isRestrictedVaultPath } from "../../application/notePath";
-import { isNoteFilePath } from "../../application/noteFile";
+import { isContextFilePath } from "../../application/noteFile";
 import {
   pickMarkdownSource,
   snapshotFromEditorSource,
@@ -84,14 +84,14 @@ export class ObsidianContextProvider implements ContextProvider {
   }
 
   private snapshotForNonMarkdown(path: string): ContextSnapshot | undefined {
-    if (isRestrictedVaultPath(path) || !isNoteFilePath(path)) {
+    if (isRestrictedVaultPath(path) || !isContextFilePath(path)) {
       return undefined;
     }
     this.lastNonMarkdownPath = path;
     return { notePath: path };
   }
 
-  /** Visible non-markdown file: canvas snapshot, or undefined without falling back to another tab. */
+  /** Visible non-markdown file: canvas or PNG/JPEG/WebP snapshot, or undefined without falling back to another tab. */
   private snapshotForVisibleNonMarkdown(file: TFile): ContextSnapshot | undefined {
     const snapshot = this.snapshotForNonMarkdown(file.path);
     if (snapshot) {
@@ -160,7 +160,7 @@ export class ObsidianContextProvider implements ContextProvider {
     return view;
   }
 
-  /** Drop a remembered canvas when no editor tab still shows that file (e.g. the same tab opened a PNG). */
+  /** Drop a remembered canvas or image when no editor tab still shows that file (e.g. the same tab opened a GIF). */
   private validLastNonMarkdownPath(): string | undefined {
     const path = this.lastNonMarkdownPath;
     if (!path || !this.isOpenInRoot(path)) {

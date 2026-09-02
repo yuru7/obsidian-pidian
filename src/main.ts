@@ -24,6 +24,7 @@ import { createSearchService } from "./infrastructure/search/createSearchService
 import { createFetchService } from "./infrastructure/fetch/createFetchService";
 import { editorContextExtension } from "./infrastructure/obsidian/editorContextExtension";
 import { ObsidianContextProvider } from "./infrastructure/obsidian/ObsidianContextProvider";
+import { ObsidianImageRepository } from "./infrastructure/obsidian/ObsidianImageRepository";
 import { ObsidianInstructionReader } from "./infrastructure/obsidian/ObsidianInstructionReader";
 import { ObsidianNoteEditor } from "./infrastructure/obsidian/ObsidianNoteEditor";
 import { ObsidianNoteRepository } from "./infrastructure/obsidian/ObsidianNoteRepository";
@@ -161,6 +162,7 @@ export default class PidianPlugin extends Plugin {
 
   private initServices(): void {
     const notes = new ObsidianNoteRepository(this.app);
+    const images = new ObsidianImageRepository(this.app);
     const editor = new ObsidianNoteEditor(this.app);
     const workspace = new ObsidianWorkspaceNavigator(this.app);
     const sessions = new SessionService(
@@ -225,6 +227,7 @@ export default class PidianPlugin extends Plugin {
         createPidianTools({
           sessionId,
           notes,
+          images,
           editor,
           workspace,
           permissions,

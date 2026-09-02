@@ -80,5 +80,8 @@ describe("formatAgentPrompt", () => {
     expect(
       formatAgentPrompt("hello", { notePath: "maps/board.canvas" }, SENT_AT),
     ).toBe(`${formatLocalIso8601(SENT_AT)}\nmaps/board.canvas\nUser: hello`);
+    expect(
+      formatAgentPrompt("what is this", { notePath: "img/photo.png" }, SENT_AT),
+    ).toBe(`${formatLocalIso8601(SENT_AT)}\nimg/photo.png\nUser: what is this`);
   });
 });

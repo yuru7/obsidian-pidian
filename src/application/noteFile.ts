@@ -1,3 +1,4 @@
+import { isImageFilePath } from "./imageFile";
 import { assertSafeNotePath } from "./notePath";
 
 const NOTE_EXTENSIONS = new Set(["md", "canvas"]);
@@ -18,6 +19,11 @@ export function isNoteExtension(extension: string): boolean {
 
 export function isNoteFilePath(path: string): boolean {
   return isNoteExtension(fileExtensionOf(path));
+}
+
+/** Markdown, Canvas, or a readable image shown as the chat context file. */
+export function isContextFilePath(path: string): boolean {
+  return isNoteFilePath(path) || isImageFilePath(path);
 }
 
 export function isMarkdownFilePath(path: string): boolean {
