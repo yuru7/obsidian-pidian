@@ -10,6 +10,8 @@ export interface CatalogModel {
   name: string;
   providerId: string;
   thinkingLevels: string[];
+  /** True when the model accepts image input. */
+  supportsImages?: boolean;
 }
 
 export interface ModelCatalog {

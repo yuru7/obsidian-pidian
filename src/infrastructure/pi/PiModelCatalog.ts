@@ -3,6 +3,7 @@ import { ModelRuntime } from "@earendil-works/pi-coding-agent";
 import type { CredentialResolver } from "../../application/CredentialResolver";
 import { sortCatalogModels, type CatalogModel, type CatalogProvider, type ModelCatalog } from "../../domain/agent/ModelCatalog";
 import { envVarNamesForProvider } from "./PiCredentials";
+import { modelSupportsImages } from "./visionModel";
 import {
   customModelDisplayName,
   customProviderModels,
@@ -55,6 +56,7 @@ export class PiModelCatalog implements ModelCatalog {
           name: customModelDisplayName(model),
           providerId: custom.id,
           thinkingLevels: [],
+          supportsImages: Boolean(model.supportsImages),
         })),
       );
     }
@@ -65,6 +67,7 @@ export class PiModelCatalog implements ModelCatalog {
         name: model.name ?? model.id,
         providerId: model.provider,
         thinkingLevels: [...getSupportedThinkingLevels(model)],
+        supportsImages: modelSupportsImages(model),
       })),
     );
   }

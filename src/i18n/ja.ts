@@ -101,6 +101,7 @@ export const ja: { [K in keyof typeof en]: string } = {
   uiSessionFileInvalid: "このセッションファイルは不正な形式のため読み取れません。",
   uiNoActiveNote: "アクティブなファイルがありません",
   uiNoModel: "モデル未選択",
+  uiVisionSupported: "Vision 対応",
   uiThinkingLevel: "思考量",
   uiPlaceholder: "Pidian に聞く...",
   uiStop: "停止",

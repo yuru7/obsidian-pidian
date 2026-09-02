@@ -34,6 +34,8 @@ describe("lookup", () => {
     expect(lookup("en", "settingsThinkingLevel")).toBe("Thinking");
     expect(lookup("ja", "uiNewChat")).toBe("新しいチャット");
     expect(lookup("ja", "uiOpenActiveSession")).toBe("開いているセッションファイルからセッションを開く");
+    expect(lookup("ja", "uiVisionSupported")).toBe("Vision 対応");
+    expect(lookup("en", "uiVisionSupported")).toBe("Vision compatible");
     expect(lookup("en", "uiOpenActiveSession")).toBe("Open session from the open session file");
     expect(lookup("ja", "uiSessionFileInvalid")).toBe("このセッションファイルは不正な形式のため読み取れません。");
   });

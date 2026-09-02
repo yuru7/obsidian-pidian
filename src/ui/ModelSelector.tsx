@@ -1,4 +1,5 @@
-import { useEffect, useReducer, useRef, useState, type JSX } from "react";
+import { useEffect, useLayoutEffect, useReducer, useRef, useState, type JSX } from "react";
+import { setTooltip } from "obsidian";
 import { t } from "../i18n";
 import type PidianPlugin from "../main";
 import { sortCatalogModels, type CatalogModel, type CatalogProvider } from "../domain/agent/ModelCatalog";
@@ -11,7 +12,7 @@ import {
 import { favoriteSelectionKey, isFavoriteSelection, toggleFavorite, type ModelFavorite } from "../settings/modelFavorites";
 import { useOverflowMarquee } from "./useOverflowMarquee";
 
-type MenuItem = { id: string; name: string };
+type MenuItem = { id: string; name: string; supportsImages?: boolean };
 type OpenList = "provider" | "model" | "thinking" | "favorite" | null;
 
 export function ModelSelector({
@@ -196,6 +197,7 @@ export function ModelSelector({
         <span ref={marquee.viewportRef} className="pidian-model-trigger-label">
           <span ref={marquee.textRef} className="pidian-model-trigger-text">{label}</span>
         </span>
+        {catalogModel?.supportsImages ? <VisionBadge /> : null}
         <span className="pidian-caret" aria-hidden="true" />
       </button>
       {open ? (
@@ -312,6 +314,9 @@ function FavoritePicker({
                 id={favorite.id}
                 name={itemLabel}
                 selected={favoriteSelectionKey(favorite) === currentKey}
+                supportsImages={
+                  modelsByProvider[favorite.provider]?.find((item) => item.id === favorite.model)?.supportsImages
+                }
                 onSelect={onSelect}
               />
             );
@@ -326,11 +331,13 @@ function MarqueeMenuItem({
   id,
   name,
   selected,
+  supportsImages,
   onSelect,
 }: {
   id: string;
   name: string;
   selected: boolean;
+  supportsImages?: boolean;
   onSelect: (id: string) => void;
 }): JSX.Element {
   const marquee = useOverflowMarquee(name);
@@ -347,6 +354,7 @@ function MarqueeMenuItem({
       <span ref={marquee.viewportRef} className="pidian-model-trigger-label">
         <span ref={marquee.textRef} className="pidian-model-trigger-text">{name}</span>
       </span>
+      {supportsImages ? <VisionBadge /> : null}
     </button>
   );
 }
@@ -380,6 +388,43 @@ function StarIcon({ filled }: { filled: boolean }): JSX.Element {
   );
 }
 
+function VisionBadge(): JSX.Element {
+  const ref = useRef<HTMLSpanElement>(null);
+  const label = t("uiVisionSupported");
+
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (el) {
+      setTooltip(el, label, { placement: "top" });
+    }
+  }, [label]);
+
+  return (
+    <span ref={ref} className="pidian-vision-badge" role="img" aria-label={label}>
+      <EyeIcon />
+    </span>
+  );
+}
+
+function EyeIcon(): JSX.Element {
+  return (
+    <svg
+      className="pidian-icon"
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0" />
+      <circle cx="12" cy="12" r="3" />
+    </svg>
+  );
+}
+
 function ChoiceDropdown({
   items,
   value,
@@ -395,7 +440,8 @@ function ChoiceDropdown({
   onToggle: () => void;
   onSelect: (id: string) => void;
 }): JSX.Element {
-  const selected = items.find((item) => item.id === value)?.name ?? (value || placeholder);
+  const selectedItem = items.find((item) => item.id === value);
+  const selected = selectedItem?.name ?? (value || placeholder);
   const marquee = useOverflowMarquee(selected);
   return (
     <span className={`pidian-select${open ? " is-open" : ""}`}>
@@ -412,6 +458,7 @@ function ChoiceDropdown({
         <span ref={marquee.viewportRef} className="pidian-model-trigger-label">
           <span ref={marquee.textRef} className="pidian-model-trigger-text">{selected}</span>
         </span>
+        {selectedItem?.supportsImages ? <VisionBadge /> : null}
         <span className="pidian-caret" aria-hidden="true" />
       </button>
       {open ? (
@@ -422,6 +469,7 @@ function ChoiceDropdown({
               id={item.id}
               name={item.name}
               selected={item.id === value}
+              supportsImages={item.supportsImages}
               onSelect={onSelect}
             />
           ))}

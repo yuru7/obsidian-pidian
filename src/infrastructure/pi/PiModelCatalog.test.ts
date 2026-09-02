@@ -7,13 +7,14 @@ import { PiModelCatalog } from "./PiModelCatalog";
 
 function customModel(
   modelId: string,
-  extras: Partial<{ id: string; name: string; extraRequestBody: string }> = {},
+  extras: Partial<{ id: string; name: string; extraRequestBody: string; supportsImages: boolean }> = {},
 ): CustomOpenAIProvider["models"][number] {
   return {
     id: extras.id ?? modelId,
     name: extras.name ?? modelId,
     modelId,
     extraRequestBody: extras.extraRequestBody ?? "",
+    supportsImages: extras.supportsImages,
   };
 }
 
@@ -41,6 +42,7 @@ function catalog(options: {
     provider: string;
     reasoning?: boolean;
     thinkingLevelMap?: Record<string, string | null>;
+    input?: string[];
   }>;
   custom?: CustomOpenAIProvider[];
   credentials: CredentialResolver;
@@ -155,7 +157,7 @@ describe("PiModelCatalog.listModels", () => {
         customProviders: custom,
       })),
     }).listModels("ollama");
-    expect(models).toEqual([{ id: "llama", name: "llama", providerId: "ollama", thinkingLevels: [] }]);
+    expect(models).toEqual([{ id: "llama", name: "llama", providerId: "ollama", thinkingLevels: [], supportsImages: false }]);
   });
 
   it("returns every configured custom model id", async () => {
@@ -169,8 +171,8 @@ describe("PiModelCatalog.listModels", () => {
       })),
     }).listModels("ollama");
     expect(models).toEqual([
-      { id: "llama", name: "llama", providerId: "ollama", thinkingLevels: [] },
-      { id: "mistral", name: "mistral", providerId: "ollama", thinkingLevels: [] },
+      { id: "llama", name: "llama", providerId: "ollama", thinkingLevels: [], supportsImages: false },
+      { id: "mistral", name: "mistral", providerId: "ollama", thinkingLevels: [], supportsImages: false },
     ]);
   });
 
@@ -209,8 +211,8 @@ describe("PiModelCatalog.listModels", () => {
       })),
     }).listModels("ollama");
     expect(models).toEqual([
-      { id: "foo-high", name: "foo high", providerId: "ollama", thinkingLevels: [] },
-      { id: "foo-medium", name: "foo medium", providerId: "ollama", thinkingLevels: [] },
+      { id: "foo-high", name: "foo high", providerId: "ollama", thinkingLevels: [], supportsImages: false },
+      { id: "foo-medium", name: "foo medium", providerId: "ollama", thinkingLevels: [], supportsImages: false },
     ]);
   });
 
@@ -247,5 +249,47 @@ describe("PiModelCatalog.listModels", () => {
       })),
     }).listModels("openai");
     expect(models[0]?.thinkingLevels).toEqual(["minimal", "low", "medium", "high", "xhigh"]);
+  });
+
+  it("exposes vision support from a custom model flag", async () => {
+    const custom: CustomOpenAIProvider[] = [
+      {
+        id: "ollama",
+        name: "Ollama",
+        baseUrl: "http://localhost:11434/v1",
+        models: [
+          customModel("llama"),
+          customModel("llava", { supportsImages: true }),
+        ],
+        apiKey: "",
+      },
+    ];
+    const models = await catalog({
+      providerIds: [],
+      custom,
+      credentials: createCredentialResolver(() => ({
+        ...DEFAULT_SETTINGS,
+        customProviders: custom,
+      })),
+    }).listModels("ollama");
+    expect(models.map((model) => [model.id, model.supportsImages])).toEqual([
+      ["llama", false],
+      ["llava", true],
+    ]);
+  });
+
+  it("exposes vision support from runtime model input", async () => {
+    const models = await catalog({
+      models: [
+        { id: "gpt-4.1", name: "GPT-4.1", provider: "openai", input: ["text"] },
+        { id: "gpt-4o", name: "GPT-4o", provider: "openai", input: ["text", "image"] },
+      ],
+      credentials: createCredentialResolver(() => ({
+        ...DEFAULT_SETTINGS,
+        apiKeys: { openai: "sk-test" },
+      })),
+    }).listModels("openai");
+    expect(models.find((model) => model.id === "gpt-4.1")?.supportsImages).toBe(false);
+    expect(models.find((model) => model.id === "gpt-4o")?.supportsImages).toBe(true);
   });
 });

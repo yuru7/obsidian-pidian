@@ -292,7 +292,7 @@ interface PidianSession {
 優先順位: **Pidian 設定の API キー > 環境変数**。`~/.pi/agent/auth.json` は読まない（`InMemoryCredentialStore`）。
 
 - 既知プロバイダの env 名は `src/infrastructure/pi/PiCredentials.ts` の `PROVIDER_ENV_VARS`。本体にプロバイダ分岐を足さない。
-- Custom OpenAI Compatible は Settings の `customProviders`。`ModelRuntime.registerProvider`（api: `openai-completions`）。env は使わない。各モデルの `supportsImages`（既定オフ）が true のときだけ Pi の `input` を `["text", "image"]` にする。カタログモデルは Pi の `model.input` を使う。
+- Custom OpenAI Compatible は Settings の `customProviders`。`ModelRuntime.registerProvider`（api: `openai-completions`）。env は使わない。各モデルの `supportsImages`（既定オフ）が true のときだけ Pi の `input` を `["text", "image"]` にする。カタログモデルは Pi の `model.input` を使う。どちらも `CatalogModel.supportsImages` に載せ、UI のモデル選択が Vision 対応アイコンを出す。
 - 実行時キーは `setRuntimeApiKey`。
 - モデル一覧は `PiModelCatalog`。動的カタログは `{plugin install dir}/dynamicModels.json`。無い、または 1 日以上古いときだけ `runtime.refresh({ allowNetwork: true, force: true })`。
 - 接続設定（キー・custom provider・Vision フラグ）が変わったら `AgentService.reloadModel()`。削除された provider は `reconcileModelSelection` で落とす。

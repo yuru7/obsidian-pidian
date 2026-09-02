@@ -1,4 +1,4 @@
-import { Notice, PluginSettingTab, Setting, setIcon, displayTooltip, normalizePath, TFile, type App } from "obsidian";
+import { Notice, PluginSettingTab, Setting, setIcon, setTooltip, displayTooltip, normalizePath, TFile, type App } from "obsidian";
 import { t } from "../i18n";
 import type PidianPlugin from "../main";
 import type { CatalogModel, CatalogProvider } from "../domain/agent/ModelCatalog";
@@ -505,22 +505,15 @@ export class PidianSettingTab extends PluginSettingTab {
       });
 
     const modelOptions = models.length > 0 ? models : this.fallbackModels(selection.model);
-    new Setting(containerEl)
-      .setName(t("settingsModel"))
-      .addDropdown((dropdown) => {
-        for (const model of modelOptions) {
-          dropdown.addOption(model.id, model.name);
-        }
-        dropdown.setValue(selection.model);
-        dropdown.onChange(async (value) => {
-          const selected = modelOptions.find((item) => item.id === value);
-          const thinkingLevels = selected?.thinkingLevels ?? [];
-          const thinking = hasSelectableThinkingLevels(thinkingLevels)
-            ? clampThinkingLevel(selection.thinkingLevel, thinkingLevels)
-            : undefined;
-          await onChange({ provider: selection.provider, model: value, thinkingLevel: thinking });
-        });
-      });
+    const modelSetting = new Setting(containerEl).setName(t("settingsModel"));
+    addModelSelect(modelSetting.controlEl, modelOptions, selection.model, async (value) => {
+      const selected = modelOptions.find((item) => item.id === value);
+      const thinkingLevels = selected?.thinkingLevels ?? [];
+      const thinking = hasSelectableThinkingLevels(thinkingLevels)
+        ? clampThinkingLevel(selection.thinkingLevel, thinkingLevels)
+        : undefined;
+      await onChange({ provider: selection.provider, model: value, thinkingLevel: thinking });
+    });
 
     const selectedModel = modelOptions.find((item) => item.id === selection.model);
     const thinkingLevels = selectedModel?.thinkingLevels ?? [];
@@ -692,20 +685,14 @@ export class PidianSettingTab extends PluginSettingTab {
       });
 
     const modelOptions = models.length > 0 ? models : this.fallbackModels(this.plugin.settings.model);
-    new Setting(containerEl)
+    const modelSetting = new Setting(containerEl)
       .setName(t("settingsModel"))
-      .setDesc(t("settingsModelDesc"))
-      .addDropdown((dropdown) => {
-        for (const model of modelOptions) {
-          dropdown.addOption(model.id, model.name);
-        }
-        dropdown.setValue(this.plugin.settings.model);
-        dropdown.onChange(async (value) => {
-          const selected = modelOptions.find((item) => item.id === value);
-          await this.applyAgentSelection(this.plugin.settings.provider, value, selected?.thinkingLevels ?? []);
-          this.refreshSettings();
-        });
-      });
+      .setDesc(t("settingsModelDesc"));
+    addModelSelect(modelSetting.controlEl, modelOptions, this.plugin.settings.model, async (value) => {
+      const selected = modelOptions.find((item) => item.id === value);
+      await this.applyAgentSelection(this.plugin.settings.provider, value, selected?.thinkingLevels ?? []);
+      this.refreshSettings();
+    });
 
     const selectedModel = modelOptions.find((item) => item.id === this.plugin.settings.model);
     const thinkingLevels = selectedModel?.thinkingLevels ?? [];
@@ -1311,6 +1298,137 @@ const EXTRA_JSON_HELP_EXAMPLE = `{
     "effort": "medium"
   }
 }`;
+
+function addModelSelect(
+  parent: HTMLElement,
+  models: CatalogModel[],
+  value: string,
+  onChange: (id: string) => void | Promise<void>,
+): void {
+  const selected = models.find((item) => item.id === value);
+  const wrap = parent.createDiv({ cls: "pidian-settings-model-select" });
+  const trigger = wrap.createEl("button", {
+    cls: "pidian-settings-model-trigger",
+    attr: {
+      type: "button",
+      "aria-haspopup": "listbox",
+      "aria-expanded": "false",
+    },
+  });
+  trigger.createSpan({
+    cls: "pidian-settings-model-trigger-label",
+    text: selected?.name ?? value,
+  });
+  if (selected?.supportsImages) {
+    appendVisionBadge(trigger);
+  }
+  trigger.createSpan({ cls: "pidian-caret", attr: { "aria-hidden": "true" } });
+
+  const menu = wrap.createDiv({ cls: "pidian-settings-model-menu", attr: { role: "listbox" } });
+  const containsTarget = (target: EventTarget | null): boolean => {
+    return target instanceof Node && wrap.contains(target);
+  };
+  const onPointerDown = (event: PointerEvent) => {
+    if (!wrap.isConnected || !containsTarget(event.target)) {
+      setOpen(false);
+    }
+  };
+  const onKeyDown = (event: KeyboardEvent) => {
+    if (!wrap.isConnected || event.key === "Escape") {
+      setOpen(false);
+    }
+  };
+  const onFocusOut = (event: FocusEvent) => {
+    window.setTimeout(() => {
+      if (!wrap.isConnected || containsTarget(event.relatedTarget) || containsTarget(document.activeElement)) {
+        return;
+      }
+      setOpen(false);
+    }, 0);
+  };
+  let open = false;
+  const setOpen = (next: boolean) => {
+    if (open === next) {
+      return;
+    }
+    open = next;
+    wrap.toggleClass("is-open", next);
+    trigger.setAttr("aria-expanded", next ? "true" : "false");
+    if (next) {
+      document.addEventListener("pointerdown", onPointerDown, true);
+      document.addEventListener("keydown", onKeyDown);
+    } else {
+      document.removeEventListener("pointerdown", onPointerDown, true);
+      document.removeEventListener("keydown", onKeyDown);
+    }
+  };
+
+  wrap.addEventListener("focusout", onFocusOut);
+
+  for (const model of models) {
+    const item = menu.createEl("button", {
+      cls: `pidian-settings-model-menu-item${model.id === value ? " is-selected" : ""}`,
+      attr: {
+        type: "button",
+        role: "option",
+        title: model.name,
+        "aria-selected": model.id === value ? "true" : "false",
+      },
+    });
+    item.createSpan({ cls: "pidian-settings-model-menu-item-label", text: model.name });
+    if (model.supportsImages) {
+      appendVisionBadge(item);
+    }
+    item.addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      setOpen(false);
+      if (model.id !== value) {
+        void onChange(model.id);
+      }
+    });
+  }
+
+  trigger.addEventListener("click", (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    setOpen(!open);
+  });
+}
+
+function appendVisionBadge(parent: HTMLElement): void {
+  const label = t("uiVisionSupported");
+  const badge = parent.createSpan({
+    cls: "pidian-vision-badge",
+    attr: {
+      role: "img",
+      "aria-label": label,
+    },
+  });
+  appendEyeIcon(badge);
+  setTooltip(badge, label, { placement: "top" });
+}
+
+function appendEyeIcon(parent: HTMLElement): void {
+  const svg = parent.createSvg("svg", {
+    cls: "pidian-icon",
+    attr: {
+      viewBox: "0 0 24 24",
+      fill: "none",
+      stroke: "currentColor",
+      "stroke-width": "2",
+      "stroke-linecap": "round",
+      "stroke-linejoin": "round",
+      "aria-hidden": "true",
+    },
+  });
+  svg.createSvg("path", {
+    attr: {
+      d: "M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0",
+    },
+  });
+  svg.createSvg("circle", { attr: { cx: "12", cy: "12", r: "3" } });
+}
 
 function appendCircleQuestionIcon(parent: HTMLElement): void {
   const svg = parent.createSvg("svg", {
