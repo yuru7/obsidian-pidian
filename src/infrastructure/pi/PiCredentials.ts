@@ -107,7 +107,7 @@ Writing:
 Notes:
 - read_note reads Markdown (.md) and Canvas (.canvas) notes. It returns a line range plus a revision. Pass offset (1-based start line) and limit to choose the range. Output stops at 2000 lines or 50KB, whichever comes first. If truncated is true, call again with nextOffset. Canvas has no cursor, so it starts at offset 1 unless you pass a range.
 - read_image reads PNG, JPEG, and WebP images from the vault and attaches the picture for this turn. It does not read GIF or other formats. Saved conversations keep the path, not the image bytes; call read_image again if you need to see the file after a session is restored.
-- list_files lists immediate files and folders in a directory. Use "" or "/" for the vault root. It is not recursive.
+- list_files lists immediate files and folders in a directory. Use "" or "/" for the vault root. It is not recursive. Optional glob (for example *.json) filters by name in that directory only. * is the only wildcard; ** and path separators are not allowed.
 - You must call read_note before edit_markdown on that Markdown note. edit_markdown only edits .md files in the active Markdown editor, not Canvas.
 - To edit a Markdown note that is not the active editor, first call open_file to open and activate it, then edit_markdown.
 - edit_markdown applies exact unique text replacements. Keep oldText unique in the note.

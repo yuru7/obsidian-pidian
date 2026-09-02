@@ -177,7 +177,7 @@ User: <user text>
 | `read_note` | read | `.md` / `.canvas` を行範囲で読む。revision を返す。`ReadRevisionTracker` に記録。Canvas は offset 1 から |
 | `read_image` | read | PNG / JPEG / WebP を読む。このターンだけ image ブロックを Pi に付ける。セッション jsonl には path のテキストだけ残す。復元時は付け直さない |
 | `search_notes` | read | `.md` / `.canvas` のファイル名 + 本文検索。`AGENTS.md` と制限パスは除外 |
-| `list_files` | read | 直下のみ。再帰しない。`""` / `"/"` が Vault ルート |
+| `list_files` | read | 直下のみ。再帰しない。`""` / `"/"` が Vault ルート。任意の `glob` は直下の name に `*` で絞る（`**` とパス区切りは拒否） |
 | `open_file` | read | 開いてアクティブにする。未オープンなら開く |
 | `workspace_tabs` | read | タブ一覧。`tabId` または `path` でフォーカス |
 | `web_search` | webSearch | Firecrawl（既定）→ DuckDuckGo。結果に `provider` を含める。Pi / Obsidian に依存しない |
