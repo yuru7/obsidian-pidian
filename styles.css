@@ -467,13 +467,19 @@
 }
 
 .pidian-message-user {
-  padding: 8px 10px;
+  padding: 6px 8px;
+  margin-inline: -8px;
   border-radius: var(--radius-s);
   background-color: var(--background-modifier-hover);
 }
 
 .pidian-message-user.is-editable {
   cursor: pointer;
+}
+
+.pidian-message-assistant {
+  padding-inline: 8px;
+  margin-inline: -8px;
 }
 
 .pidian-message-role {
