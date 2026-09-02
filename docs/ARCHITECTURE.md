@@ -93,8 +93,9 @@ Application / Domain
 2. Setting tab
 3. `initServices()`（失敗しても View / ribbon / command は登録する）
 4. `PidianView`（`VIEW_TYPE_PIDIAN = "pidian-view"`）
-5. ribbon と command（`open`, `new-chat`）
-6. layout ready 後にサイドバーを開き、`bootstrap()`（既定モデル解決、新規チャット、古いセッション掃除）
+5. ribbon と command（`open`, `new-chat`）。開く処理は `ensureSideLeaf(VIEW_TYPE_PIDIAN, "right")`
+6. layout ready 後に `bootstrap()`（既定モデル解決、新規チャット、古いセッション掃除）。サイドバーはここで開かない
+7. 初回有効化のみ `onUserEnable` でサイドバーを開く。更新・再起動はワークスペースが leaf を復元する
 
 `initServices()` が作るもの:
 

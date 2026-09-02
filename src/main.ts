@@ -1,4 +1,4 @@
-import { Notice, Plugin, type ViewCreator, type WorkspaceLeaf } from "obsidian";
+import { Notice, Plugin, type ViewCreator } from "obsidian";
 import { AgentService } from "./application/AgentService";
 import { t } from "./i18n";
 import { ContextService } from "./application/ContextService";
@@ -91,13 +91,21 @@ export default class PidianPlugin extends Plugin {
     });
 
     this.app.workspace.onLayoutReady(() => {
-      if (this.app.workspace.getLeavesOfType(VIEW_TYPE_PIDIAN).length === 0) {
-        void this.activateView();
-      }
       if (this.agentService) {
         void this.bootstrap();
       }
     });
+  }
+
+  /**
+   * First enable only. Reloads restore the workspace leaf; opening again from
+   * onload would duplicate right-sidebar tabs.
+   *
+   * `Plugin#onUserEnable` is a public lifecycle hook since Obsidian 1.7.2
+   * (changelog). The installed `obsidian` typings omit it.
+   */
+  onUserEnable(): void {
+    void this.activateView();
   }
 
   onunload(): void {
@@ -333,21 +341,11 @@ export default class PidianPlugin extends Plugin {
   }
 
   async activateView(): Promise<void> {
-    const leaf = this.resolvePidianLeaf();
-    if (!leaf) {
+    try {
+      await this.app.workspace.ensureSideLeaf(VIEW_TYPE_PIDIAN, "right", { reveal: true });
+    } catch {
       new Notice(t("noticeSidebarFailed"));
-      return;
     }
-    await leaf.setViewState({ type: VIEW_TYPE_PIDIAN, active: false });
-    await this.app.workspace.revealLeaf(leaf);
-  }
-
-  private resolvePidianLeaf(): WorkspaceLeaf | null {
-    const existing = this.app.workspace.getLeavesOfType(VIEW_TYPE_PIDIAN)[0];
-    if (existing) {
-      return existing;
-    }
-    return this.app.workspace.getRightLeaf(false) ?? this.app.workspace.getRightLeaf(true) ?? this.app.workspace.getLeaf(true);
   }
 
   async loadSettings(): Promise<void> {
