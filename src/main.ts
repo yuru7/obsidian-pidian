@@ -67,7 +67,7 @@ export default class PidianPlugin extends Plugin {
     this.safeRegisterView(VIEW_TYPE_PIDIAN, (leaf) => new PidianView(leaf, this));
     try {
       this.addRibbonIcon(PIDIAN_ICON_ID, t("commandOpen"), () => {
-        void this.activateView();
+        void this.activateView({ focus: true });
       });
     } catch (error) {
       console.warn("Pidian: failed to add ribbon icon", error);
@@ -77,7 +77,7 @@ export default class PidianPlugin extends Plugin {
       name: t("commandOpen"),
       icon: PIDIAN_ICON_ID,
       callback: () => {
-        void this.activateView();
+        void this.activateView({ focus: true });
       },
     });
     this.addCommand({
@@ -86,7 +86,7 @@ export default class PidianPlugin extends Plugin {
       icon: PIDIAN_ICON_ID,
       hotkeys: [{ modifiers: ["Alt"], key: "n" }],
       callback: () => {
-        void this.activateView().then(() => this.startNewChat());
+        void this.activateView({ focus: true }).then(() => this.startNewChat());
       },
     });
 
@@ -105,7 +105,7 @@ export default class PidianPlugin extends Plugin {
    * (changelog). The installed `obsidian` typings omit it.
    */
   onUserEnable(): void {
-    void this.activateView();
+    void this.activateView({ focus: false });
   }
 
   onunload(): void {
@@ -141,6 +141,10 @@ export default class PidianPlugin extends Plugin {
     this.flushComposerFocus();
     if (this.composerFocusPending) {
       window.requestAnimationFrame(() => this.flushComposerFocus());
+    }
+    if (this.composerFocusPending) {
+      // Command palette restores the previous leaf after the command callback.
+      window.setTimeout(() => this.flushComposerFocus(), 0);
     }
   }
 
@@ -340,9 +344,16 @@ export default class PidianPlugin extends Plugin {
     }
   }
 
-  async activateView(): Promise<void> {
+  async activateView(options?: { focus?: boolean }): Promise<void> {
+    const focus = options?.focus === true;
     try {
-      await this.app.workspace.ensureSideLeaf(VIEW_TYPE_PIDIAN, "right", { reveal: true });
+      await this.app.workspace.ensureSideLeaf(VIEW_TYPE_PIDIAN, "right", {
+        reveal: true,
+        active: focus || undefined,
+      });
+      if (focus) {
+        this.requestComposerFocus();
+      }
     } catch {
       new Notice(t("noticeSidebarFailed"));
     }

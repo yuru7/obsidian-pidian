@@ -56,7 +56,7 @@ export function Composer({
         return false;
       }
       el.focus();
-      return true;
+      return document.activeElement === el;
     };
     return plugin.subscribeComposerFocus(tryFocus);
   }, [plugin, disabled]);
