@@ -8,9 +8,7 @@ Pi Coding Agent in Obsidian
 
 A plugin that lets you chat with an AI in the Obsidian sidebar to ask about or edit the open note, search notes, and search the web.
 
-It includes the AI harness [Pi Coding Agent](https://pi.dev), so you get a strong agent experience without extra tools.
-
-Desktop only. Mobile is not supported.
+It includes the AI harness [Pi Coding Agent](https://pi.dev), so you get a strong agent experience without extra tools. It supports OpenAI, Anthropic, xAI, OpenRouter, and many other providers.
 
 ## What it can do
 
