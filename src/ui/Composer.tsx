@@ -1,4 +1,5 @@
 import { useLayoutEffect, useRef, useState, type JSX } from "react";
+import { setTooltip } from "obsidian";
 import { t } from "../i18n";
 import type PidianPlugin from "../main";
 import { shouldSendOnKeyDown } from "./composerSendKey";
@@ -88,35 +89,63 @@ export function Composer({
       <div className="pidian-composer-actions">
         {toolbar}
         {streaming ? (
-          <button
-            className="pidian-button pidian-button-primary pidian-send-button"
-            onClick={onAbort}
-            aria-label={t("uiStop")}
-            title={t("uiStop")}
-          >
-            <svg
-              className="pidian-icon"
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 24 24"
-              fill="currentColor"
-              aria-hidden="true"
-            >
-              <rect x="5" y="5" width="14" height="14" rx="2" />
-            </svg>
-          </button>
+          <SendActionButton label={t("uiStop")} onClick={onAbort}>
+            <StopIcon />
+          </SendActionButton>
         ) : (
-          <button
-            className="pidian-button pidian-button-primary pidian-send-button"
-            disabled={disabled}
-            onClick={send}
-            aria-label={t("uiSend")}
-            title={t("uiSend")}
-          >
+          <SendActionButton label={t("uiSend")} disabled={disabled} onClick={send}>
             <SendIcon />
-          </button>
+          </SendActionButton>
         )}
       </div>
     </div>
+  );
+}
+
+function SendActionButton({
+  label,
+  disabled,
+  onClick,
+  children,
+}: {
+  label: string;
+  disabled?: boolean;
+  onClick: () => void;
+  children: JSX.Element;
+}): JSX.Element {
+  const ref = useRef<HTMLButtonElement>(null);
+
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (el) {
+      setTooltip(el, label, { placement: "top" });
+    }
+  }, [label]);
+
+  return (
+    <button
+      ref={ref}
+      className="pidian-button pidian-button-primary pidian-send-button"
+      disabled={disabled}
+      onClick={onClick}
+      aria-label={label}
+    >
+      {children}
+    </button>
+  );
+}
+
+function StopIcon(): JSX.Element {
+  return (
+    <svg
+      className="pidian-icon"
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      fill="currentColor"
+      aria-hidden="true"
+    >
+      <rect x="5" y="5" width="14" height="14" rx="2" />
+    </svg>
   );
 }
 
