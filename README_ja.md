@@ -60,7 +60,7 @@ API キーを空欄のままにすると、環境変数を使います。
 
 ## コンテキスト
 
-メッセージを送った時点のアクティブなファイルのパスを渡します。Markdown ノートでは、カーソル位置または選択範囲も付けます。Canvas と PNG / JPEG / WebP 画像はパスだけです。画像の中身が必要なときは、エージェントが `read_image` で読みます。
+メッセージを送った時点のアクティブなファイルのパスを渡します。Markdown ノートでは、カーソル位置または選択範囲も付けます。Canvas と PNG / JPEG / WebP 画像はパスだけです。画像の中身が必要なときは、Vision 対応モデルならエージェントが `read_image` で読みます。
 
 ## 会話の保存
 
@@ -96,7 +96,7 @@ API キーは Obsidian のプラグインデータに保存されます。
 - `GEMINI_API_KEY`
 - `OPENROUTER_API_KEY`
 
-Chat Completions 互換のエンドポイントは、設定 → Pidian → **API認証** の Custom OpenAI Compatible に Name / Base URL / Model ID / API key を追加します。
+Chat Completions 互換のエンドポイントは、設定 → Pidian → **API認証** の Custom OpenAI Compatible に Name / Base URL / Model ID / API key を追加します。画像を送れるモデルは **Vision 対応** をオンにします。既定はオフです。
 
 ## 制限事項
 

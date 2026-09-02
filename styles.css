@@ -1191,6 +1191,9 @@ button.pidian-favorite-item-title:hover {
 }
 
 .pidian-custom-model-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
   min-width: 0;
   color: var(--text-normal);
   font-size: var(--font-ui-small);
@@ -1208,6 +1211,20 @@ button.pidian-favorite-item-title:hover {
   flex: 1 1 auto;
   width: 100%;
   min-width: 0;
+}
+
+.pidian-custom-model-control input[type="checkbox"] {
+  flex: 0 0 auto;
+}
+
+.pidian-custom-model-row-toggle {
+  justify-content: flex-start;
+  column-gap: 4px;
+}
+
+.pidian-custom-model-row-toggle .pidian-custom-model-control {
+  flex: 0 0 auto;
+  max-width: none;
 }
 
 .pidian-custom-model-name-error {

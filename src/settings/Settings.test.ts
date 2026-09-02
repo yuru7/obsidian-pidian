@@ -141,7 +141,7 @@ describe("mergeSettings", () => {
             id: "custom-1",
             name: "Ollama",
             baseUrl: "http://localhost:11434/v1",
-            models: [{ id: "llama", name: "llama", modelId: "llama", extraRequestBody: "" }],
+            models: [{ id: "llama", name: "llama", modelId: "llama", extraRequestBody: "", supportsImages: false }],
             apiKey: "",
           },
         ],
@@ -163,8 +163,8 @@ describe("mergeSettings", () => {
         ],
       }).customProviders[0]?.models,
     ).toEqual([
-      { id: "llama", name: "llama", modelId: "llama", extraRequestBody: "" },
-      { id: "mistral", name: "mistral", modelId: "mistral", extraRequestBody: "" },
+      { id: "llama", name: "llama", modelId: "llama", extraRequestBody: "", supportsImages: false },
+      { id: "mistral", name: "mistral", modelId: "mistral", extraRequestBody: "", supportsImages: false },
     ]);
   });
 
@@ -194,6 +194,39 @@ describe("mergeSettings", () => {
         name: "foo high",
         modelId: "foo",
         extraRequestBody: '{"reasoning_effort":"high"}',
+        supportsImages: false,
+      },
+    ]);
+  });
+
+  it("keeps a custom model vision flag", () => {
+    expect(
+      mergeSettings({
+        customProviders: [
+          {
+            id: "custom-1",
+            name: "Ollama",
+            baseUrl: "http://localhost:11434/v1",
+            models: [
+              {
+                id: "vl",
+                name: "vl",
+                modelId: "qwen-vl",
+                extraRequestBody: "",
+                supportsImages: true,
+              },
+            ],
+            apiKey: "",
+          },
+        ],
+      }).customProviders[0]?.models,
+    ).toEqual([
+      {
+        id: "vl",
+        name: "vl",
+        modelId: "qwen-vl",
+        extraRequestBody: "",
+        supportsImages: true,
       },
     ]);
   });

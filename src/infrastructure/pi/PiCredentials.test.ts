@@ -4,7 +4,7 @@ import {
   createCredentialResolver,
   envApiKeyForProvider,
   listKnownCredentialProviders,
-  PIDIAN_SYSTEM_PROMPT,
+  pidianSystemPrompt,
 } from "./PiCredentials";
 
 const ORIGINAL_OPENCODE_KEY = process.env.OPENCODE_API_KEY;
@@ -73,29 +73,44 @@ describe("OpenCode credentials", () => {
   });
 });
 
-describe("PIDIAN_SYSTEM_PROMPT", () => {
+describe("pidianSystemPrompt", () => {
   it("describes the compact user-turn header without treating it as note contents", () => {
-    expect(PIDIAN_SYSTEM_PROMPT).toContain(
+    const prompt = pidianSystemPrompt(false);
+    expect(prompt).toContain(
       "Each user turn is an ISO 8601 local timestamp, then optional `PATH LINE_RANGE` or `PATH`, then `User:` and the message",
     );
-    expect(PIDIAN_SYSTEM_PROMPT).toContain(
+    expect(prompt).toContain(
       "The header is send time and location only, never file contents, and is not the user's text",
     );
-    expect(PIDIAN_SYSTEM_PROMPT).toContain("Use the timestamp to resolve relative dates");
-    expect(PIDIAN_SYSTEM_PROMPT).toContain("prefer a date the user wrote");
+    expect(prompt).toContain("Use the timestamp to resolve relative dates");
+    expect(prompt).toContain("prefer a date the user wrote");
   });
 
   it("forbids write tools unless the user explicitly asked to change a note", () => {
-    expect(PIDIAN_SYSTEM_PROMPT).toContain(
+    const prompt = pidianSystemPrompt(false);
+    expect(prompt).toContain(
       "Call create_note, edit_markdown, or delete_note only when the user explicitly asked",
     );
-    expect(PIDIAN_SYSTEM_PROMPT).toContain("Requests that only ask to produce or show content stay in chat");
-    expect(PIDIAN_SYSTEM_PROMPT).toContain("出して");
-    expect(PIDIAN_SYSTEM_PROMPT).toContain(
+    expect(prompt).toContain("Requests that only ask to produce or show content stay in chat");
+    expect(prompt).toContain("出して");
+    expect(prompt).toContain(
       "If it is unclear whether they want a vault change or a chat reply, put the result in chat",
     );
-    expect(PIDIAN_SYSTEM_PROMPT).toContain("Do not use those tools to try them, experiment");
-    expect(PIDIAN_SYSTEM_PROMPT).toContain("use a Wiki link such as [[folder/Note]]");
-    expect(PIDIAN_SYSTEM_PROMPT).toContain("Do not wrap it in backticks");
+    expect(prompt).toContain("Do not use those tools to try them, experiment");
+    expect(prompt).toContain("use a Wiki link such as [[folder/Note]]");
+    expect(prompt).toContain("Do not wrap it in backticks");
+  });
+
+  it("omits read_image when the model does not support vision", () => {
+    const prompt = pidianSystemPrompt(false);
+    expect(prompt).not.toContain("read_image");
+    expect(prompt).not.toContain("read images");
+  });
+
+  it("describes read_image only for vision models", () => {
+    const prompt = pidianSystemPrompt(true);
+    expect(prompt).toContain("read images");
+    expect(prompt).toContain("Call read_image when the path is a PNG, JPEG, or WebP image");
+    expect(prompt).toContain("read_image reads PNG, JPEG, and WebP");
   });
 });

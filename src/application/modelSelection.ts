@@ -1,5 +1,5 @@
 import {
-  customProviderModelIds,
+  customProviderModels,
   isConfiguredCustomProvider,
   type CustomOpenAIProvider,
 } from "../settings/Settings";
@@ -13,7 +13,10 @@ export function connectionConfigFingerprint(settings: {
     customProviders: settings.customProviders.map((provider) => ({
       id: provider.id,
       baseUrl: provider.baseUrl.trim(),
-      modelIds: customProviderModelIds(provider),
+      models: customProviderModels(provider).map((model) => ({
+        id: model.id,
+        supportsImages: Boolean(model.supportsImages),
+      })),
       apiKey: provider.apiKey,
     })),
   });
@@ -32,7 +35,7 @@ export function reconcileModelSelection(
     if (!isConfiguredCustomProvider(custom)) {
       return { provider: "", model: "" };
     }
-    const modelIds = customProviderModelIds(custom);
+    const modelIds = customProviderModels(custom).map((model) => model.id);
     if (modelIds.includes(current.model)) {
       return { provider: custom.id, model: current.model };
     }

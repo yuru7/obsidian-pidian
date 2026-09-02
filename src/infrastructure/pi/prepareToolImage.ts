@@ -12,11 +12,19 @@ export type PiToolContent =
   | { type: "text"; text: string }
   | { type: "image"; data: string; mimeType: string };
 
-export async function toPiToolContent(result: ToolExecuteResult): Promise<PiToolContent[]> {
+export async function toPiToolContent(
+  result: ToolExecuteResult,
+  options?: { supportsImages?: boolean },
+): Promise<PiToolContent[]> {
   let text = result.content;
   const images: PiToolContent[] = [];
+  const supportsImages = options?.supportsImages !== false;
   if (!result.isError) {
     for (const image of result.images ?? []) {
+      if (!supportsImages) {
+        text = `${text}\n[Current model does not support images. The image was omitted.]`;
+        continue;
+      }
       const prepared = await prepareInlineImage(image);
       if (prepared.ok) {
         images.push({ type: "image", data: prepared.data, mimeType: prepared.mimeType });

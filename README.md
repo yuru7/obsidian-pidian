@@ -60,7 +60,7 @@ Edits go through Obsidian, so you can undo them with Obsidian's standard Undo.
 
 ## Context
 
-When you send a message, Pidian includes the path of the active file. For Markdown notes, it also includes the cursor position or selection. Canvas and PNG, JPEG, or WebP images include the path only. The agent reads an image with `read_image` when it needs to see it.
+When you send a message, Pidian includes the path of the active file. For Markdown notes, it also includes the cursor position or selection. Canvas and PNG, JPEG, or WebP images include the path only. The agent reads an image with `read_image` when the current model supports vision.
 
 ## Saving conversations
 
@@ -96,7 +96,7 @@ Example environment variables:
 - `GEMINI_API_KEY`
 - `OPENROUTER_API_KEY`
 
-For Chat Completions-compatible endpoints, add Name / Base URL / Model ID / API key under Settings → Pidian → **API credentials** → Custom OpenAI Compatible.
+For Chat Completions-compatible endpoints, add Name / Base URL / Model ID / API key under Settings → Pidian → **API credentials** → Custom OpenAI Compatible. Turn on **Vision** for a model if it can receive images. It is off by default.
 
 ## Limitations
 

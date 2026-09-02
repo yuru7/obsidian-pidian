@@ -2,6 +2,7 @@ import { Type, type TSchema } from "typebox";
 import { defineTool } from "@earendil-works/pi-coding-agent";
 import type { JsonSchemaObject, JsonSchemaProperty, PidianTool } from "../../domain/tools/PidianTool";
 import { toPiToolContent } from "./prepareToolImage";
+import { modelSupportsImages } from "./visionModel";
 
 function toTypeBox(schema: JsonSchemaProperty): TSchema {
   switch (schema.type) {
@@ -44,10 +45,12 @@ export function toPiTools(tools: PidianTool[]) {
       description: tool.description,
       promptSnippet: `${tool.name}: ${tool.description}`,
       parameters: toObjectSchema(tool.parameters),
-      execute: async (_toolCallId, params) => {
+      execute: async (_toolCallId, params, _signal, _onUpdate, ctx) => {
         const result = await tool.execute(params);
         return {
-          content: await toPiToolContent(result),
+          content: await toPiToolContent(result, {
+            supportsImages: !ctx?.model || modelSupportsImages(ctx.model),
+          }),
           details: { isError: Boolean(result.isError) },
         };
       },

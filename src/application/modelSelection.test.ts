@@ -80,6 +80,17 @@ describe("connectionConfigFingerprint", () => {
     expect(connectionConfigFingerprint(base)).not.toBe(connectionConfigFingerprint({ ...base, apiKeys: { openai: "sk" } }));
   });
 
+  it("changes when a custom model vision flag changes", () => {
+    const base = { apiKeys: {}, customProviders: [ollama] };
+    const withVision = {
+      ...ollama,
+      models: ollama.models.map((model) => ({ ...model, supportsImages: true })),
+    };
+    expect(connectionConfigFingerprint(base)).not.toBe(
+      connectionConfigFingerprint({ ...base, customProviders: [withVision] }),
+    );
+  });
+
   it("ignores display name changes", () => {
     const base = { apiKeys: {}, customProviders: [ollama] };
     expect(connectionConfigFingerprint(base)).toBe(

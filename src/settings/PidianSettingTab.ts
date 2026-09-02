@@ -1,4 +1,4 @@
-import { Notice, PluginSettingTab, Setting, setIcon, normalizePath, TFile, type App } from "obsidian";
+import { Notice, PluginSettingTab, Setting, setIcon, displayTooltip, normalizePath, TFile, type App } from "obsidian";
 import { t } from "../i18n";
 import type PidianPlugin from "../main";
 import type { CatalogModel, CatalogProvider } from "../domain/agent/ModelCatalog";
@@ -1090,6 +1090,33 @@ export class PidianSettingTab extends PluginSettingTab {
         this.refreshModelNameErrors(containerEl, provider);
       }
       await this.plugin.saveSettings();
+    });
+
+    const visionRow = fields.createDiv({ cls: "pidian-custom-model-row pidian-custom-model-row-toggle" });
+    const visionLabel = visionRow.createDiv({ cls: "pidian-custom-model-label" });
+    visionLabel.createSpan({ text: t("settingsModelSupportsImages") });
+    const visionHelp = visionLabel.createEl("button", {
+      cls: "clickable-icon pidian-custom-model-json-help",
+      attr: {
+        type: "button",
+        "aria-label": t("settingsModelSupportsImagesHelpAria"),
+      },
+    });
+    appendCircleQuestionIcon(visionHelp);
+    visionHelp.addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      displayTooltip(visionHelp, t("settingsModelSupportsImagesHelp"));
+    });
+    const visionControl = visionRow.createDiv({ cls: "pidian-custom-model-control" });
+    const vision = visionControl.createEl("input", {
+      type: "checkbox",
+      attr: { "aria-label": t("settingsModelSupportsImages") },
+    });
+    vision.checked = Boolean(model.supportsImages);
+    vision.addEventListener("change", () => {
+      model.supportsImages = vision.checked;
+      void this.plugin.saveSettings();
     });
 
     const jsonKey = customModelJsonKey(provider, model, index);

@@ -62,7 +62,7 @@ Pi から Obsidian へ直接アクセスする経路は作りません。
 
 ## Obsidian Tool architecture
 
-初期ツールは `read_note` / `read_image` / `search_notes` / `list_files` / `open_file` / `workspace_tabs` / `web_search` / `fetch_url` / `create_note` / `edit_markdown` / `delete_note` です。Domain の `PidianTool` として定義し、`PiToolAdapter` だけが Pi の `defineTool` に変換します。`search_notes` / `list_files` / `open_file` / `workspace_tabs` / `read_image` は読み取り権限を使います。`read_image` は PNG / JPEG / WebP をこのターンの image ブロックとして渡し、セッションには path のテキストだけ残します。`web_search` / `fetch_url` は Web search 権限を使います。`web_search` は Pi / Obsidian に依存しません。`fetch_url` は静的取得のあと、JS 描画ページだけ Obsidian Desktop の隠し `BrowserWindow` でレンダリングします。ページ本文を外部サービスへ送りません。`delete_note` は削除権限を使い、Obsidian のゴミ箱設定に従ってファイルを捨てます。
+初期ツールは `read_note` / `read_image` / `search_notes` / `list_files` / `open_file` / `workspace_tabs` / `web_search` / `fetch_url` / `create_note` / `edit_markdown` / `delete_note` です。Domain の `PidianTool` として定義し、`PiToolAdapter` だけが Pi の `defineTool` に変換します。`search_notes` / `list_files` / `open_file` / `workspace_tabs` / `read_image` は読み取り権限を使います。`read_image` は PNG / JPEG / WebP をこのターンの image ブロックとして渡し、セッションには path のテキストだけ残します。Pi セッション作成時、`model.input` に `image` が無いモデルには `read_image` を渡しません。Custom OpenAI Compatible はモデルごとの Vision 対応チェック（既定オフ）で `input` を決めます。`web_search` / `fetch_url` は Web search 権限を使います。`web_search` は Pi / Obsidian に依存しません。`fetch_url` は静的取得のあと、JS 描画ページだけ Obsidian Desktop の隠し `BrowserWindow` でレンダリングします。ページ本文を外部サービスへ送りません。`delete_note` は削除権限を使い、Obsidian のゴミ箱設定に従ってファイルを捨てます。
 
 ツール追加手順:
 

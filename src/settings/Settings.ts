@@ -10,6 +10,8 @@ export interface CustomProviderModel {
   name: string;
   modelId: string;
   extraRequestBody: string;
+  /** When true, Pi registers the model with image input so read_image is available. */
+  supportsImages?: boolean;
 }
 
 export interface CustomOpenAIProvider {
@@ -26,6 +28,7 @@ export function createEmptyCustomProviderModel(): CustomProviderModel {
     name: "",
     modelId: "",
     extraRequestBody: "",
+    supportsImages: false,
   };
 }
 
@@ -51,6 +54,7 @@ export function customProviderModels(provider: CustomOpenAIProvider): CustomProv
       name: raw.name,
       modelId,
       extraRequestBody: raw.extraRequestBody,
+      supportsImages: Boolean(raw.supportsImages),
     });
   }
   return models;
@@ -223,6 +227,7 @@ function parseCustomProviderModel(raw: unknown): CustomProviderModel | null {
     name: typeof item.name === "string" ? item.name : "",
     modelId,
     extraRequestBody: parseExtraRequestBodySetting(item.extraRequestBody),
+    supportsImages: item.supportsImages === true,
   };
 }
 
@@ -246,11 +251,12 @@ function modelFromLegacyId(modelId: string): CustomProviderModel {
     name: modelId,
     modelId,
     extraRequestBody: "",
+    supportsImages: false,
   };
 }
 
 function emptyPlaceholderModel(): CustomProviderModel {
-  return { id: "", name: "", modelId: "", extraRequestBody: "" };
+  return { id: "", name: "", modelId: "", extraRequestBody: "", supportsImages: false };
 }
 
 export function mergeSettings(raw: unknown): PidianSettings {

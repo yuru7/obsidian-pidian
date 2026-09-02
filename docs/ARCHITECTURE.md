@@ -164,7 +164,7 @@ User: <user text>
 
 ユーザー発言の `text` は本文だけ保存する。ヘッダ（時刻・path）は保存しない。送信時の `ContextSnapshot`（path と、Markdown なら行範囲。本文は入れない）はユーザーメッセージの任意フィールド `context` に残す。再開・モデル変更で Pi を作り直すとき、`toConversation` が `formatAgentPrompt` で当時のヘッダを復元する。`context` が無い古い保存は timestamp と `User: <user text>` のみ。
 
-ファイル本文はコンテキストに載せない。エージェントは `read_note` でノートを、`read_image` で PNG/JPEG/WebP を読む。システムプロンプトは `PIDIAN_SYSTEM_PROMPT`（`src/infrastructure/pi/PiCredentials.ts`）。Vault の `pidian/AGENTS.md`（プラグインフォルダ設定に追随）は任意の追加指示。
+ファイル本文はコンテキストに載せない。エージェントは `read_note` でノートを読む。Vision モデルでは `read_image` で PNG/JPEG/WebP を読む。システムプロンプトは `pidianSystemPrompt`（`src/infrastructure/pi/PiCredentials.ts`）。Vision でないときは `read_image` の説明を出さない。Vault の `pidian/AGENTS.md`（プラグインフォルダ設定に追随）は任意の追加指示。
 
 ---
 
@@ -175,7 +175,7 @@ User: <user text>
 | name | 権限 | 役割 |
 | --- | --- | --- |
 | `read_note` | read | `.md` / `.canvas` を行範囲で読む。revision を返す。`ReadRevisionTracker` に記録。Canvas は offset 1 から |
-| `read_image` | read | PNG / JPEG / WebP を読む。このターンだけ image ブロックを Pi に付ける。セッション jsonl には path のテキストだけ残す。復元時は付け直さない |
+| `read_image` | read | PNG / JPEG / WebP を読む。このターンだけ image ブロックを Pi に付ける。セッション jsonl には path のテキストだけ残す。復元時は付け直さない。Pi の `model.input` に `image` が無いときは `customTools` からもシステムプロンプトからも外す |
 | `search_notes` | read | `.md` / `.canvas` のファイル名 + 本文検索。`AGENTS.md` と制限パスは除外 |
 | `list_files` | read | 直下のみ。再帰しない。`""` / `"/"` が Vault ルート。任意の `glob` は直下の name に `*` で絞る（`**` とパス区切りは拒否） |
 | `open_file` | read | 開いてアクティブにする。未オープンなら開く |
@@ -186,7 +186,7 @@ User: <user text>
 | `edit_markdown` | edit | `.md` だけ。下記の編集経路 |
 | `delete_note` | delete | `fileManager.trashFile`（Obsidian のゴミ箱設定に従う） |
 
-Pi 起動時は `noTools: "builtin"` で標準ツールを切り、`customTools` に上記だけを渡す。
+Pi 起動時は `noTools: "builtin"` で標準ツールを切り、`customTools` に上記だけを渡す。`read_image` は `toolsVisibleToModel` で、そのセッションのモデルが画像入力を持つときだけ残す。
 
 ### ツールを足す
 
@@ -194,7 +194,7 @@ Pi 起動時は `noTools: "builtin"` で標準ツールを切り、`customTools`
 2. 新しい権限カテゴリが必要なら `ToolCategory` と Settings の `permissions` と i18n を同時に足す。
 3. `createPidianTools()` に登録する。
 4. 隣に `*.test.ts` を書く。Pi の型や `defineTool` は tools 配下に書かない。
-5. エージェント向け説明はツールの `description` と、必要なら `PIDIAN_SYSTEM_PROMPT` を更新する。
+5. エージェント向け説明はツールの `description` と、必要なら `pidianSystemPrompt` を更新する。
 
 ---
 
@@ -292,10 +292,10 @@ interface PidianSession {
 優先順位: **Pidian 設定の API キー > 環境変数**。`~/.pi/agent/auth.json` は読まない（`InMemoryCredentialStore`）。
 
 - 既知プロバイダの env 名は `src/infrastructure/pi/PiCredentials.ts` の `PROVIDER_ENV_VARS`。本体にプロバイダ分岐を足さない。
-- Custom OpenAI Compatible は Settings の `customProviders`。`ModelRuntime.registerProvider`（api: `openai-completions`）。env は使わない。
+- Custom OpenAI Compatible は Settings の `customProviders`。`ModelRuntime.registerProvider`（api: `openai-completions`）。env は使わない。各モデルの `supportsImages`（既定オフ）が true のときだけ Pi の `input` を `["text", "image"]` にする。カタログモデルは Pi の `model.input` を使う。
 - 実行時キーは `setRuntimeApiKey`。
 - モデル一覧は `PiModelCatalog`。動的カタログは `{plugin install dir}/dynamicModels.json`。無い、または 1 日以上古いときだけ `runtime.refresh({ allowNetwork: true, force: true })`。
-- 接続設定（キー・custom provider）が変わったら `AgentService.reloadModel()`。削除された provider は `reconcileModelSelection` で落とす。
+- 接続設定（キー・custom provider・Vision フラグ）が変わったら `AgentService.reloadModel()`。削除された provider は `reconcileModelSelection` で落とす。
 - thinking は `src/domain/agent/thinkingLevel.ts`。モデルが支持する集合へ clamp する。
 
 ---
@@ -309,7 +309,8 @@ Pi を Obsidian の eval 環境で動かすための隔離が `src/infrastructur
 | `PiAgentAdapter.ts` | `AgentEngine` 実装。`SessionManager.inMemory()`、再開時は会話を SessionManager に載せる。`noTools: "builtin"` |
 | `piCodingAgentSdk.ts` | パッケージ barrel の代わり。CLI / self-update をバンドルに入れない |
 | `PiEventMapper.ts` | Pi イベント → `AgentEvent` |
-| `PiToolAdapter.ts` | `PidianTool` → `defineTool`。`read_image` のバイトは image ブロックにし、セッションへは出さない |
+| `PiToolAdapter.ts` | `PidianTool` → `defineTool`。`read_image` のバイトは image ブロックにし、セッションへは出さない。非 Vision なら image ブロックを付けない |
+| `visionModel.ts` | `model.input` に `image` があるか。無いなら `read_image` をツール一覧から外す |
 | `prepareToolImage.ts` | インライン上限。Photon はスタブなので、超過分だけ Canvas で縮小 |
 | `PidianResourceLoader.ts` | システムプロンプトと AGENTS.md だけ。拡張ローダは使わない |
 | `corsFreeFetch.ts` | Chromium `fetch` の CORS を避けるため Node `http`/`https` |
@@ -408,13 +409,13 @@ UI は `AgentService` と `plugin.settings` を読む。Pi 型を import しな�
 | やりたいこと | 触る場所 | 触らない場所 |
 | --- | --- | --- |
 | ツール追加 | `src/tools/`, `createPidianTools` | `infrastructure/pi` の `defineTool` 直書き、Pi 標準ツール有効化 |
-| 画像読み | `ReadImageTool`, `ImageRepository`, `prepareToolImage` | Pi 標準 `read`、jsonl への base64 保存、復元時の再添付 |
+| 画像読み | `ReadImageTool`, `ImageRepository`, `prepareToolImage`, `visionModel` | Pi 標準 `read`、jsonl への base64 保存、復元時の再添付、非 Vision へのツール公開 |
 | 編集ルール | `EditMarkdownTool`, `replacements.ts`, `ObsidianNoteEditor` | editor を飛ばした `vault.modify` |
 | コンテキスト | `ContextService`, `ObsidianContextProvider` | プロンプトにノート全文を埋め込む |
 | セッション形式 | `PidianSession`, `sessionSerialization` | Pi session JSON の保存 |
 | モデル一覧 | `PiModelCatalog`, Settings custom provider | UI での provider 特例 |
 | チャットのノートリンク | `Markdown.tsx`, `chatNoteLink.ts`, `ObsidianWorkspaceNavigator` | `openLinkText` のデフォルト、`instanceof MarkdownView` でのタブ検索 |
-| システム指示 | `PIDIAN_SYSTEM_PROMPT`, Vault `AGENTS.md` | Pi のデフォルト AGENTS 探索（fs stub で止めてある） |
+| システム指示 | `pidianSystemPrompt`, Vault `AGENTS.md` | Pi のデフォルト AGENTS 探索（fs stub で止めてある） |
 | CORS / LLM HTTP | `corsFreeFetch`, `customRequestBody` | レンダラの `fetch` に戻す |
 | JS 描画ページの取得 | `BrowserFetcher`, `FetchOrchestrator` | ページ本文を Firecrawl 等へ送る |
 | バンドル審査 | `esbuild.config.mjs` の stub と `FORBIDDEN_BUNDLE_PATTERNS` | Pi barrel の直接 import |

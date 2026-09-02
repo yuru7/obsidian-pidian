@@ -22,10 +22,11 @@ import { injectCorsFreeFetch, withCorsFreeFetch } from "./corsFreeFetch";
 import { createCustomRequestBodyFetch } from "./customRequestBody";
 import { PidianResourceLoader } from "./PidianResourceLoader";
 import { normalizeAgentsContent, pidianAgentsFiles } from "./pidianAgentsFiles";
-import { PIDIAN_SYSTEM_PROMPT } from "./PiCredentials";
+import { pidianSystemPrompt } from "./PiCredentials";
 import { mapPiCompactionEvent, mapPiEvent } from "./PiEventMapper";
 import { hydratePiSession } from "./piSessionHydration";
 import { toPiTools } from "./PiToolAdapter";
+import { modelSupportsImages, toolsVisibleToModel } from "./visionModel";
 
 const MODEL_CATALOG_REFRESH_TIMEOUT_MS = 15_000;
 
@@ -112,8 +113,9 @@ export class PiAgentAdapter implements AgentEngine {
       : undefined;
     const agentsContent = normalizeAgentsContent(await this.options.readAgentsFile());
     const settingsManager = SettingsManager.inMemory();
+    const supportsImages = modelSupportsImages(model);
     const loader = new PidianResourceLoader({
-      systemPrompt: PIDIAN_SYSTEM_PROMPT,
+      systemPrompt: pidianSystemPrompt(supportsImages),
       agentsFiles: pidianAgentsFiles(agentsContent),
     });
     const sessionManager = SessionManager.inMemory();
@@ -129,7 +131,7 @@ export class PiAgentAdapter implements AgentEngine {
       settingsManager,
       resourceLoader: loader as unknown as ResourceLoader,
       noTools: "builtin",
-      customTools: toPiTools(options.tools),
+      customTools: toPiTools(toolsVisibleToModel(options.tools, model)),
     });
 
     return new PiWrappedSession(session);
@@ -176,7 +178,7 @@ export class PiAgentAdapter implements AgentEngine {
           id: model.id,
           name: customModelDisplayName(model),
           reasoning: false,
-          input: ["text"],
+          input: model.supportsImages ? ["text", "image"] : ["text"],
           contextWindow: 128000,
           maxTokens: 8192,
           cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },

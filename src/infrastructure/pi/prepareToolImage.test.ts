@@ -30,6 +30,23 @@ describe("toPiToolContent", () => {
     });
     expect(content).toEqual([{ type: "text", text: "denied" }]);
   });
+
+  it("omits image blocks when the model does not support vision", async () => {
+    const stub = JSON.stringify({ path: "img/photo.png", mimeType: IMAGE_MIME_PNG, byteLength: PNG_1X1.byteLength });
+    const content = await toPiToolContent(
+      {
+        content: stub,
+        images: [{ mimeType: IMAGE_MIME_PNG, bytes: PNG_1X1 }],
+      },
+      { supportsImages: false },
+    );
+    expect(content).toEqual([
+      {
+        type: "text",
+        text: `${stub}\n[Current model does not support images. The image was omitted.]`,
+      },
+    ]);
+  });
 });
 
 describe("prepareInlineImage", () => {
