@@ -3,7 +3,7 @@ import type { PidianTool } from "../domain/tools/PidianTool";
 import { PermissionService } from "../application/PermissionService";
 import { ReadRevisionTracker } from "../application/ReadRevisionTracker";
 import { READ_NOTE_MAX_LINES, sliceNoteContent } from "../application/readRange";
-import { assertSafeNotePath } from "../application/notePath";
+import { assertNoteFilePath } from "../application/noteFile";
 
 function optionalPositiveInt(value: unknown, name: string): number | undefined {
   if (value === undefined) {
@@ -24,7 +24,7 @@ function parseReadNoteArgs(args: unknown): { path: string; offset: number; limit
     throw new Error("path is required.");
   }
   return {
-    path: assertSafeNotePath(record.path),
+    path: assertNoteFilePath(record.path),
     offset: optionalPositiveInt(record.offset, "offset") ?? 1,
     limit: optionalPositiveInt(record.limit, "limit") ?? READ_NOTE_MAX_LINES,
   };
@@ -40,13 +40,13 @@ export function createReadNoteTool(options: {
     name: "read_note",
     label: "Read note",
     description:
-      "Read a Markdown note from the Obsidian vault by line range. offset is the 1-based start line and limit is the number of lines to read. Returns at most 2000 lines or 50KB, whichever is reached first. If truncated is true, call again with nextOffset. Returns path, content, revision, startLine, endLine, totalLines, truncated, and nextOffset.",
+      "Read a Markdown (.md) or Canvas (.canvas) note from the Obsidian vault by line range. offset is the 1-based start line and limit is the number of lines to read. Defaults to offset 1 when the file has no cursor, such as a Canvas. Returns at most 2000 lines or 50KB, whichever is reached first. If truncated is true, call again with nextOffset. Returns path, content, revision, startLine, endLine, totalLines, truncated, and nextOffset.",
     parameters: {
       type: "object",
       properties: {
         path: {
           type: "string",
-          description: "Vault-relative path to the note, for example notes/example.md",
+          description: "Vault-relative path to the note, for example notes/example.md or maps/board.canvas",
         },
         offset: {
           type: "number",

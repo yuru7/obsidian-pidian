@@ -11,13 +11,13 @@ export function createSearchNotesTool(options: {
     name: "search_notes",
     label: "Search notes",
     description:
-      `Search Markdown notes in the Obsidian vault by file name and note body. File names are matched exactly first; if none match, a partial match is used (substring, ignoring whitespace differences). Excludes ${formatConfigDirExclusion()}, ${sessionsDir()}/, and ${agentsFilePath()}.`,
+      `Search Markdown (.md) and Canvas (.canvas) notes in the Obsidian vault by file name and note body. File names are matched exactly first; if none match, a partial match is used (substring, ignoring whitespace differences). Excludes ${formatConfigDirExclusion()}, ${sessionsDir()}/, and ${agentsFilePath()}.`,
     parameters: {
       type: "object",
       properties: {
         query: {
           type: "string",
-          description: "Search query matched against file names and note contents.",
+          description: "Search query matched against note file names and contents.",
         },
       },
       required: ["query"],

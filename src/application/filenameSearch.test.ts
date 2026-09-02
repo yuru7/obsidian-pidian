@@ -7,6 +7,8 @@ describe("filenameSearch", () => {
     expect(isExactFilenameMatch("notes/Hello World.md", "Hello  World.md")).toBe(true);
     expect(isExactFilenameMatch("notes/Hello World.md", "HELLO WORLD")).toBe(true);
     expect(isExactFilenameMatch("notes/Hello World.md", "notes/Hello World.md")).toBe(true);
+    expect(isExactFilenameMatch("maps/Board.canvas", "board")).toBe(true);
+    expect(isExactFilenameMatch("maps/Board.canvas", "Board.canvas")).toBe(true);
   });
 
   it("does not treat a substring as an exact match", () => {

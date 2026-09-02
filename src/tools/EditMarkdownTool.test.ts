@@ -8,7 +8,7 @@ import type { OpenFileResult, WorkspaceNavigator, WorkspaceTab } from "../domain
 import { applyReplacementsToText } from "../application/replacements";
 import { SearchProviderRegistry, SearchService } from "../application/search/SearchService";
 import { createFetchService } from "../infrastructure/fetch/createFetchService";
-import { createEditNoteTool } from "./EditNoteTool";
+import { createEditMarkdownTool } from "./EditMarkdownTool";
 import { createPidianTools } from "./createPidianTools";
 
 class MemoryNotes implements NoteRepository {
@@ -85,7 +85,7 @@ class MemoryEditor implements NoteEditor {
   }
 }
 
-describe("edit_note", () => {
+describe("edit_markdown", () => {
   it("refuses edits when permission is deny and never calls the editor", async () => {
     const files = new Map([["a.md", "hello"]]);
     const notes = new MemoryNotes(files);
@@ -93,7 +93,7 @@ describe("edit_note", () => {
     const tracker = new ReadRevisionTracker();
     const revision = computeRevision("hello");
     tracker.recordRead("s1", "a.md", revision);
-    const tool = createEditNoteTool({
+    const tool = createEditMarkdownTool({
       sessionId: "s1",
       notes,
       editor,
@@ -121,7 +121,7 @@ describe("edit_note", () => {
     const tracker = new ReadRevisionTracker();
     tracker.recordRead("s1", "a.md", computeRevision("hello"));
     files.set("a.md", "changed");
-    const tool = createEditNoteTool({
+    const tool = createEditMarkdownTool({
       sessionId: "s1",
       notes,
       editor,
@@ -150,7 +150,7 @@ describe("edit_note", () => {
     const tracker = new ReadRevisionTracker();
     const revision = computeRevision("hello");
     tracker.recordRead("s1", "a.md", revision);
-    const tool = createEditNoteTool({
+    const tool = createEditMarkdownTool({
       sessionId: "s1",
       notes,
       editor,
@@ -170,6 +170,31 @@ describe("edit_note", () => {
     expect(result.content).toBe(NOTE_NOT_ACTIVE_EDITOR);
     expect(editor.calls).toHaveLength(0);
     expect(files.get("a.md")).toBe("hello");
+  });
+
+  it("rejects Canvas files", async () => {
+    const files = new Map([["maps/board.canvas", '{"nodes":[]}']]);
+    const notes = new MemoryNotes(files);
+    const editor = new MemoryEditor(notes, files);
+    const tool = createEditMarkdownTool({
+      sessionId: "s1",
+      notes,
+      editor,
+      tracker: new ReadRevisionTracker(),
+      permissions: new PermissionService(
+        () => ({ read: "allow", create: "deny", edit: "allow", delete: "deny", webSearch: "deny" }),
+        { confirm: async () => true },
+      ),
+    });
+
+    const result = await tool.execute({
+      path: "maps/board.canvas",
+      revision: "unused",
+      replacements: [{ oldText: "nodes", newText: "cards" }],
+    });
+    expect(result.isError).toBe(true);
+    expect(result.content).toContain("Not a Markdown file");
+    expect(editor.calls).toHaveLength(0);
   });
 });
 
@@ -194,7 +219,7 @@ describe("read then edit flow", () => {
       ),
     });
     const read = tools.find((tool) => tool.name === "read_note");
-    const edit = tools.find((tool) => tool.name === "edit_note");
+    const edit = tools.find((tool) => tool.name === "edit_markdown");
     if (!read || !edit) {
       throw new Error("tools missing");
     }
@@ -232,7 +257,7 @@ describe("read then edit flow", () => {
       ),
     });
     const read = tools.find((tool) => tool.name === "read_note");
-    const edit = tools.find((tool) => tool.name === "edit_note");
+    const edit = tools.find((tool) => tool.name === "edit_markdown");
     if (!read || !edit) {
       throw new Error("tools missing");
     }

@@ -95,7 +95,7 @@ export const en = {
   uiNewChat: "New chat",
   uiOpenActiveSession: "Open session from the open session file",
   uiSessionFileInvalid: "This session file could not be read because it is not a valid session.",
-  uiNoActiveNote: "No active Markdown note",
+  uiNoActiveNote: "No active file",
   uiNoModel: "No model selected",
   uiThinkingLevel: "Thinking",
   uiPlaceholder: "Ask Pidian...",

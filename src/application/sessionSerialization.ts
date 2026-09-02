@@ -93,6 +93,9 @@ function parseOptionalContext(value: unknown): ContextSnapshot | undefined {
   if (typeof value.notePath !== "string" || value.notePath.length === 0) {
     return undefined;
   }
+  if (value.startLine === undefined && value.endLine === undefined) {
+    return { notePath: value.notePath };
+  }
   if (!isPositiveInt(value.startLine) || !isPositiveInt(value.endLine) || value.endLine < value.startLine) {
     return undefined;
   }

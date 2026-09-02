@@ -109,6 +109,22 @@ describe("session serialization", () => {
     expect(parseSessionFile(serializePidianSession(withContext))).toEqual(withContext);
   });
 
+  it("round-trips user message context without a line range", () => {
+    const withContext: PidianSession = {
+      ...sample,
+      messages: [
+        {
+          id: "m1",
+          role: "user",
+          text: "Hello",
+          context: { notePath: "maps/board.canvas" },
+          createdAt: "2026-01-01T00:00:00.000Z",
+        },
+      ],
+    };
+    expect(parseSessionFile(serializePidianSession(withContext))).toEqual(withContext);
+  });
+
   it("omits invalid user message context", () => {
     expect(
       parsePidianSession({

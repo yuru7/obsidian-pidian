@@ -8,7 +8,7 @@ import { SearchService } from "../application/search/SearchService";
 import { FetchService } from "../application/fetch/FetchService";
 import { createCreateNoteTool } from "./CreateNoteTool";
 import { createDeleteNoteTool } from "./DeleteNoteTool";
-import { createEditNoteTool } from "./EditNoteTool";
+import { createEditMarkdownTool } from "./EditMarkdownTool";
 import { createFetchUrlTool } from "./FetchUrlTool";
 import { createListFilesTool } from "./ListFilesTool";
 import { createOpenFileTool } from "./OpenFileTool";
@@ -36,7 +36,7 @@ export function createPidianTools(options: {
     createWebSearchTool(options),
     createFetchUrlTool(options),
     createCreateNoteTool(options),
-    createEditNoteTool(options),
+    createEditMarkdownTool(options),
     createDeleteNoteTool(options),
   ];
 }

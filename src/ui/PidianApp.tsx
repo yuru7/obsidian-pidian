@@ -1,5 +1,6 @@
 import { useEffect, useReducer, useRef, useState, type JSX } from "react";
 import { formatLineRange } from "../application/activeMarkdown";
+import { hasContextLineRange } from "../domain/notes/ContextSnapshot";
 import { t } from "../i18n";
 import type PidianPlugin from "../main";
 import { sumTokenUsage, type PidianMessage } from "../domain/sessions/PidianSession";
@@ -194,11 +195,13 @@ function ContextPreview({ plugin }: { plugin: PidianPlugin }): JSX.Element {
     return <div className="pidian-context pidian-context-empty">{t("uiNoActiveNote")}</div>;
   }
   const fileName = fileNameFromPath(context.notePath);
-  const lineLabel = `[${formatLineRange(context.startLine, context.endLine)}]`;
+  const lineLabel = hasContextLineRange(context)
+    ? `[${formatLineRange(context.startLine, context.endLine)}]`
+    : undefined;
   return (
     <div className="pidian-context">
       <ContextFileName fileName={fileName} />
-      <span className="pidian-context-line">{lineLabel}</span>
+      {lineLabel ? <span className="pidian-context-line">{lineLabel}</span> : null}
     </div>
   );
 }

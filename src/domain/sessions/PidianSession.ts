@@ -31,7 +31,7 @@ export interface PidianMessage {
   id: string;
   role: "user" | "assistant";
   text: string;
-  /** Active note location when this user turn was sent. Missing when none, or on older sessions. */
+  /** Active file location when this user turn was sent. Line range is omitted when the file has no cursor. Missing when none, or on older sessions. */
   context?: ContextSnapshot;
   thinking?: string;
   toolCalls?: PidianToolCall[];

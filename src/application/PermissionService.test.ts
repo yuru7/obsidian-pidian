@@ -20,7 +20,7 @@ describe("PermissionService", () => {
     });
     const decision = await service.authorize({
       category: "edit",
-      toolName: "edit_note",
+      toolName: "edit_markdown",
       summary: "Edit a.md",
     });
     expect(decision.allowed).toBe(false);

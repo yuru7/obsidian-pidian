@@ -84,7 +84,7 @@ describe("PiEventMapper", () => {
       mapPiEvent({
         type: "tool_execution_end",
         toolCallId: "2",
-        toolName: "edit_note",
+        toolName: "edit_markdown",
         result: { content: [{ type: "text", text: "denied" }], details: { isError: true } },
       }),
     ).toMatchObject({ isError: true, result: "denied" });

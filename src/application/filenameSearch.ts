@@ -1,8 +1,7 @@
 function fileNameParts(path: string): { path: string; name: string; basename: string } {
   const slash = path.lastIndexOf("/");
   const name = slash >= 0 ? path.slice(slash + 1) : path;
-  const basename = name.replace(/\.md$/i, "");
-  return { path, name, basename };
+  return { path, name, basename: stripLastExtension(name) };
 }
 
 function normalizeExact(value: string): string {
@@ -13,8 +12,8 @@ function compact(value: string): string {
   return value.toLowerCase().replace(/\s+/g, "");
 }
 
-function stripMd(value: string): string {
-  return value.replace(/\.md$/i, "");
+function stripLastExtension(value: string): string {
+  return value.replace(/\.[^./]+$/i, "");
 }
 
 export function isExactFilenameMatch(path: string, query: string): boolean {
@@ -22,7 +21,7 @@ export function isExactFilenameMatch(path: string, query: string): boolean {
   if (!q) {
     return false;
   }
-  const qBase = normalizeExact(stripMd(query));
+  const qBase = normalizeExact(stripLastExtension(query));
   const parts = fileNameParts(path);
   const candidates = [parts.path, parts.name, parts.basename];
   return candidates.some((candidate) => {
@@ -30,7 +29,7 @@ export function isExactFilenameMatch(path: string, query: string): boolean {
     if (normalized === q) {
       return true;
     }
-    return qBase !== "" && normalizeExact(stripMd(candidate)) === qBase;
+    return qBase !== "" && normalizeExact(stripLastExtension(candidate)) === qBase;
   });
 }
 

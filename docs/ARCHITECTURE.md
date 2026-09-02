@@ -118,7 +118,7 @@ UI は `plugin.agentService.subscribe` と `plugin.subscribeSettings` で再描�
 ```text
 Composer
   → AgentService.send(text)
-      → ContextService.snapshot()（現在ノートの path と 1-based 行範囲。本文は入れない）
+      → ContextService.snapshot()（現在ファイルの path。Markdown なら 1-based 行範囲。本文は入れない）
       → ユーザー発言 + 空の assistant を PidianSession に追加して保存
       → AgentSession.prompt({ text: formatAgentPrompt(...), context })
           → PiAgentAdapter（Pi イベント）
@@ -158,11 +158,11 @@ Composer
 User: <user text>
 ```
 
-時刻は `createdAt`（UTC）から、送信時のマシンローカルオフセット付き ISO 8601（秒まで。例 `2026-08-31T17:31:00+09:00`）。`LINE_RANGE` はカーソルなら `L12`、複数行選択なら `L13-L15`。ノートが無いときは timestamp と `User: <user text>` のみ。
+時刻は `createdAt`（UTC）から、送信時のマシンローカルオフセット付き ISO 8601（秒まで。例 `2026-08-31T17:31:00+09:00`）。`LINE_RANGE` は Markdown のカーソルなら `L12`、複数行選択なら `L13-L15`。Canvas などカーソルが取れないファイルは path のみ。ファイルが無いときは timestamp と `User: <user text>` のみ。
 
-ユーザー発言の `text` は本文だけ保存する。ヘッダ（時刻・path）は保存しない。送信時の `ContextSnapshot`（path と行範囲。本文は入れない）はユーザーメッセージの任意フィールド `context` に残す。再開・モデル変更で Pi を作り直すとき、`toConversation` が `formatAgentPrompt` で当時のヘッダを復元する。`context` が無い古い保存は timestamp と `User: <user text>` のみ。
+ユーザー発言の `text` は本文だけ保存する。ヘッダ（時刻・path）は保存しない。送信時の `ContextSnapshot`（path と、Markdown なら行範囲。本文は入れない）はユーザーメッセージの任意フィールド `context` に残す。再開・モデル変更で Pi を作り直すとき、`toConversation` が `formatAgentPrompt` で当時のヘッダを復元する。`context` が無い古い保存は timestamp と `User: <user text>` のみ。
 
-ノート本文はコンテキストに載せない。エージェントは `read_note` で読む。システムプロンプトは `PIDIAN_SYSTEM_PROMPT`（`src/infrastructure/pi/PiCredentials.ts`）。Vault の `pidian/AGENTS.md`（プラグインフォルダ設定に追随）は任意の追加指示。
+ファイル本文はコンテキストに載せない。エージェントは `read_note` で読む。システムプロンプトは `PIDIAN_SYSTEM_PROMPT`（`src/infrastructure/pi/PiCredentials.ts`）。Vault の `pidian/AGENTS.md`（プラグインフォルダ設定に追随）は任意の追加指示。
 
 ---
 
@@ -172,22 +172,22 @@ User: <user text>
 
 | name | 権限 | 役割 |
 | --- | --- | --- |
-| `read_note` | read | 行範囲で読む。revision を返す。`ReadRevisionTracker` に記録 |
-| `search_notes` | read | ファイル名 + 本文検索。`AGENTS.md` と制限パスは除外 |
+| `read_note` | read | `.md` / `.canvas` を行範囲で読む。revision を返す。`ReadRevisionTracker` に記録。Canvas は offset 1 から |
+| `search_notes` | read | `.md` / `.canvas` のファイル名 + 本文検索。`AGENTS.md` と制限パスは除外 |
 | `list_files` | read | 直下のみ。再帰しない。`""` / `"/"` が Vault ルート |
 | `open_file` | read | 開いてアクティブにする。未オープンなら開く |
 | `workspace_tabs` | read | タブ一覧。`tabId` または `path` でフォーカス |
 | `web_search` | webSearch | Firecrawl（既定）→ DuckDuckGo。結果に `provider` を含める。Pi / Obsidian に依存しない |
 | `fetch_url` | webSearch | SSRF ガード付き取得。HTML は Markdown 化。静的取得で JS 描画と判定したらローカルの隠し BrowserWindow にフォールバック。ページ本文を外部サービスへ送らない |
 | `create_note` | create | Vault API で作成 |
-| `edit_note` | edit | 下記の編集経路 |
+| `edit_markdown` | edit | `.md` だけ。下記の編集経路 |
 | `delete_note` | delete | `fileManager.trashFile`（Obsidian のゴミ箱設定に従う） |
 
 Pi 起動時は `noTools: "builtin"` で標準ツールを切り、`customTools` に上記だけを渡す。
 
 ### ツールを足す
 
-1. `src/tools/FooTool.ts` に `PidianTool` を実装する。パスは `assertSafeNotePath`。権限は `PermissionService.authorize`。
+1. `src/tools/FooTool.ts` に `PidianTool` を実装する。パスは `assertSafeNotePath`。読む・検索する対象は `assertNoteFilePath`（`.md` / `.canvas`）。Markdown の編集は `assertMarkdownFilePath`。権限は `PermissionService.authorize`。
 2. 新しい権限カテゴリが必要なら `ToolCategory` と Settings の `permissions` と i18n を同時に足す。
 3. `createPidianTools()` に登録する。
 4. 隣に `*.test.ts` を書く。Pi の型や `defineTool` は tools 配下に書かない。
@@ -214,8 +214,8 @@ Pi 起動時は `noTools: "builtin"` で標準ツールを切り、`customTools`
 ```text
 read_note
   → tracker.recordRead(sessionId, path, sha256)
-edit_note
-  → assertSafeNotePath
+edit_markdown
+  → assertMarkdownFilePath（`.md` のみ）
   → tracker.requireRead（未読なら失敗）
   → 再読して revision が lastRead かつ引数と一致すること
   → applyReplacementsToText（oldText は一意。空ノートだけ oldText="" を許可）
@@ -233,7 +233,7 @@ revision は本文の SHA-256（`src/application/revision.ts`）。トラッカ�
 
 ## パス制限
 
-`src/application/notePath.ts` が唯一の判定場所。ツールも Repository もこれを通す。
+`src/application/notePath.ts` が制限パスの唯一の判定場所。ノートとして読む・検索する対象（`.md` / `.canvas`）は `src/application/noteFile.ts`。ツールも Repository もこれを通す。
 
 触ってはいけない:
 
@@ -271,7 +271,7 @@ interface PidianSession {
 ```
 
 - パースは `migratePidianSession`。`version !== 1` は throw。フィールド追加時は後方互換を崩さないか、version を上げて migration を足す。
-- ユーザーメッセージの任意 `context` は送信時のノート位置。UI には出さず、再開時の `formatAgentPrompt` 用。無い・不正なら無視する。時刻ヘッダは `createdAt` から組み立て、保存 `text` には含めない。
+- ユーザーメッセージの任意 `context` は送信時のファイル位置。Markdown なら行範囲、それ以外は path のみ。UI には出さず、再開時の `formatAgentPrompt` 用。無い・不正なら無視する。時刻ヘッダは `createdAt` から組み立て、保存 `text` には含めない。
 - アシスタントの `workedMs` は各 Work 区間が閉じるまでの時間。思考→ツール→思考は同じ Work に時系列の `items` として残し、`thinking_end` だけでは閉じない。本文が出たあと、思考 delta が途切れたとき、またはターン完了で閉じる。思考中の本文は Work の直下へ随時出す。空白だけの delta では区切らない。`blocks` が無い古い保存データは思考・ツールを1つの WorkLog にまとめる。
 - 再開は `PidianSession → AgentConversation → PiAgentAdapter`。ユーザー本文は `formatAgentPrompt` でヘッダ付きに戻す。Pi 固有オブジェクトは保存しない。会話は Pi の `SessionManager` に全文を載せ、`compaction` があればその境界で要約エントリを足してから `createAgentSession` する。LLM 入力は SessionManager が組み直した要約 + 残したメッセージ。画面と `messages` は全文のまま。
 - Pi の自動 compaction が走ったら `compaction` を上書き保存する。fork は分岐点より前のチェックポイントだけコピーする。
@@ -402,7 +402,7 @@ UI は `AgentService` と `plugin.settings` を読む。Pi 型を import しな�
 | やりたいこと | 触る場所 | 触らない場所 |
 | --- | --- | --- |
 | ツール追加 | `src/tools/`, `createPidianTools` | `infrastructure/pi` の `defineTool` 直書き、Pi 標準ツール有効化 |
-| 編集ルール | `EditNoteTool`, `replacements.ts`, `ObsidianNoteEditor` | editor を飛ばした `vault.modify` |
+| 編集ルール | `EditMarkdownTool`, `replacements.ts`, `ObsidianNoteEditor` | editor を飛ばした `vault.modify` |
 | コンテキスト | `ContextService`, `ObsidianContextProvider` | プロンプトにノート全文を埋め込む |
 | セッション形式 | `PidianSession`, `sessionSerialization` | Pi session JSON の保存 |
 | モデル一覧 | `PiModelCatalog`, Settings custom provider | UI での provider 特例 |

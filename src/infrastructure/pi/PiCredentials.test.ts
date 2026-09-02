@@ -76,10 +76,10 @@ describe("OpenCode credentials", () => {
 describe("PIDIAN_SYSTEM_PROMPT", () => {
   it("describes the compact user-turn header without treating it as note contents", () => {
     expect(PIDIAN_SYSTEM_PROMPT).toContain(
-      "Each user turn is an ISO 8601 local timestamp, then optional `PATH LINE_RANGE`, then `User:` and the message",
+      "Each user turn is an ISO 8601 local timestamp, then optional `PATH LINE_RANGE` or `PATH`, then `User:` and the message",
     );
     expect(PIDIAN_SYSTEM_PROMPT).toContain(
-      "The header is send time and location only, never note contents, and is not the user's text",
+      "The header is send time and location only, never file contents, and is not the user's text",
     );
     expect(PIDIAN_SYSTEM_PROMPT).toContain("Use the timestamp to resolve relative dates");
     expect(PIDIAN_SYSTEM_PROMPT).toContain("prefer a date the user wrote");
@@ -87,7 +87,7 @@ describe("PIDIAN_SYSTEM_PROMPT", () => {
 
   it("forbids write tools unless the user explicitly asked to change a note", () => {
     expect(PIDIAN_SYSTEM_PROMPT).toContain(
-      "Call create_note, edit_note, or delete_note only when the user explicitly asked",
+      "Call create_note, edit_markdown, or delete_note only when the user explicitly asked",
     );
     expect(PIDIAN_SYSTEM_PROMPT).toContain("Requests that only ask to produce or show content stay in chat");
     expect(PIDIAN_SYSTEM_PROMPT).toContain("出して");

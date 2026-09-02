@@ -149,6 +149,26 @@ describe("SessionService.toConversation", () => {
     ]);
   });
 
+  it("restores a path-only envelope when saved context has no line range", () => {
+    const service = new SessionService(unused);
+    const conversation = service.toConversation(
+      session({
+        messages: [
+          {
+            id: "u1",
+            role: "user",
+            text: "what is on this board",
+            context: { notePath: "maps/board.canvas" },
+            createdAt: "2026-01-01T00:00:00.000Z",
+          },
+        ],
+      }),
+    );
+    expect(conversation.messages[0]?.text).toBe(
+      formatAgentPrompt("what is on this board", { notePath: "maps/board.canvas" }, "2026-01-01T00:00:00.000Z"),
+    );
+  });
+
   it("labels user text when saved context is missing", () => {
     const service = new SessionService(unused);
     const conversation = service.toConversation(session());

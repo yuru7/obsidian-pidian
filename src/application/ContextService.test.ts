@@ -75,4 +75,10 @@ describe("formatAgentPrompt", () => {
     expect(formatAgentPrompt("hello")).toBe("User: hello");
     expect(formatAgentPrompt("hello", snapshot, "nope")).toBe("notes/example.md L12\nUser: hello");
   });
+
+  it("sends the path without a line range when the file has no cursor", () => {
+    expect(
+      formatAgentPrompt("hello", { notePath: "maps/board.canvas" }, SENT_AT),
+    ).toBe(`${formatLocalIso8601(SENT_AT)}\nmaps/board.canvas\nUser: hello`);
+  });
 });

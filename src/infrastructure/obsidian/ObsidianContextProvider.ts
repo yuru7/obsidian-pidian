@@ -1,6 +1,8 @@
-import { MarkdownView, TFile, type App, type Editor, type MarkdownFileInfo, type WorkspaceLeaf } from "obsidian";
+import { FileView, MarkdownView, TFile, type App, type Editor, type MarkdownFileInfo, type WorkspaceLeaf } from "obsidian";
 import type { ContextSnapshot } from "../../domain/notes/ContextSnapshot";
 import type { ContextProvider } from "../../application/ContextService";
+import { isRestrictedVaultPath } from "../../application/notePath";
+import { isNoteFilePath } from "../../application/noteFile";
 import {
   pickMarkdownSource,
   snapshotFromEditorSource,
@@ -9,45 +11,104 @@ import {
 
 export class ObsidianContextProvider implements ContextProvider {
   private lastMarkdownView: MarkdownView | undefined;
+  private lastNonMarkdownPath: string | undefined;
 
   constructor(private readonly app: App) {
-    this.rememberCurrentMarkdown();
+    this.rememberCurrentFile();
   }
 
-  rememberCurrentMarkdown(): void {
+  rememberCurrentFile(): void {
+    const activeFile = this.app.workspace.getActiveFile();
+    if (activeFile && !isMarkdownFile(activeFile) && this.snapshotForNonMarkdown(activeFile.path)) {
+      return;
+    }
+    const recentFile = this.fileFromLeaf(this.app.workspace.getMostRecentLeaf(this.app.workspace.rootSplit));
+    if (recentFile && !isMarkdownFile(recentFile) && this.snapshotForNonMarkdown(recentFile.path)) {
+      return;
+    }
     const view =
       this.app.workspace.getActiveViewOfType(MarkdownView) ??
       markdownViewFromLeaf(this.app.workspace.getMostRecentLeaf(this.app.workspace.rootSplit)) ??
       markdownViewFromLeaf(this.app.workspace.getMostRecentLeaf());
     if (view?.file) {
       this.lastMarkdownView = view;
+      this.lastNonMarkdownPath = undefined;
     }
   }
 
   getActiveNote(): ContextSnapshot | undefined {
-    const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
-    const recentRoot = markdownViewFromLeaf(this.app.workspace.getMostRecentLeaf(this.app.workspace.rootSplit));
-    const recent = markdownViewFromLeaf(this.app.workspace.getMostRecentLeaf());
-    const byFile = this.findMarkdownViewForFile(this.app.workspace.getActiveFile());
-    const last = this.validLastMarkdownView();
+    const activeFile = this.app.workspace.getActiveFile();
+    if (activeFile && isMarkdownFile(activeFile)) {
+      const source = pickMarkdownSource([
+        this.fromView(this.app.workspace.getActiveViewOfType(MarkdownView)),
+        this.fromEditorInfo(this.app.workspace.activeEditor),
+        this.fromView(this.findMarkdownViewForFile(activeFile)),
+      ]);
+      if (source) {
+        this.rememberMarkdown(source.notePath);
+        return snapshotFromEditorSource(source);
+      }
+    }
+    if (activeFile && !isMarkdownFile(activeFile)) {
+      const snapshot = this.snapshotForNonMarkdown(activeFile.path);
+      if (snapshot) {
+        return snapshot;
+      }
+    }
+
+    const recentRoot = this.app.workspace.getMostRecentLeaf(this.app.workspace.rootSplit);
+    const recent = this.app.workspace.getMostRecentLeaf();
+    const recentRootFile = this.fileFromLeaf(recentRoot);
+    if (recentRootFile && !isMarkdownFile(recentRootFile)) {
+      const snapshot = this.snapshotForNonMarkdown(recentRootFile.path);
+      if (snapshot) {
+        return snapshot;
+      }
+    }
+    const recentFile = this.fileFromLeaf(recent);
+    if (recentFile && !isMarkdownFile(recentFile)) {
+      const snapshot = this.snapshotForNonMarkdown(recentFile.path);
+      if (snapshot) {
+        return snapshot;
+      }
+    }
+
     const source = pickMarkdownSource([
-      this.fromView(activeView),
+      this.fromView(markdownViewFromLeaf(recentRoot)),
+      this.fromView(markdownViewFromLeaf(recent)),
       this.fromEditorInfo(this.app.workspace.activeEditor),
-      this.fromView(recentRoot),
-      this.fromView(recent),
-      this.fromView(byFile),
-      this.fromView(last),
+      this.fromView(this.validLastMarkdownView()),
     ]);
-    if (!source) {
+    if (source) {
+      this.rememberMarkdown(source.notePath);
+      return snapshotFromEditorSource(source);
+    }
+    if (this.lastNonMarkdownPath) {
+      return this.snapshotForNonMarkdown(this.lastNonMarkdownPath);
+    }
+    return undefined;
+  }
+
+  private snapshotForNonMarkdown(path: string): ContextSnapshot | undefined {
+    if (isRestrictedVaultPath(path) || !isNoteFilePath(path)) {
       return undefined;
     }
-    const remembered = [activeView, recentRoot, recent, byFile, last].find(
-      (view) => view?.file?.path === source.notePath,
-    );
+    this.lastNonMarkdownPath = path;
+    return { notePath: path };
+  }
+
+  private rememberMarkdown(notePath: string): void {
+    const remembered = [
+      this.app.workspace.getActiveViewOfType(MarkdownView),
+      markdownViewFromLeaf(this.app.workspace.getMostRecentLeaf(this.app.workspace.rootSplit)),
+      markdownViewFromLeaf(this.app.workspace.getMostRecentLeaf()),
+      this.findMarkdownViewForFile(this.app.workspace.getActiveFile()),
+      this.validLastMarkdownView(),
+    ].find((view) => view?.file?.path === notePath);
     if (remembered?.file) {
       this.lastMarkdownView = remembered;
     }
-    return snapshotFromEditorSource(source);
+    this.lastNonMarkdownPath = undefined;
   }
 
   private fromView(view: MarkdownView | null | undefined): MarkdownEditorSource | undefined {
@@ -84,6 +145,19 @@ export class ObsidianContextProvider implements ContextProvider {
       return undefined;
     }
     return view;
+  }
+
+  private fileFromLeaf(leaf: WorkspaceLeaf | null | undefined): TFile | undefined {
+    const view = leaf?.view;
+    if (view instanceof FileView && view.file) {
+      return view.file;
+    }
+    const path = leaf?.getViewState()?.state?.file;
+    if (typeof path !== "string" || path.length === 0) {
+      return undefined;
+    }
+    const file = this.app.vault.getAbstractFileByPath(path);
+    return file instanceof TFile ? file : undefined;
   }
 }
 

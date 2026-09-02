@@ -2,6 +2,7 @@ import { MarkdownView, TFile, TFolder, type App } from "obsidian";
 import type { ListedEntry, Note, NoteRepository, SearchHit } from "../../domain/notes/NoteRepository";
 import { computeRevision } from "../../application/revision";
 import { selectFilenameHits } from "../../application/filenameSearch";
+import { assertNoteFilePath, isNoteExtension } from "../../application/noteFile";
 import { assertSafeDirectoryPath, assertSafeNotePath, isExcludedFromSearch, isRestrictedVaultPath } from "../../application/notePath";
 
 const SEARCH_LIMIT = 50;
@@ -11,13 +12,7 @@ export class ObsidianNoteRepository implements NoteRepository {
   constructor(private readonly app: App) {}
 
   async read(path: string): Promise<Note> {
-    const normalized = assertSafeNotePath(path);
-    const content = await this.readContent(normalized);
-    return {
-      path: normalized,
-      content,
-      revision: computeRevision(content),
-    };
+    return this.readNormalized(assertNoteFilePath(path));
   }
 
   async exists(path: string): Promise<boolean> {
@@ -58,7 +53,7 @@ export class ObsidianNoteRepository implements NoteRepository {
       await this.ensureFolder(folder);
     }
     await this.app.vault.create(normalized, content);
-    return this.read(normalized);
+    return this.readNormalized(normalized);
   }
 
   async delete(path: string): Promise<void> {
@@ -75,7 +70,9 @@ export class ObsidianNoteRepository implements NoteRepository {
     if (!needle) {
       return [];
     }
-    const files = this.app.vault.getMarkdownFiles().filter((file) => !isExcludedFromSearch(file.path));
+    const files = this.app.vault
+      .getFiles()
+      .filter((file) => isNoteExtension(file.extension) && !isExcludedFromSearch(file.path));
     const filenameHits = selectFilenameHits(
       files.map((file) => file.path),
       needle,
@@ -109,6 +106,15 @@ export class ObsidianNoteRepository implements NoteRepository {
       }
     }
     return hits;
+  }
+
+  private async readNormalized(path: string): Promise<Note> {
+    const content = await this.readContent(path);
+    return {
+      path,
+      content,
+      revision: computeRevision(content),
+    };
   }
 
   private async ensureFolder(folder: string): Promise<void> {

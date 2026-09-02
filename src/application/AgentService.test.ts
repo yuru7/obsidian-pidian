@@ -265,6 +265,20 @@ describe("AgentService.send", () => {
     expect(agent.getSession()?.messages[0]?.text).toBe("hello");
   });
 
+  it("stores a path-only snapshot when the active file has no cursor", async () => {
+    const store = new MemoryRepository();
+    const snapshot: ContextSnapshot = { notePath: "maps/board.canvas" };
+    const agent = createService(store, new FakeAgentEngine(), () => snapshot);
+    await agent.newChat("openai", "gpt-5");
+    await agent.send("summarize this");
+
+    expect(agent.getSession()?.messages[0]).toMatchObject({
+      role: "user",
+      text: "summarize this",
+      context: snapshot,
+    });
+  });
+
   it("sends the timestamp envelope without storing it in the user text", async () => {
     const store = new MemoryRepository();
     const engine = new CapturingEngine();

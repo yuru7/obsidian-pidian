@@ -1,4 +1,4 @@
-import type { ContextSnapshot } from "../domain/notes/ContextSnapshot";
+import { hasContextLineRange, type ContextSnapshot } from "../domain/notes/ContextSnapshot";
 import { formatLineRange } from "./activeMarkdown";
 
 export interface ContextProvider {
@@ -32,7 +32,11 @@ export function formatAgentPrompt(text: string, context?: ContextSnapshot, creat
     lines.push(sentAt);
   }
   if (context) {
-    lines.push(`${context.notePath} ${formatLineRange(context.startLine, context.endLine)}`);
+    lines.push(
+      hasContextLineRange(context)
+        ? `${context.notePath} ${formatLineRange(context.startLine, context.endLine)}`
+        : context.notePath,
+    );
   }
   lines.push(`User: ${text}`);
   return lines.join("\n");

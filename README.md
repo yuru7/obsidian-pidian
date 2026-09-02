@@ -33,7 +33,7 @@ When you enable the plugin, the Pidian sidebar opens on the right. After you clo
 
 1. Go to Settings → Pidian → **API credentials** and enter an API key for the service you use
 2. Choose a provider and model under **General**, or at the bottom of the sidebar
-3. With a Markdown note open, type a message in the sidebar
+3. With a note or other vault file open, type a message in the sidebar
 
 If you leave the API key blank, Pidian uses environment variables.
 
@@ -59,7 +59,7 @@ Edits go through Obsidian, so you can undo them with Obsidian's standard Undo.
 
 ## Context
 
-When you send a message, Pidian includes the path of the active Markdown note, plus the cursor position or selection.
+When you send a message, Pidian includes the path of the active file. For Markdown notes, it also includes the cursor position or selection.
 
 ## Saving conversations
 

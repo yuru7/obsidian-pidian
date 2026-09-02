@@ -86,6 +86,27 @@ describe("read_note", () => {
     expect(tracker.getRevision("s1", "a.md")).toBe(computeRevision(content));
   });
 
+  it("defaults to offset 1 for files without a cursor, such as Canvas", async () => {
+    const content = '{"nodes":[]}';
+    const tool = createReadNoteTool({
+      sessionId: "s1",
+      notes: new MemoryNotes(new Map([["maps/board.canvas", content]])),
+      tracker: new ReadRevisionTracker(),
+      permissions: allowRead(),
+    });
+
+    const result = await tool.execute({ path: "maps/board.canvas" });
+    expect(result.isError).toBeFalsy();
+    expect(JSON.parse(result.content)).toMatchObject({
+      path: "maps/board.canvas",
+      content,
+      startLine: 1,
+      endLine: 1,
+      totalLines: 1,
+      truncated: false,
+    });
+  });
+
   it("rejects a non-positive offset", async () => {
     const tool = createReadNoteTool({
       sessionId: "s1",
@@ -97,5 +118,18 @@ describe("read_note", () => {
     const result = await tool.execute({ path: "a.md", offset: 0 });
     expect(result.isError).toBe(true);
     expect(result.content).toBe("offset must be a positive integer.");
+  });
+
+  it("rejects files that are not Markdown or Canvas", async () => {
+    const tool = createReadNoteTool({
+      sessionId: "s1",
+      notes: new MemoryNotes(new Map([["img/photo.png", "binary"]])),
+      tracker: new ReadRevisionTracker(),
+      permissions: allowRead(),
+    });
+
+    const result = await tool.execute({ path: "img/photo.png" });
+    expect(result.isError).toBe(true);
+    expect(result.content).toContain("Not a note");
   });
 });

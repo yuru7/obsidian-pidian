@@ -201,16 +201,16 @@ export default class PidianPlugin extends Plugin {
     const contextProvider = new ObsidianContextProvider(this.app);
     this.registerEvent(
       this.app.workspace.on("active-leaf-change", () => {
-        contextProvider.rememberCurrentMarkdown();
+        contextProvider.rememberCurrentFile();
       }),
     );
     this.registerEvent(
       this.app.workspace.on("file-open", () => {
-        contextProvider.rememberCurrentMarkdown();
+        contextProvider.rememberCurrentFile();
       }),
     );
     this.app.workspace.onLayoutReady(() => {
-      contextProvider.rememberCurrentMarkdown();
+      contextProvider.rememberCurrentFile();
     });
     this.registerEditorExtension(
       editorContextExtension(() => {
