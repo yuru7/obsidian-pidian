@@ -4,110 +4,119 @@ import type { ContextProvider } from "../../application/ContextService";
 import { isRestrictedVaultPath } from "../../application/notePath";
 import { isContextFilePath } from "../../application/noteFile";
 import {
-  pickMarkdownSource,
+  pickMarkdownSourceForPath,
   snapshotFromEditorSource,
   type MarkdownEditorSource,
 } from "../../application/activeMarkdown";
+import { resolveContextTarget, type ContextTarget } from "../../application/contextTarget";
 
 export class ObsidianContextProvider implements ContextProvider {
   private lastMarkdownView: MarkdownView | undefined;
-  private lastNonMarkdownPath: string | undefined;
+  private lastPathOnly: string | undefined;
 
   constructor(private readonly app: App) {
     this.rememberCurrentFile();
   }
 
   rememberCurrentFile(): void {
+    const recentRoot = this.app.workspace.getMostRecentLeaf(this.app.workspace.rootSplit);
+    const recent = this.app.workspace.getMostRecentLeaf();
+    const visibleFile = this.fileFromLeaf(recentRoot) ?? this.fileFromLeaf(recent);
+    const visibleMarkdown =
+      markdownViewFromLeaf(recentRoot) ?? markdownViewFromLeaf(recent);
+    if (visibleFile && visibleMarkdown?.file?.path === visibleFile.path) {
+      this.lastMarkdownView = visibleMarkdown;
+      this.lastPathOnly = undefined;
+      return;
+    }
+    if (visibleFile) {
+      this.snapshotForVisiblePath(visibleFile.path);
+      return;
+    }
     const activeFile = this.app.workspace.getActiveFile();
-    if (activeFile && this.rememberIfNonMarkdown(activeFile)) {
+    if (activeFile && !isMarkdownFile(activeFile)) {
+      this.snapshotForVisiblePath(activeFile.path);
       return;
     }
-    const recentFile = this.fileFromLeaf(this.app.workspace.getMostRecentLeaf(this.app.workspace.rootSplit));
-    if (recentFile && this.rememberIfNonMarkdown(recentFile)) {
-      return;
-    }
-    const view =
-      this.app.workspace.getActiveViewOfType(MarkdownView) ??
-      markdownViewFromLeaf(this.app.workspace.getMostRecentLeaf(this.app.workspace.rootSplit)) ??
-      markdownViewFromLeaf(this.app.workspace.getMostRecentLeaf());
+    const view = this.app.workspace.getActiveViewOfType(MarkdownView);
     if (view?.file) {
       this.lastMarkdownView = view;
-      this.lastNonMarkdownPath = undefined;
+      this.lastPathOnly = undefined;
       return;
     }
-    this.validLastNonMarkdownPath();
+    this.validLastPathOnly();
   }
 
   getActiveNote(): ContextSnapshot | undefined {
-    const activeFile = this.app.workspace.getActiveFile();
-    if (activeFile && isMarkdownFile(activeFile)) {
-      const source = pickMarkdownSource([
-        this.fromView(this.app.workspace.getActiveViewOfType(MarkdownView)),
-        this.fromEditorInfo(this.app.workspace.activeEditor),
-        this.fromView(this.findMarkdownViewForFile(activeFile)),
-      ]);
-      if (source) {
-        this.rememberMarkdown(source.notePath);
-        return snapshotFromEditorSource(source);
-      }
-    }
-    if (activeFile && !isMarkdownFile(activeFile)) {
-      return this.snapshotForVisibleNonMarkdown(activeFile);
-    }
-
     const recentRoot = this.app.workspace.getMostRecentLeaf(this.app.workspace.rootSplit);
     const recent = this.app.workspace.getMostRecentLeaf();
-    const recentRootFile = this.fileFromLeaf(recentRoot);
-    if (recentRootFile && !isMarkdownFile(recentRootFile)) {
-      return this.snapshotForVisibleNonMarkdown(recentRootFile);
-    }
-    const recentFile = this.fileFromLeaf(recent);
-    if (recentFile && !isMarkdownFile(recentFile)) {
-      return this.snapshotForVisibleNonMarkdown(recentFile);
-    }
+    const visibleFile = this.fileFromLeaf(recentRoot) ?? this.fileFromLeaf(recent);
+    const visibleMarkdownView =
+      markdownViewFromLeaf(recentRoot) ?? markdownViewFromLeaf(recent);
+    const visibleMarkdown =
+      visibleFile && visibleMarkdownView?.file?.path === visibleFile.path
+        ? this.fromView(visibleMarkdownView)
+        : undefined;
 
-    const source = pickMarkdownSource([
-      this.fromView(markdownViewFromLeaf(recentRoot)),
-      this.fromView(markdownViewFromLeaf(recent)),
-      this.fromEditorInfo(this.app.workspace.activeEditor),
-      this.fromView(this.validLastMarkdownView()),
-    ]);
-    if (source) {
-      this.rememberMarkdown(source.notePath);
-      return snapshotFromEditorSource(source);
-    }
-    const lastPath = this.validLastNonMarkdownPath();
-    if (lastPath) {
-      return this.snapshotForNonMarkdown(lastPath);
-    }
-    return undefined;
+    const activeFile = this.app.workspace.getActiveFile();
+    const activeMarkdown = activeFile
+      ? pickMarkdownSourceForPath(activeFile.path, [
+          this.fromView(this.app.workspace.getActiveViewOfType(MarkdownView)),
+          this.fromEditorInfo(this.app.workspace.activeEditor),
+          this.fromView(this.findMarkdownViewForFile(activeFile)),
+        ])
+      : undefined;
+
+    return this.snapshotFromTarget(
+      resolveContextTarget({
+        visibleFile: visibleFile
+          ? { path: visibleFile.path, markdownExtension: isMarkdownFile(visibleFile) }
+          : undefined,
+        visibleMarkdown,
+        activeFile: activeFile
+          ? { path: activeFile.path, markdownExtension: isMarkdownFile(activeFile) }
+          : undefined,
+        activeMarkdown,
+        lastMarkdown: this.fromView(this.validLastMarkdownView()),
+        lastPathOnly: this.validLastPathOnly(),
+      }),
+    );
   }
 
-  private snapshotForNonMarkdown(path: string): ContextSnapshot | undefined {
+  private snapshotFromTarget(target: ContextTarget | undefined): ContextSnapshot | undefined {
+    if (!target) {
+      return undefined;
+    }
+    if (target.kind === "markdown") {
+      this.rememberMarkdown(target.source.notePath);
+      return snapshotFromEditorSource(target.source);
+    }
+    return this.snapshotForVisiblePath(target.notePath);
+  }
+
+  private snapshotForPath(path: string): ContextSnapshot | undefined {
     if (isRestrictedVaultPath(path) || !isContextFilePath(path)) {
       return undefined;
     }
-    this.lastNonMarkdownPath = path;
+    this.lastPathOnly = path;
+    this.lastMarkdownView = undefined;
     return { notePath: path };
   }
 
-  /** Visible non-markdown file: canvas or PNG/JPEG/WebP snapshot, or undefined without falling back to another tab. */
-  private snapshotForVisibleNonMarkdown(file: TFile): ContextSnapshot | undefined {
-    const snapshot = this.snapshotForNonMarkdown(file.path);
+  /**
+   * Path-only snapshot for the visible tab (Canvas, image, or a .md custom view such as
+   * Excalidraw). If the file is not a context file, clear memory and do not fall back to
+   * another tab. `workspace.activeEditor` stays on the last Markdown editor, so a custom
+   * view of a `.md` file must not reuse that editor.
+   */
+  private snapshotForVisiblePath(path: string): ContextSnapshot | undefined {
+    const snapshot = this.snapshotForPath(path);
     if (snapshot) {
       return snapshot;
     }
     this.lastMarkdownView = undefined;
-    this.lastNonMarkdownPath = undefined;
+    this.lastPathOnly = undefined;
     return undefined;
-  }
-
-  private rememberIfNonMarkdown(file: TFile): boolean {
-    if (isMarkdownFile(file)) {
-      return false;
-    }
-    this.snapshotForVisibleNonMarkdown(file);
-    return true;
   }
 
   private rememberMarkdown(notePath: string): void {
@@ -121,7 +130,7 @@ export class ObsidianContextProvider implements ContextProvider {
     if (remembered?.file) {
       this.lastMarkdownView = remembered;
     }
-    this.lastNonMarkdownPath = undefined;
+    this.lastPathOnly = undefined;
   }
 
   private fromView(view: MarkdownView | null | undefined): MarkdownEditorSource | undefined {
@@ -160,11 +169,11 @@ export class ObsidianContextProvider implements ContextProvider {
     return view;
   }
 
-  /** Drop a remembered canvas or image when no editor tab still shows that file (e.g. the same tab opened a GIF). */
-  private validLastNonMarkdownPath(): string | undefined {
-    const path = this.lastNonMarkdownPath;
+  /** Drop a remembered path-only file when no editor tab still shows it (e.g. the same tab opened a GIF). */
+  private validLastPathOnly(): string | undefined {
+    const path = this.lastPathOnly;
     if (!path || !this.isOpenInRoot(path)) {
-      this.lastNonMarkdownPath = undefined;
+      this.lastPathOnly = undefined;
       return undefined;
     }
     return path;

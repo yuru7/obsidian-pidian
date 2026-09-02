@@ -95,8 +95,8 @@ export function pidianSystemPrompt(supportsImages: boolean): string {
     ? "read, search, list, create, edit, and delete notes, read images, and to open or switch tabs"
     : "read, search, list, create, edit, and delete notes, and to open or switch tabs";
   const locationHint = supportsImages
-    ? "Files without a cursor, such as Canvas or PNG/JPEG/WebP images, include the path only. If there is no active file, the turn is the timestamp then `User:` and the message. Use the timestamp to resolve relative dates; prefer a date the user wrote. Call read_note when you need Markdown or Canvas contents. Call read_image when the path is a PNG, JPEG, or WebP image."
-    : "Files without a cursor, such as Canvas, include the path only. If there is no active file, the turn is the timestamp then `User:` and the message. Use the timestamp to resolve relative dates; prefer a date the user wrote. Call read_note when you need Markdown or Canvas contents.";
+    ? "Files without a cursor, such as Canvas, Excalidraw, or PNG/JPEG/WebP images, include the path only. If there is no active file, the turn is the timestamp then `User:` and the message. Use the timestamp to resolve relative dates; prefer a date the user wrote. Call read_note when you need Markdown or Canvas contents. Call read_image when the path is a PNG, JPEG, or WebP image."
+    : "Files without a cursor, such as Canvas or Excalidraw, include the path only. If there is no active file, the turn is the timestamp then `User:` and the message. Use the timestamp to resolve relative dates; prefer a date the user wrote. Call read_note when you need Markdown or Canvas contents.";
   const imageTool = supportsImages
     ? "- read_image reads PNG, JPEG, and WebP images from the vault and attaches the picture for this turn. It does not read GIF or other formats. Saved conversations keep the path, not the image bytes; call read_image again if you need to see the file after a session is restored.\n"
     : "";

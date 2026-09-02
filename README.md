@@ -58,7 +58,7 @@ Edits go through Obsidian, so you can undo them with Obsidian's standard Undo.
 
 ## Context
 
-When you send a message, Pidian includes the path of the active file. For Markdown notes, it also includes the cursor position or selection. Canvas and PNG, JPEG, or WebP images include the path only. The agent reads an image with `read_image` when the current model supports vision.
+When you send a message, Pidian includes the path of the active file. When that file is open in a Markdown editor, it also includes the cursor position or selection. Canvas, Excalidraw, and PNG, JPEG, or WebP images include the path only. The agent reads an image with `read_image` when the current model supports vision.
 
 ## Saving conversations
 

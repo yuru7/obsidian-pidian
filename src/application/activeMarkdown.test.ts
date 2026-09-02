@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { formatLineRange, pickMarkdownSource, snapshotFromEditorSource } from "./activeMarkdown";
+import {
+  formatLineRange,
+  pickMarkdownSource,
+  pickMarkdownSourceForPath,
+  snapshotFromEditorSource,
+} from "./activeMarkdown";
 
 describe("pickMarkdownSource", () => {
   it("skips empty sources and keeps the first note with a path", () => {
@@ -14,6 +19,21 @@ describe("pickMarkdownSource", () => {
 
   it("returns undefined when no markdown source exists", () => {
     expect(pickMarkdownSource([undefined, { notePath: "" }])).toBeUndefined();
+  });
+});
+
+describe("pickMarkdownSourceForPath", () => {
+  it("ignores an editor whose file does not match the active path", () => {
+    expect(
+      pickMarkdownSourceForPath("draw/box.excalidraw.md", [
+        { notePath: "notes/a.md" },
+        { notePath: "draw/box.excalidraw.md" },
+      ]),
+    ).toEqual({ notePath: "draw/box.excalidraw.md" });
+  });
+
+  it("returns undefined when no editor matches the path", () => {
+    expect(pickMarkdownSourceForPath("draw/box.excalidraw.md", [{ notePath: "notes/a.md" }])).toBeUndefined();
   });
 });
 

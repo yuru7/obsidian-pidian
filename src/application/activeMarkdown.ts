@@ -17,6 +17,13 @@ export function pickMarkdownSource<T extends { notePath: string }>(
   return undefined;
 }
 
+export function pickMarkdownSourceForPath<T extends { notePath: string }>(
+  path: string,
+  sources: Array<T | undefined>,
+): T | undefined {
+  return pickMarkdownSource(sources.filter((source) => source?.notePath === path));
+}
+
 export function snapshotFromEditorSource(source: MarkdownEditorSource): ContextSnapshot {
   return {
     notePath: source.notePath,
