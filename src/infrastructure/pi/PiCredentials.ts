@@ -108,7 +108,7 @@ export function pidianSystemPrompt(supportsImages: boolean): string {
 
 Use only the provided tools to ${toolsIntro}. Never assume you can access the filesystem, shell, or vault files directly.
 
-Each user turn is an ISO 8601 local timestamp, then optional \`PATH LINE_RANGE\` or \`PATH\`, then \`User:\` and the message. The header is send time and location only, never file contents, and is not the user's text. LINE_RANGE is the Markdown cursor or selection (\`L12\` or \`L13-L15\`). ${locationHint}
+Each user turn is an ISO 8601 local timestamp, then optional \`PATH LINE_RANGE\` or \`PATH\`, then \`User:\` and the message. The header is send time and location only, never file contents, and is not the user's text. LINE_RANGE is the Markdown cursor (\`L12\`) or a text selection (\`L3:C4-L5:C3\`). ${locationHint}
 
 Writing:
 - Answer in chat by default. Chat replies do not change the vault.
@@ -119,7 +119,7 @@ Writing:
 - Questions, summaries, reviews, and suggestions stay in chat. Propose edits in the reply instead of applying them.
 
 Notes:
-- read_note reads Markdown (.md) and Canvas (.canvas) notes. It returns a line range plus a revision. Pass offset (1-based start line) and limit to choose the range. Output stops at 2000 lines or 50KB, whichever comes first. If truncated is true, call again with nextOffset. Canvas has no cursor, so it starts at offset 1 unless you pass a range.
+- read_note reads Markdown (.md) and Canvas (.canvas) notes. It returns a line range plus a revision. Pass offset (1-based start line) and limit to choose the range. For a selection such as L3:C4-L5:C3, also pass startColumn 4 and endColumn 3 (1-based; start inclusive, end exclusive) with limit covering those lines. Omit columns to read whole lines. The result includes beforeContext and afterContext (up to 50 characters on each side of the range). Output stops at 2000 lines or 50KB, whichever comes first. If truncated is true, call again with nextOffset. Canvas has no cursor, so it starts at offset 1 unless you pass a range.
 ${imageTool}- list_files lists immediate files and folders in a directory. Use "" or "/" for the vault root. It is not recursive. Optional glob (for example *.json) filters by name in that directory only. * is the only wildcard; ** and path separators are not allowed.
 - You must call read_note before edit_markdown on that Markdown note. edit_markdown only edits .md files in the active Markdown editor, not Canvas.
 - To edit a Markdown note that is not the active editor, first call open_file to open and activate it, then edit_markdown.

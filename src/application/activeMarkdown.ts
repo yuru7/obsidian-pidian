@@ -1,9 +1,11 @@
-import type { ContextSnapshot } from "../domain/notes/ContextSnapshot";
+import { hasContextColumnRange, type ContextSnapshot } from "../domain/notes/ContextSnapshot";
 
 export interface MarkdownEditorSource {
   notePath: string;
   fromLine: number;
   toLine: number;
+  fromColumn: number;
+  toColumn: number;
 }
 
 export function pickMarkdownSource<T extends { notePath: string }>(
@@ -25,13 +27,27 @@ export function pickMarkdownSourceForPath<T extends { notePath: string }>(
 }
 
 export function snapshotFromEditorSource(source: MarkdownEditorSource): ContextSnapshot {
+  const startLine = source.fromLine + 1;
+  const endLine = source.toLine + 1;
+  const startColumn = source.fromColumn + 1;
+  const endColumn = source.toColumn + 1;
+  const selected = source.fromLine !== source.toLine || source.fromColumn !== source.toColumn;
   return {
     notePath: source.notePath,
-    startLine: source.fromLine + 1,
-    endLine: source.toLine + 1,
+    startLine,
+    endLine,
+    ...(selected ? { startColumn, endColumn } : {}),
   };
 }
 
-export function formatLineRange(startLine: number, endLine: number): string {
-  return startLine === endLine ? `L${startLine}` : `L${startLine}-L${endLine}`;
+export function formatLineRange(range: {
+  startLine: number;
+  endLine: number;
+  startColumn?: number;
+  endColumn?: number;
+}): string {
+  if (hasContextColumnRange(range) && (range.startLine !== range.endLine || range.startColumn !== range.endColumn)) {
+    return `L${range.startLine}:C${range.startColumn}-L${range.endLine}:C${range.endColumn}`;
+  }
+  return range.startLine === range.endLine ? `L${range.startLine}` : `L${range.startLine}-L${range.endLine}`;
 }

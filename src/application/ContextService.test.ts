@@ -65,6 +65,22 @@ describe("formatAgentPrompt", () => {
     ).toBe(`${formatLocalIso8601(SENT_AT)}\nnotes/example.md L13-L15\nUser: rewrite this`);
   });
 
+  it("sends column positions when the snapshot has a text selection", () => {
+    expect(
+      formatAgentPrompt(
+        "rewrite this",
+        {
+          notePath: "notes/example.md",
+          startLine: 3,
+          endLine: 5,
+          startColumn: 4,
+          endColumn: 3,
+        },
+        SENT_AT,
+      ),
+    ).toBe(`${formatLocalIso8601(SENT_AT)}\nnotes/example.md L3:C4-L5:C3\nUser: rewrite this`);
+  });
+
   it("labels the user text when there is no active note", () => {
     expect(formatAgentPrompt("hello", undefined, SENT_AT)).toBe(
       `${formatLocalIso8601(SENT_AT)}\nUser: hello`,

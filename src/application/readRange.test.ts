@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  READ_NOTE_CONTEXT_CHARS,
   READ_NOTE_MAX_BYTES,
   READ_NOTE_MAX_LINES,
   sliceNoteContent,
@@ -8,7 +9,7 @@ import {
 } from "./readRange";
 
 describe("sliceNoteContent", () => {
-  it("returns the requested line range", () => {
+  it("returns the requested line range with surrounding context", () => {
     const content = ["a", "b", "c", "d", "e"].join("\n");
     expect(sliceNoteContent(content, 2, 2)).toEqual({
       content: "b\nc",
@@ -16,6 +17,8 @@ describe("sliceNoteContent", () => {
       endLine: 3,
       totalLines: 5,
       truncated: true,
+      beforeContext: "a\n",
+      afterContext: "\nd\ne",
       nextOffset: 4,
     });
   });
@@ -27,6 +30,8 @@ describe("sliceNoteContent", () => {
       endLine: 2,
       totalLines: 2,
       truncated: false,
+      beforeContext: "",
+      afterContext: "",
     });
   });
 
@@ -39,6 +44,12 @@ describe("sliceNoteContent", () => {
     expect(result.truncated).toBe(true);
     expect(result.nextOffset).toBe(READ_NOTE_MAX_LINES + 1);
     expect(result.content.split("\n")).toHaveLength(READ_NOTE_MAX_LINES);
+    expect(result.beforeContext).toBe("");
+    expect(result.afterContext).toBe(
+      Array.from(`\n${lines.slice(READ_NOTE_MAX_LINES).join("\n")}`)
+        .slice(0, READ_NOTE_CONTEXT_CHARS)
+        .join(""),
+    );
   });
 
   it("stops at 50KB before 2000 lines when lines are large", () => {
@@ -49,6 +60,7 @@ describe("sliceNoteContent", () => {
     expect(result.truncated).toBe(true);
     expect(result.endLine).toBeLessThan(10);
     expect(result.nextOffset).toBe(result.endLine + 1);
+    expect(result.afterContext.length).toBeGreaterThan(0);
   });
 
   it("truncates a single line that exceeds 50KB", () => {
@@ -61,11 +73,62 @@ describe("sliceNoteContent", () => {
     expect(result.totalLines).toBe(1);
     expect(result.truncated).toBe(true);
     expect(result.nextOffset).toBeUndefined();
+    expect(result.afterContext).toBe(
+      Array.from(line.slice(result.content.length)).slice(0, READ_NOTE_CONTEXT_CHARS).join(""),
+    );
   });
 
   it("rejects an offset past the last line", () => {
     expect(() => sliceNoteContent("one\ntwo", 3, 10)).toThrow(
       "offset 3 is past the end of the file (2 lines).",
+    );
+  });
+
+  it("clips a multi-line range by start and end columns", () => {
+    const content = ["abcdef", "ghijkl", "mnopqr"].join("\n");
+    expect(sliceNoteContent(content, 1, 3, 4, 3)).toEqual({
+      content: "def\nghijkl\nmn",
+      startLine: 1,
+      endLine: 3,
+      startColumn: 4,
+      endColumn: 3,
+      totalLines: 3,
+      truncated: false,
+      beforeContext: "abc",
+      afterContext: "opqr",
+    });
+  });
+
+  it("clips a same-line column range", () => {
+    const content = "abcdefghij";
+    expect(sliceNoteContent(content, 1, 1, 4, 8)).toEqual({
+      content: "defg",
+      startLine: 1,
+      endLine: 1,
+      startColumn: 4,
+      endColumn: 8,
+      totalLines: 1,
+      truncated: false,
+      beforeContext: "abc",
+      afterContext: "hij",
+    });
+  });
+
+  it("keeps surrounding context for a line-only range", () => {
+    const prefix = "x".repeat(60);
+    const suffix = "y".repeat(60);
+    const content = `${prefix}\nmiddle\n${suffix}`;
+    const result = sliceNoteContent(content, 2, 1);
+    expect(result.content).toBe("middle");
+    expect(result.beforeContext).toBe(`${prefix.slice(-READ_NOTE_CONTEXT_CHARS + 1)}\n`);
+    expect(result.afterContext).toBe(`\n${suffix.slice(0, READ_NOTE_CONTEXT_CHARS - 1)}`);
+    expect(Array.from(result.beforeContext)).toHaveLength(READ_NOTE_CONTEXT_CHARS);
+    expect(Array.from(result.afterContext)).toHaveLength(READ_NOTE_CONTEXT_CHARS);
+  });
+
+  it("rejects a same-line range whose start column is after the end column", () => {
+    expect(() => sliceNoteContent("abcdef", 1, 1, 5, 2)).toThrow(
+      "start position is after the end position.",
     );
   });
 });

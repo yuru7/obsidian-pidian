@@ -204,10 +204,14 @@ export class ObsidianContextProvider implements ContextProvider {
 }
 
 function fromEditor(file: TFile, editor: Editor): MarkdownEditorSource {
+  const from = editor.getCursor("from");
+  const to = editor.getCursor("to");
   return {
     notePath: file.path,
-    fromLine: editor.getCursor("from").line,
-    toLine: editor.getCursor("to").line,
+    fromLine: from.line,
+    toLine: to.line,
+    fromColumn: from.ch,
+    toColumn: to.ch,
   };
 }
 

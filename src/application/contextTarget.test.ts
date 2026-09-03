@@ -2,8 +2,14 @@ import { describe, expect, it } from "vitest";
 import { resolveContextTarget } from "./contextTarget";
 import type { MarkdownEditorSource } from "./activeMarkdown";
 
-function markdown(notePath: string, fromLine = 0, toLine = 0): MarkdownEditorSource {
-  return { notePath, fromLine, toLine };
+function markdown(
+  notePath: string,
+  fromLine = 0,
+  toLine = 0,
+  fromColumn = 0,
+  toColumn = 0,
+): MarkdownEditorSource {
+  return { notePath, fromLine, toLine, fromColumn, toColumn };
 }
 
 describe("resolveContextTarget", () => {

@@ -38,11 +38,13 @@ describe("pickMarkdownSourceForPath", () => {
 });
 
 describe("snapshotFromEditorSource", () => {
-  it("converts the cursor line to a 1-based range", () => {
+  it("converts the cursor line to a 1-based range without columns", () => {
     const snapshot = snapshotFromEditorSource({
       notePath: "notes/example.md",
       fromLine: 11,
       toLine: 11,
+      fromColumn: 4,
+      toColumn: 4,
     });
     expect(snapshot).toEqual({
       notePath: "notes/example.md",
@@ -51,26 +53,65 @@ describe("snapshotFromEditorSource", () => {
     });
   });
 
-  it("keeps a multi-line selection range", () => {
+  it("keeps a multi-line selection range with 1-based columns", () => {
     const snapshot = snapshotFromEditorSource({
       notePath: "notes/example.md",
-      fromLine: 12,
-      toLine: 14,
+      fromLine: 2,
+      toLine: 4,
+      fromColumn: 3,
+      toColumn: 2,
     });
     expect(snapshot).toEqual({
       notePath: "notes/example.md",
-      startLine: 13,
-      endLine: 15,
+      startLine: 3,
+      endLine: 5,
+      startColumn: 4,
+      endColumn: 3,
+    });
+  });
+
+  it("keeps a same-line selection with columns", () => {
+    const snapshot = snapshotFromEditorSource({
+      notePath: "notes/example.md",
+      fromLine: 2,
+      toLine: 2,
+      fromColumn: 3,
+      toColumn: 9,
+    });
+    expect(snapshot).toEqual({
+      notePath: "notes/example.md",
+      startLine: 3,
+      endLine: 3,
+      startColumn: 4,
+      endColumn: 10,
     });
   });
 });
 
 describe("formatLineRange", () => {
-  it("formats a single line", () => {
-    expect(formatLineRange(12, 12)).toBe("L12");
+  it("formats a single line cursor", () => {
+    expect(formatLineRange({ startLine: 12, endLine: 12 })).toBe("L12");
   });
 
-  it("formats a multi-line selection", () => {
-    expect(formatLineRange(13, 15)).toBe("L13-L15");
+  it("formats a multi-line selection without columns", () => {
+    expect(formatLineRange({ startLine: 13, endLine: 15 })).toBe("L13-L15");
+  });
+
+  it("formats a selection with columns", () => {
+    expect(
+      formatLineRange({ startLine: 3, endLine: 5, startColumn: 4, endColumn: 3 }),
+    ).toBe("L3:C4-L5:C3");
+  });
+
+  it("formats a same-line selection with columns", () => {
+    expect(
+      formatLineRange({ startLine: 3, endLine: 3, startColumn: 4, endColumn: 10 }),
+    ).toBe("L3:C4-L3:C10");
+  });
+
+  it("omits columns when the range is a collapsed cursor", () => {
+    expect(
+      formatLineRange({ startLine: 3, endLine: 3, startColumn: 4, endColumn: 4 }),
+    ).toBe("L3");
   });
 });

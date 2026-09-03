@@ -196,7 +196,7 @@ function ContextPreview({ plugin }: { plugin: PidianPlugin }): JSX.Element {
   }
   const fileName = fileNameFromPath(context.notePath);
   const lineLabel = hasContextLineRange(context)
-    ? `[${formatLineRange(context.startLine, context.endLine)}]`
+    ? `[${formatLineRange(context)}]`
     : undefined;
   return (
     <div className="pidian-context">

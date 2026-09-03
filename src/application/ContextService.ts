@@ -34,7 +34,7 @@ export function formatAgentPrompt(text: string, context?: ContextSnapshot, creat
   if (context) {
     lines.push(
       hasContextLineRange(context)
-        ? `${context.notePath} ${formatLineRange(context.startLine, context.endLine)}`
+        ? `${context.notePath} ${formatLineRange(context)}`
         : context.notePath,
     );
   }

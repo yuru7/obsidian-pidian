@@ -15,11 +15,23 @@ function optionalPositiveInt(value: unknown, name: string): number | undefined {
   return value;
 }
 
-function parseReadNoteArgs(args: unknown): { path: string; offset: number; limit: number } {
+function parseReadNoteArgs(args: unknown): {
+  path: string;
+  offset: number;
+  limit: number;
+  startColumn?: number;
+  endColumn?: number;
+} {
   if (typeof args !== "object" || args === null) {
     throw new Error("path is required.");
   }
-  const record = args as { path?: unknown; offset?: unknown; limit?: unknown };
+  const record = args as {
+    path?: unknown;
+    offset?: unknown;
+    limit?: unknown;
+    startColumn?: unknown;
+    endColumn?: unknown;
+  };
   if (typeof record.path !== "string") {
     throw new Error("path is required.");
   }
@@ -27,6 +39,8 @@ function parseReadNoteArgs(args: unknown): { path: string; offset: number; limit
     path: assertNoteFilePath(record.path),
     offset: optionalPositiveInt(record.offset, "offset") ?? 1,
     limit: optionalPositiveInt(record.limit, "limit") ?? READ_NOTE_MAX_LINES,
+    startColumn: optionalPositiveInt(record.startColumn, "startColumn"),
+    endColumn: optionalPositiveInt(record.endColumn, "endColumn"),
   };
 }
 
@@ -40,7 +54,7 @@ export function createReadNoteTool(options: {
     name: "read_note",
     label: "Read note",
     description:
-      "Read a Markdown (.md) or Canvas (.canvas) note from the Obsidian vault by line range. offset is the 1-based start line and limit is the number of lines to read. Defaults to offset 1 when the file has no cursor, such as a Canvas. Returns at most 2000 lines or 50KB, whichever is reached first. If truncated is true, call again with nextOffset. Returns path, content, revision, startLine, endLine, totalLines, truncated, and nextOffset.",
+      "Read a Markdown (.md) or Canvas (.canvas) note from the Obsidian vault by line range. offset is the 1-based start line and limit is the number of lines to read. Optional startColumn and endColumn (1-based) clip the first and last lines of that range; omit both to read whole lines. startColumn is inclusive and endColumn is exclusive, matching LINE_RANGE values such as L3:C4-L5:C3. Defaults to offset 1 when the file has no cursor, such as a Canvas. Returns at most 2000 lines or 50KB, whichever is reached first. If truncated is true, call again with nextOffset. Returns path, content, beforeContext, afterContext, revision, startLine, endLine, totalLines, truncated, and nextOffset. beforeContext and afterContext are up to 50 characters before and after the returned range. When columns are passed, also returns startColumn and endColumn.",
     parameters: {
       type: "object",
       properties: {
@@ -56,12 +70,22 @@ export function createReadNoteTool(options: {
           type: "number",
           description: "Number of lines to read. Defaults to 2000. Capped at 2000.",
         },
+        startColumn: {
+          type: "number",
+          description:
+            "Optional 1-based inclusive start column on the offset line. Copy C from LINE_RANGE (L3:C4-L5:C3 → 4). Omit to start at the beginning of the line.",
+        },
+        endColumn: {
+          type: "number",
+          description:
+            "Optional 1-based exclusive end column on the last line of the range. Copy C from LINE_RANGE (L3:C4-L5:C3 → 3). Omit to end at the end of the last line.",
+        },
       },
       required: ["path"],
     },
     execute: async (args) => {
       try {
-        const { path, offset, limit } = parseReadNoteArgs(args);
+        const { path, offset, limit, startColumn, endColumn } = parseReadNoteArgs(args);
         const decision = await options.permissions.authorize({
           category: "read",
           toolName: "read_note",
@@ -72,17 +96,21 @@ export function createReadNoteTool(options: {
         }
         const note = await options.notes.read(path);
         options.tracker.recordRead(options.sessionId, note.path, note.revision);
-        const range = sliceNoteContent(note.content, offset, limit);
+        const range = sliceNoteContent(note.content, offset, limit, startColumn, endColumn);
         return {
           content: JSON.stringify(
             {
               path: note.path,
               content: range.content,
+              beforeContext: range.beforeContext,
+              afterContext: range.afterContext,
               revision: note.revision,
               startLine: range.startLine,
               endLine: range.endLine,
               totalLines: range.totalLines,
               truncated: range.truncated,
+              ...(range.startColumn === undefined ? {} : { startColumn: range.startColumn }),
+              ...(range.endColumn === undefined ? {} : { endColumn: range.endColumn }),
               ...(range.nextOffset === undefined ? {} : { nextOffset: range.nextOffset }),
             },
             null,

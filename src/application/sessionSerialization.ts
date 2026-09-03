@@ -99,11 +99,31 @@ function parseOptionalContext(value: unknown): ContextSnapshot | undefined {
   if (!isPositiveInt(value.startLine) || !isPositiveInt(value.endLine) || value.endLine < value.startLine) {
     return undefined;
   }
+  const columns = parseOptionalContextColumns(value.startLine, value.endLine, value.startColumn, value.endColumn);
   return {
     notePath: value.notePath,
     startLine: value.startLine,
     endLine: value.endLine,
+    ...columns,
   };
+}
+
+function parseOptionalContextColumns(
+  startLine: number,
+  endLine: number,
+  startColumn: unknown,
+  endColumn: unknown,
+): { startColumn: number; endColumn: number } | Record<string, never> {
+  if (startColumn === undefined && endColumn === undefined) {
+    return {};
+  }
+  if (!isPositiveInt(startColumn) || !isPositiveInt(endColumn)) {
+    return {};
+  }
+  if (startLine === endLine && startColumn >= endColumn) {
+    return {};
+  }
+  return { startColumn, endColumn };
 }
 
 function parseUsage(value: unknown, field: string): TokenUsage | undefined {

@@ -76,6 +76,8 @@ describe("read_note", () => {
     expect(JSON.parse(result.content)).toEqual({
       path: "a.md",
       content: "two\nthree",
+      beforeContext: "one\n",
+      afterContext: "\nfour",
       revision: computeRevision(content),
       startLine: 2,
       endLine: 3,
@@ -100,6 +102,8 @@ describe("read_note", () => {
     expect(JSON.parse(result.content)).toMatchObject({
       path: "maps/board.canvas",
       content,
+      beforeContext: "",
+      afterContext: "",
       startLine: 1,
       endLine: 1,
       totalLines: 1,
@@ -131,5 +135,50 @@ describe("read_note", () => {
     const result = await tool.execute({ path: "img/photo.png" });
     expect(result.isError).toBe(true);
     expect(result.content).toContain("Not a note");
+  });
+
+  it("clips by startColumn and endColumn and returns surrounding context", async () => {
+    const content = ["abcdef", "ghijkl", "mnopqr"].join("\n");
+    const tool = createReadNoteTool({
+      sessionId: "s1",
+      notes: new MemoryNotes(new Map([["a.md", content]])),
+      tracker: new ReadRevisionTracker(),
+      permissions: allowRead(),
+    });
+
+    const result = await tool.execute({
+      path: "a.md",
+      offset: 1,
+      limit: 3,
+      startColumn: 4,
+      endColumn: 3,
+    });
+    expect(result.isError).toBeFalsy();
+    expect(JSON.parse(result.content)).toEqual({
+      path: "a.md",
+      content: "def\nghijkl\nmn",
+      beforeContext: "abc",
+      afterContext: "opqr",
+      revision: computeRevision(content),
+      startLine: 1,
+      endLine: 3,
+      startColumn: 4,
+      endColumn: 3,
+      totalLines: 3,
+      truncated: false,
+    });
+  });
+
+  it("rejects a non-positive startColumn", async () => {
+    const tool = createReadNoteTool({
+      sessionId: "s1",
+      notes: new MemoryNotes(new Map([["a.md", "hello"]])),
+      tracker: new ReadRevisionTracker(),
+      permissions: allowRead(),
+    });
+
+    const result = await tool.execute({ path: "a.md", startColumn: 0 });
+    expect(result.isError).toBe(true);
+    expect(result.content).toBe("startColumn must be a positive integer.");
   });
 });

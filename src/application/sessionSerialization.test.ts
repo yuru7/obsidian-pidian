@@ -109,6 +109,28 @@ describe("session serialization", () => {
     expect(parseSessionFile(serializePidianSession(withContext))).toEqual(withContext);
   });
 
+  it("round-trips user message context with column selection", () => {
+    const withContext: PidianSession = {
+      ...sample,
+      messages: [
+        {
+          id: "m1",
+          role: "user",
+          text: "Hello",
+          context: {
+            notePath: "notes/example.md",
+            startLine: 3,
+            endLine: 5,
+            startColumn: 4,
+            endColumn: 3,
+          },
+          createdAt: "2026-01-01T00:00:00.000Z",
+        },
+      ],
+    };
+    expect(parseSessionFile(serializePidianSession(withContext))).toEqual(withContext);
+  });
+
   it("round-trips user message context without a line range", () => {
     const withContext: PidianSession = {
       ...sample,
@@ -168,6 +190,26 @@ describe("session serialization", () => {
         ],
       }).messages[0]?.context,
     ).toBeUndefined();
+    expect(
+      parsePidianSession({
+        ...sample,
+        messages: [
+          {
+            id: "m1",
+            role: "user",
+            text: "Hello",
+            context: {
+              notePath: "notes/example.md",
+              startLine: 3,
+              endLine: 3,
+              startColumn: 5,
+              endColumn: 2,
+            },
+            createdAt: "2026-01-01T00:00:00.000Z",
+          },
+        ],
+      }).messages[0]?.context,
+    ).toEqual({ notePath: "notes/example.md", startLine: 3, endLine: 3 });
   });
 
   it("round-trips thinkingLevel", () => {

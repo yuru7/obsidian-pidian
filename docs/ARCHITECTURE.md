@@ -121,7 +121,7 @@ UI は `plugin.agentService.subscribe` と `plugin.subscribeSettings` で再描�
 ```text
 Composer
   → AgentService.send(text)
-      → ContextService.snapshot()（現在ファイルの path。MarkdownView なら 1-based 行範囲。Canvas、PNG/JPEG/WebP、MarkdownView ではない .md（Excalidraw など）は path のみ。本文・画像バイトは入れない）
+      → ContextService.snapshot()（現在ファイルの path。MarkdownView なら 1-based 行範囲。テキスト選択中なら列位置も。Canvas、PNG/JPEG/WebP、MarkdownView ではない .md（Excalidraw など）は path のみ。本文・画像バイトは入れない）
       → ユーザー発言 + 空の assistant を PidianSession に追加して保存
       → AgentSession.prompt({ text: formatAgentPrompt(...), context })
           → PiAgentAdapter（Pi イベント）
@@ -161,9 +161,9 @@ Composer
 User: <user text>
 ```
 
-時刻は `createdAt`（UTC）から、送信時のマシンローカルオフセット付き ISO 8601（秒まで。例 `2026-08-31T17:31:00+09:00`）。`LINE_RANGE` は Markdown エディタのカーソルなら `L12`、複数行選択なら `L13-L15`。Canvas、PNG/JPEG/WebP、Excalidraw などカーソルが取れないファイルは path のみ。ファイルが無いときは timestamp と `User: <user text>` のみ。
+時刻は `createdAt`（UTC）から、送信時のマシンローカルオフセット付き ISO 8601（秒まで。例 `2026-08-31T17:31:00+09:00`）。`LINE_RANGE` は Markdown エディタのカーソルなら `L12`、テキスト選択なら `L3:C4-L5:C3`（1-based。開始列は inclusive、終了列は exclusive でエディタの from/to に一致）。列が無い古い選択は `L13-L15`。Canvas、PNG/JPEG/WebP、Excalidraw などカーソルが取れないファイルは path のみ。ファイルが無いときは timestamp と `User: <user text>` のみ。
 
-ユーザー発言の `text` は本文だけ保存する。ヘッダ（時刻・path）は保存しない。送信時の `ContextSnapshot`（path と、Markdown エディタなら行範囲。本文は入れない）はユーザーメッセージの任意フィールド `context` に残す。再開・モデル変更で Pi を作り直すとき、`toConversation` が `formatAgentPrompt` で当時のヘッダを復元する。`context` が無い古い保存は timestamp と `User: <user text>` のみ。
+ユーザー発言の `text` は本文だけ保存する。ヘッダ（時刻・path）は保存しない。送信時の `ContextSnapshot`（path と、Markdown エディタなら行範囲。テキスト選択なら列位置も。本文は入れない）はユーザーメッセージの任意フィールド `context` に残す。再開・モデル変更で Pi を作り直すとき、`toConversation` が `formatAgentPrompt` で当時のヘッダを復元する。`context` が無い古い保存は timestamp と `User: <user text>` のみ。
 
 ファイル本文はコンテキストに載せない。エージェントは `read_note` でノートを読む。Vision モデルでは `read_image` で PNG/JPEG/WebP を読む。システムプロンプトは `pidianSystemPrompt`（`src/infrastructure/pi/PiCredentials.ts`）。Vision でないときは `read_image` の説明を出さない。Vault の `pidian/AGENTS.md`（プラグインフォルダ設定に追随）は任意の追加指示。
 
@@ -175,7 +175,7 @@ User: <user text>
 
 | name | 権限 | 役割 |
 | --- | --- | --- |
-| `read_note` | read | `.md` / `.canvas` を行範囲で読む。revision を返す。`ReadRevisionTracker` に記録。Canvas は offset 1 から |
+| `read_note` | read | `.md` / `.canvas` を行範囲で読む。任意で開始/終了列。前後 50 文字を `beforeContext` / `afterContext` で返す。revision を返す。`ReadRevisionTracker` に記録。Canvas は offset 1 から |
 | `read_image` | read | PNG / JPEG / WebP を読む。このターンだけ image ブロックを Pi に付ける。セッション jsonl には path のテキストだけ残す。復元時は付け直さない。Pi の `model.input` に `image` が無いときは `customTools` からもシステムプロンプトからも外す |
 | `search_notes` | read | `.md` / `.canvas` のファイル名 + 本文検索。`AGENTS.md` と制限パスは除外 |
 | `list_files` | read | 直下のみ。再帰しない。`""` / `"/"` が Vault ルート。任意の `glob` は直下の name に `*` で絞る（`**` とパス区切りは拒否） |
@@ -275,7 +275,7 @@ interface PidianSession {
 ```
 
 - パースは `migratePidianSession`。`version !== 1` は throw。フィールド追加時は後方互換を崩さないか、version を上げて migration を足す。
-- ユーザーメッセージの任意 `context` は送信時のファイル位置。Markdown エディタなら行範囲、Canvas・PNG/JPEG/WebP・MarkdownView ではない `.md` は path のみ。UI には出さず、再開時の `formatAgentPrompt` 用。無い・不正なら無視する。時刻ヘッダは `createdAt` から組み立て、保存 `text` には含めない。
+- ユーザーメッセージの任意 `context` は送信時のファイル位置。Markdown エディタなら行範囲、テキスト選択なら列位置も。Canvas・PNG/JPEG/WebP・MarkdownView ではない `.md` は path のみ。チャットのメッセージには出さず、コンポーザ上のコンテキスト表示と再開時の `formatAgentPrompt` 用。無い・不正なら無視する。時刻ヘッダは `createdAt` から組み立て、保存 `text` には含めない。
 - ツール結果の画像バイトはセッションに書かない。`PiEventMapper` が text だけを `toolCall.result` に残す。再開・モデル変更で Pi を作り直したあとは path の履歴だけ。もう一度見るときは `read_image` する。
 - アシスタントの `workedMs` は各 Work 区間が閉じるまでの時間。思考→ツール→思考は同じ Work に時系列の `items` として残し、`thinking_end` だけでは閉じない。本文が出たあと、思考 delta が途切れたとき、またはターン完了で閉じる。思考中の本文は Work の直下へ随時出す。空白だけの delta では区切らない。`blocks` が無い古い保存データは思考・ツールを1つの WorkLog にまとめる。
 - 再開は `PidianSession → AgentConversation → PiAgentAdapter`。ユーザー本文は `formatAgentPrompt` でヘッダ付きに戻す。Pi 固有オブジェクトは保存しない。会話は Pi の `SessionManager` に全文を載せ、`compaction` があればその境界で要約エントリを足してから `createAgentSession` する。LLM 入力は SessionManager が組み直した要約 + 残したメッセージ。画面と `messages` は全文のまま。
