@@ -109,13 +109,41 @@ async function writeJson(filePath, value) {
   await writeFile(filePath, `${JSON.stringify(value, null, 2)}\n`, "utf8");
 }
 
-function lastRecordedMinAppVersion(versions) {
+function lastRecordedEntry(versions) {
   const keys = Object.keys(versions);
-  if (keys.length === 0) {
+  const lastKey = keys[keys.length - 1];
+  if (lastKey === undefined) {
     return undefined;
   }
-  const value = versions[keys[keys.length - 1]];
-  return typeof value === "string" ? value : undefined;
+  const lastMinApp = versions[lastKey];
+  if (typeof lastMinApp !== "string") {
+    return undefined;
+  }
+  return { lastKey, lastMinApp };
+}
+
+/**
+ * 全リリースは列挙しない。最後のキーは常に現在のプラグインバージョンにする。
+ * minAppVersion が変わったときは直前版を旧 minApp の最後の対応版として残す。
+ */
+export function applyVersionsMap(versions, previousPluginVersion, version, minAppVersion) {
+  const next = { ...versions };
+  const last = lastRecordedEntry(next);
+
+  if (last?.lastMinApp === minAppVersion) {
+    if (last.lastKey !== version) {
+      delete next[last.lastKey];
+    }
+  } else if (
+    last &&
+    previousPluginVersion !== version &&
+    !(previousPluginVersion in next)
+  ) {
+    next[previousPluginVersion] = last.lastMinApp;
+  }
+
+  next[version] = minAppVersion;
+  return next;
 }
 
 async function bumpVersionFiles(version, minAppVersion) {
@@ -144,17 +172,13 @@ async function bumpVersionFiles(version, minAppVersion) {
     manifest.minAppVersion = minAppVersion;
   }
 
-  // minAppVersion が変わったときだけ積む。公式も全リリースの列挙は不要としている。
-  // 切替時は直前版を旧 minApp の最後の対応版として残す。
-  const lastMinApp = lastRecordedMinAppVersion(versions);
-  if (lastMinApp !== manifest.minAppVersion) {
-    if (lastMinApp && previousPluginVersion !== version && !(previousPluginVersion in versions)) {
-      versions[previousPluginVersion] = lastMinApp;
-    }
-    versions[version] = manifest.minAppVersion;
-    await writeJson(versionsPath, versions);
-  }
-
+  const nextVersions = applyVersionsMap(
+    versions,
+    previousPluginVersion,
+    version,
+    manifest.minAppVersion,
+  );
+  await writeJson(versionsPath, nextVersions);
   await writeJson(manifestPath, manifest);
   await writeJson(packagePath, pkg);
 }
@@ -230,7 +254,20 @@ async function main() {
   run("git", ["push"]);
 }
 
-main().catch((err) => {
-  console.error(err instanceof Error ? err.message : err);
-  process.exit(1);
-});
+function isDirectRun() {
+  const entry = process.argv[1];
+  if (!entry) {
+    return false;
+  }
+  return (
+    path.normalize(fileURLToPath(import.meta.url)).toLowerCase() ===
+    path.normalize(path.resolve(entry)).toLowerCase()
+  );
+}
+
+if (isDirectRun()) {
+  main().catch((err) => {
+    console.error(err instanceof Error ? err.message : err);
+    process.exit(1);
+  });
+}
