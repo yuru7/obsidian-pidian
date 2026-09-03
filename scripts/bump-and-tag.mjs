@@ -17,13 +17,14 @@ const VERSION_RE = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/;
 const VERSION_FILES = ["manifest.json", "package.json", "versions.json"];
 const spawnOpts = {
   cwd: rootDir,
-  shell: process.platform === "win32",
 };
 
 function run(command, args) {
   const result = spawnSync(command, args, {
     ...spawnOpts,
     stdio: "inherit",
+    // pnpm は Windows では .cmd のため shell が必要なことがある。git は付けない（引数のスペースが壊れる）。
+    shell: process.platform === "win32" && command === "pnpm",
   });
   if (result.error) {
     throw result.error;
