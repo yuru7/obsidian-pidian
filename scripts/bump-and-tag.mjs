@@ -221,9 +221,13 @@ async function main() {
     run("git", ["push"]);
     run("git", ["tag", "-a", version, "-m", version]);
     run("git", ["push", "origin", version]);
-  } finally {
+  } catch (err) {
     switchToDev();
+    throw err;
   }
+
+  run("git", ["switch", DEV_BRANCH]);
+  run("git", ["push"]);
 }
 
 main().catch((err) => {

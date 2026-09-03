@@ -156,9 +156,9 @@ pnpm run bump-and-tag --version 0.12.0 --min-app-version 1.9.0
 3. `pnpm build` が通ることを確認する
 4. `manifest.json` / `package.json` のバージョンを `--version` にする。`--min-app-version` があるときだけ `manifest.json` の `minAppVersion` も更新し、`versions.json` は `minAppVersion` が変わったときだけエントリを足す
 5. `Bump to <version>` でコミットする
-6. `main` へ fast-forward マージしてプッシュする
+6. `main` へ切り替えて fast-forward マージし、プッシュする
 7. 注釈付きタグ `<version>` を切って `origin` へプッシュする
-8. `dev` に戻る
+8. `dev` に戻り、Bump コミットを origin へプッシュする
 
 その後:
 
