@@ -3,6 +3,7 @@ import type { App } from "obsidian";
 import { t } from "../i18n";
 import type { PidianMessage } from "../domain/sessions/PidianSession";
 import { Message } from "./Message";
+import { SelectionQuoteToolbar } from "./SelectionQuoteToolbar";
 
 const STICK_TO_BOTTOM_THRESHOLD_PX = 16;
 const JUMP_TO_BOTTOM_VIEWPORT_RATIO = 1 / 3;
@@ -37,6 +38,7 @@ export function Chat({
   editToolbar,
   onResend,
   onNearBottomChange,
+  onQuote,
   ref,
 }: {
   app: App;
@@ -52,6 +54,7 @@ export function Chat({
   editToolbar?: JSX.Element;
   onResend?: (messageId: string, text: string) => void;
   onNearBottomChange?: (nearBottom: boolean) => void;
+  onQuote: (text: string) => void;
   ref?: Ref<ChatHandle>;
 }): JSX.Element {
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
@@ -184,6 +187,7 @@ export function Chat({
             ))}
         {compacting ? <p className="pidian-compaction-notice">{t("uiCompacting")}</p> : null}
       </div>
+      <SelectionQuoteToolbar containerRef={rootRef} onQuote={onQuote} />
     </div>
   );
 }

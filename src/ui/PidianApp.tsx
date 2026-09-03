@@ -6,7 +6,7 @@ import { t } from "../i18n";
 import type PidianPlugin from "../main";
 import { sumTokenUsage, type PidianMessage } from "../domain/sessions/PidianSession";
 import { Chat, type ChatHandle } from "./Chat";
-import { Composer } from "./Composer";
+import { Composer, type ComposerHandle } from "./Composer";
 import { ModelSelector } from "./ModelSelector";
 import { OpenActiveSessionButton } from "./OpenActiveSessionButton";
 import { SessionSelector } from "./SessionSelector";
@@ -21,6 +21,7 @@ function fileNameFromPath(notePath: string): string {
 export function PidianApp({ plugin, keymapScope }: { plugin: PidianPlugin; keymapScope: Scope | null }): JSX.Element {
   const [, rerender] = useReducer((value: number) => value + 1, 0);
   const chatRef = useRef<ChatHandle>(null);
+  const composerRef = useRef<ComposerHandle>(null);
   const [nearBottom, setNearBottom] = useState(true);
   const sessionId = plugin.agentService?.getSession()?.id;
 
@@ -109,6 +110,9 @@ export function PidianApp({ plugin, keymapScope }: { plugin: PidianPlugin; keyma
             console.error("Pidian: failed to resend message", error);
           });
         }}
+        onQuote={(text) => {
+          composerRef.current?.insertQuote(text);
+        }}
       />
       {error ? <div className="pidian-error">{error}</div> : null}
       <footer className="pidian-footer">
@@ -152,6 +156,7 @@ export function PidianApp({ plugin, keymapScope }: { plugin: PidianPlugin; keyma
           <TokenUsage messages={session?.messages ?? []} />
         </div>
         <Composer
+          ref={composerRef}
           plugin={plugin}
           keymapScope={keymapScope}
           disabled={!session || !session.provider || !session.model}

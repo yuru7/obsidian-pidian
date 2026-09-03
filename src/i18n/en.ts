@@ -142,6 +142,7 @@ export const en = {
   uiWorkedFor: "Worked for {seconds}s",
   uiCopy: "Copy",
   uiCopied: "Copied",
+  uiQuote: "Quote",
   uiEditMessage: "Edit message",
   uiFork: "Fork conversation",
   uiForked: "Forked this conversation",

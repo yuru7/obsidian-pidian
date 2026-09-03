@@ -1,15 +1,20 @@
-import { useLayoutEffect, useRef, useState, type JSX } from "react";
+import { useImperativeHandle, useLayoutEffect, useRef, useState, type JSX, type Ref } from "react";
 import { setTooltip, type Scope } from "obsidian";
 import { t } from "../i18n";
 import type PidianPlugin from "../main";
 import { shouldAbortOnEscape } from "./composerAbortKey";
 import { shouldSendOnKeyDown } from "./composerSendKey";
 import { fitTextarea } from "./fitTextarea";
+import { insertQuoteIntoComposer } from "./quoteSelection";
 import { useAbortHotkeyScope } from "./useAbortHotkeyScope";
 import { useSendHotkeyScope } from "./useSendHotkeyScope";
 
 const MIN_ROWS = 2;
 const MAX_ROWS = 4;
+
+export type ComposerHandle = {
+  insertQuote: (selectedText: string) => void;
+};
 
 export function Composer({
   plugin,
@@ -19,6 +24,7 @@ export function Composer({
   toolbar,
   onSend,
   onAbort,
+  ref,
 }: {
   plugin: PidianPlugin;
   keymapScope: Scope | null;
@@ -27,12 +33,26 @@ export function Composer({
   toolbar?: JSX.Element;
   onSend: (text: string) => void;
   onAbort: () => void;
+  ref?: Ref<ComposerHandle>;
 }): JSX.Element {
   const [text, setText] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const textRef = useRef(text);
+  const pendingCursorRef = useRef<number | null>(null);
   const sendWithCtrlEnter = plugin.settings.sendWithCtrlEnter;
   textRef.current = text;
+
+  useImperativeHandle(ref, () => ({
+    insertQuote(selectedText: string) {
+      const next = insertQuoteIntoComposer(textRef.current, selectedText);
+      if (!next) {
+        return;
+      }
+      pendingCursorRef.current = next.cursor;
+      textRef.current = next.text;
+      setText(next.text);
+    },
+  }));
 
   const send = () => {
     const trimmed = textRef.current.trim();
@@ -49,9 +69,20 @@ export function Composer({
 
   useLayoutEffect(() => {
     const el = textareaRef.current;
-    if (el) {
-      fitTextarea(el, MIN_ROWS, MAX_ROWS);
+    if (!el) {
+      return;
     }
+    fitTextarea(el, MIN_ROWS, MAX_ROWS);
+    const cursor = pendingCursorRef.current;
+    if (cursor === null) {
+      return;
+    }
+    pendingCursorRef.current = null;
+    if (el.disabled) {
+      return;
+    }
+    el.focus();
+    el.setSelectionRange(cursor, cursor);
   }, [text]);
 
   useLayoutEffect(() => {
