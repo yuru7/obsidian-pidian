@@ -25,6 +25,7 @@ import { PiModelCatalog } from "./infrastructure/pi/PiModelCatalog";
 import { createSearchService } from "./infrastructure/search/createSearchService";
 import { createFetchService } from "./infrastructure/fetch/createFetchService";
 import { editorContextExtension } from "./infrastructure/obsidian/editorContextExtension";
+import { unfocusedSelectionHighlight } from "./infrastructure/obsidian/unfocusedSelectionHighlight";
 import { ObsidianContextProvider } from "./infrastructure/obsidian/ObsidianContextProvider";
 import { ObsidianImageRepository } from "./infrastructure/obsidian/ObsidianImageRepository";
 import { ObsidianInstructionReader } from "./infrastructure/obsidian/ObsidianInstructionReader";
@@ -241,6 +242,10 @@ export default class PidianPlugin extends Plugin {
         this.notifyEditorContext();
       }),
     );
+    // Workaround: keep editor selection visible after focus leaves the
+    // Markdown editor. Remove with unfocusedSelectionHighlight.ts if Obsidian
+    // starts drawing unfocused selections itself.
+    this.registerEditorExtension(unfocusedSelectionHighlight());
     this.agentService = new AgentService(
       adapter,
       sessions,

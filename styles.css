@@ -1665,3 +1665,12 @@ button.pidian-settings-model-menu-item:hover {
   font-weight: var(--font-semibold, 600);
   letter-spacing: 0.06em;
 }
+
+/*
+  Workaround with unfocusedSelectionHighlight.ts: keep the Markdown selection
+  visible after the editor loses focus. Remove this rule if Obsidian starts
+  drawing unfocused selections itself.
+*/
+.cm-editor .pidian-unfocused-selection {
+  background-color: var(--text-selection);
+}

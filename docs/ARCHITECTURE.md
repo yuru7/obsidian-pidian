@@ -114,6 +114,8 @@ Application / Domain
 
 UI は `plugin.agentService.subscribe` と `plugin.subscribeSettings` で再描画する。エディタのカーソル/選択は `editorContextExtension` が `subscribeEditorContext` を叩く。
 
+非フォーカス時の選択ハイライトは一時回避。Obsidian / CodeMirror はエディタがフォーカスを失うと選択を描かない（Composer にフォーカスしたときなど）。`unfocusedSelectionHighlight` が現在の非空選択を mark decoration で塗る。本体が同じ描画をするようになったら、この extension・テスト・`styles.css` の `.pidian-unfocused-selection`・`main.ts` の `registerEditorExtension` をまとめて消す。
+
 ---
 
 ## 会話の流れ
@@ -420,6 +422,7 @@ UI は `AgentService` と `plugin.settings` を読む。Pi 型を import しな�
 | セッション形式 | `PidianSession`, `sessionSerialization` | Pi session JSON の保存 |
 | モデル一覧 | `PiModelCatalog`, Settings custom provider | UI での provider 特例 |
 | チャットのノートリンク | `Markdown.tsx`, `chatNoteLink.ts`, `ObsidianWorkspaceNavigator` | `openLinkText` のデフォルト、`instanceof MarkdownView` でのタブ検索 |
+| 非フォーカス選択の表示 | `unfocusedSelectionHighlight.ts`, `styles.css` の `.pidian-unfocused-selection` | 本体が非フォーカス選択を描くようになったあとの残留。消すときは extension・CSS・`main.ts` の登録を一式で |
 | システム指示 | `pidianSystemPrompt`, Vault `AGENTS.md` | Pi のデフォルト AGENTS 探索（fs stub で止めてある） |
 | CORS / LLM HTTP | `corsFreeFetch`, `customRequestBody` | レンダラの `fetch` に戻す |
 | サブスク OAuth | `subscriptionProviders.ts`, `PidianCredentialStore`, `subscriptionLogin.ts`, Settings API認証 | `~/.pi/agent/auth.json`、プロバイダ専用ログインの本体実装 |
