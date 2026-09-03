@@ -33,7 +33,7 @@ export class AgentService {
   private streaming = false;
   private compacting = false;
   private error?: string;
-  private thinkingIdleTimer: ReturnType<typeof setTimeout> | undefined;
+  private thinkingIdleTimer: number | undefined;
   private readonly listeners = new Set<ChatListener>();
   private createTools: (sessionId: string) => PidianTool[];
 
@@ -426,7 +426,7 @@ export class AgentService {
 
   private scheduleThinkingIdle(): void {
     this.clearThinkingIdle();
-    this.thinkingIdleTimer = setTimeout(() => {
+    this.thinkingIdleTimer = window.setTimeout(() => {
       this.thinkingIdleTimer = undefined;
       const assistant = this.latestAssistant();
       if (!assistant) {
@@ -441,7 +441,7 @@ export class AgentService {
     if (this.thinkingIdleTimer === undefined) {
       return;
     }
-    clearTimeout(this.thinkingIdleTimer);
+    window.clearTimeout(this.thinkingIdleTimer);
     this.thinkingIdleTimer = undefined;
   }
 

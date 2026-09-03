@@ -1,6 +1,6 @@
 # Pidian アーキテクチャ
 
-AI エージェントがこのリポジトリを読み、実装するときの正本。Obsidian API の調べ方はルートの [AGENTS.md](../AGENTS.md)。ビルド・テスト・リリース手順は [CONTRIBUTING.md](../CONTRIBUTING.md)。
+AI エージェントがこのリポジトリを読み、実装するときの正本。Obsidian API の調べ方はルートの [AGENTS.md](../AGENTS.md)。ビルド・テスト・リリース手順は [CONTRIBUTING.md](../CONTRIBUTING.md)。コードチェック警告の書き方は [CODE_CHECK_WARNINGS.md](CODE_CHECK_WARNINGS.md)。
 
 実装前に **「守ること」** と **「変更レシピ」** を読む。推測で Pi や Obsidian の内部 API を足さない。
 

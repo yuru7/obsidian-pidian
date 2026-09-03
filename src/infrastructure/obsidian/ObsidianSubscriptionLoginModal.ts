@@ -163,7 +163,7 @@ export class ObsidianSubscriptionLoginModal extends Modal implements Subscriptio
     host.empty();
     this.appendUrl(host, url);
     const codeRow = host.createDiv({ cls: "pidian-login-code-row" });
-    codeRow.createEl("span", { cls: "pidian-login-code-label", text: t("settingsSubscriptionUserCode") });
+    codeRow.createSpan({ cls: "pidian-login-code-label", text: t("settingsSubscriptionUserCode") });
     codeRow.createEl("code", { cls: "pidian-login-code", text: userCode });
     const actions = host.createDiv({ cls: "pidian-login-actions" });
     const copy = actions.createEl("button", { text: t("uiCopy") });

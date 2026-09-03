@@ -1,6 +1,6 @@
 ## このリポジトリ
 
-実装・変更の前に [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) を読む。依存方向、ツール追加手順、Pi 隔離、パス制限、禁止事項をそこに固定する。ビルド・テスト・リリースは [CONTRIBUTING.md](CONTRIBUTING.md)。
+実装・変更の前に [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) を読む。依存方向、ツール追加手順、Pi 隔離、パス制限、禁止事項をそこに固定する。ビルド・テスト・リリースは [CONTRIBUTING.md](CONTRIBUTING.md)。コードチェックで出た警告の書き方は [docs/CODE_CHECK_WARNINGS.md](docs/CODE_CHECK_WARNINGS.md)。実装時はそこに載っている警告を繰り返さない。
 
 ---
 

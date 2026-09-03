@@ -85,7 +85,7 @@ async function downscaleWithCanvas(image: ToolImage): Promise<{ bytes: Uint8Arra
     const scale = Math.min(1, 2000 / bitmap.width, 2000 / bitmap.height);
     const width = Math.max(1, Math.round(bitmap.width * scale));
     const height = Math.max(1, Math.round(bitmap.height * scale));
-    const canvas = document.createElement("canvas");
+    const canvas = createEl("canvas");
     canvas.width = width;
     canvas.height = height;
     const ctx = canvas.getContext("2d");

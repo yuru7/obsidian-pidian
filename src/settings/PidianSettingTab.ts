@@ -289,7 +289,7 @@ export class PidianSettingTab extends PluginSettingTab {
     this.bindFavoriteDrag(wrap, index);
 
     const header = wrap.createDiv({ cls: "pidian-favorite-item-header" });
-    const handle = header.createEl("span", {
+    const handle = header.createSpan({
       cls: "pidian-favorite-drag-handle",
       attr: {
         draggable: "true",

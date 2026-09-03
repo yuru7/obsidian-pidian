@@ -1206,8 +1206,7 @@ button.pidian-favorite-item-title:hover {
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  column-gap: 12px;
-  row-gap: 4px;
+  gap: 4px 12px;
 }
 
 .pidian-custom-model-label {
@@ -1239,7 +1238,7 @@ button.pidian-favorite-item-title:hover {
 
 .pidian-custom-model-row-toggle {
   justify-content: flex-start;
-  column-gap: 4px;
+  gap: 4px;
 }
 
 .pidian-custom-model-row-toggle .pidian-custom-model-control {

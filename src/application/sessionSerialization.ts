@@ -16,6 +16,10 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
 }
 
+function parseJsonValue(text: string): unknown {
+  return JSON.parse(text) as unknown;
+}
+
 function expectString(value: unknown, field: string): string {
   if (typeof value !== "string" || value.length === 0) {
     throw new Error(`Invalid session field: ${field}`);
@@ -304,9 +308,9 @@ export function parseSessionSummary(raw: string): SessionSummary {
   const body = skipOpeningFence(raw);
   const first = readJsonlLine(body, 0);
   if (first) {
-    let parsed: unknown | undefined;
+    let parsed: unknown = undefined;
     try {
-      parsed = JSON.parse(first.line);
+      parsed = parseJsonValue(first.line);
     } catch (error) {
       if (!(error instanceof SyntaxError)) {
         throw error;
@@ -322,7 +326,7 @@ export function parseSessionSummary(raw: string): SessionSummary {
       throw new Error("Session data must be an object.");
     }
   }
-  const parsed = JSON.parse(unwrapSessionFileText(raw));
+  const parsed = parseJsonValue(unwrapSessionFileText(raw));
   if (!isRecord(parsed)) {
     throw new Error("Session data must be an object.");
   }
@@ -364,7 +368,7 @@ function firstUserQueryFromJsonl(text: string, start: number): string {
       return "";
     }
     index = item.next;
-    const record = JSON.parse(item.line);
+    const record = parseJsonValue(item.line);
     if (isRecord(record) && record.role === "user") {
       return typeof record.text === "string" ? record.text : "";
     }
@@ -405,7 +409,7 @@ export function serializeSessionFile(session: PidianSession, markdown: boolean):
 export function parseSessionFile(raw: string): PidianSession {
   const text = unwrapSessionFileText(raw);
   try {
-    const parsed = JSON.parse(text);
+    const parsed = parseJsonValue(text);
     if (isRecord(parsed) && !Array.isArray(parsed.messages)) {
       return parsePidianSession({ ...parsed, messages: [] });
     }
@@ -419,7 +423,7 @@ export function parseSessionFile(raw: string): PidianSession {
 }
 
 function parseJsonlSession(text: string): PidianSession {
-  const records = text.split(/\r?\n/).filter((line) => line.length > 0).map((line) => JSON.parse(line));
+  const records = text.split(/\r?\n/).filter((line) => line.length > 0).map((line) => parseJsonValue(line));
   const header = records[0];
   if (!isRecord(header) || Array.isArray(header.messages)) {
     throw new Error("Session data must be an object.");
