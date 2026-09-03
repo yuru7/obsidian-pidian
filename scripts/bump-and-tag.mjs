@@ -158,6 +158,25 @@ async function bumpVersionFiles(version, minAppVersion) {
   await writeJson(packagePath, pkg);
 }
 
+function assertDevPushed() {
+  const remoteRef = `origin/${DEV_BRANCH}`;
+  try {
+    gitCapture(["fetch", "origin", DEV_BRANCH]);
+  } catch (err) {
+    const detail = err instanceof Error ? err.message : String(err);
+    throw new Error(
+      `${DEV_BRANCH} ブランチが origin に push されているか確認できませんでした。先に git push してから実行してください。\n${detail}`
+    );
+  }
+
+  const unpushedCount = Number(gitCapture(["rev-list", "--count", `${remoteRef}..HEAD`]));
+  if (unpushedCount > 0) {
+    throw new Error(
+      `${DEV_BRANCH} ブランチが origin に push されていません（未push ${unpushedCount} 件）。先に git push してから実行してください。`
+    );
+  }
+}
+
 function switchToDev() {
   if (currentBranch() === DEV_BRANCH) {
     return;
@@ -182,6 +201,8 @@ async function main() {
   if (dirty) {
     throw new Error("作業ツリーが dirty です。コミットまたは退避してから実行してください。");
   }
+
+  assertDevPushed();
 
   run("pnpm", ["build"]);
 
