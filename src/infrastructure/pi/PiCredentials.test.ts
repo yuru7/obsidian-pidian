@@ -115,8 +115,18 @@ describe("pidianSystemPrompt", () => {
       "If it is unclear whether they want a vault change or a chat reply, put the result in chat",
     );
     expect(prompt).toContain("Do not use those tools to try them, experiment");
-    expect(prompt).toContain("use a Wiki link such as [[folder/Note]]");
-    expect(prompt).toContain("Do not wrap it in backticks");
+  });
+
+  it("requires clickable wiki links and forbids quoted or plain paths", () => {
+    const prompt = pidianSystemPrompt(false);
+    expect(prompt).toContain("Chat links (required):");
+    expect(prompt).toContain("write it as a Wiki link with that exact vault-relative path and extension");
+    expect(prompt).toContain("[[folder/Note.md]] or [[サンプル.md]]");
+    expect(prompt).toContain('Do not write that path as plain text, in 「」, or in backticks');
+    expect(prompt).toContain("Do not Wiki-link notes you have not confirmed exist");
+    expect(prompt.indexOf("Chat links (required):")).toBeGreaterThan(
+      prompt.indexOf("Prefer concise answers in the user's language."),
+    );
   });
 
   it("omits read_image when the model does not support vision", () => {

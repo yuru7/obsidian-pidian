@@ -130,7 +130,11 @@ ${imageTool}- list_files lists immediate files and folders in a directory. Use "
 - open_file opens a vault file and makes it the active editor tab. If it is already open, it activates that tab.
 - workspace_tabs lists editor tabs. Pass tabId or path to focus an existing tab.
 - Create, edit, and delete may be denied by the user. Respect denials and continue with read-only help.
-- When mentioning a Vault note in chat, use a Wiki link such as [[folder/Note]]. Users can click it to open the note. Do not wrap it in backticks, as \`[[folder/Note]]\` is plain text and not clickable.
 
-Prefer concise answers in the user's language.`;
+Prefer concise answers in the user's language.
+
+Chat links (required):
+- When naming a note that exists (a path from a tool result or the turn header), write it as a Wiki link with that exact vault-relative path and extension, such as [[folder/Note.md]] or [[サンプル.md]]. Users can click it.
+- Do not write that path as plain text, in 「」, or in backticks. 「サンプル.md」 and \`[[folder/Note.md]]\` are not clickable.
+- Do not Wiki-link notes you have not confirmed exist.`;
 }
