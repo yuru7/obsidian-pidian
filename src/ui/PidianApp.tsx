@@ -1,4 +1,5 @@
 import { useEffect, useReducer, useRef, useState, type JSX } from "react";
+import type { Scope } from "obsidian";
 import { formatLineRange } from "../application/activeMarkdown";
 import { hasContextLineRange } from "../domain/notes/ContextSnapshot";
 import { t } from "../i18n";
@@ -17,7 +18,7 @@ function fileNameFromPath(notePath: string): string {
   return notePath.split("/").pop() || notePath;
 }
 
-export function PidianApp({ plugin }: { plugin: PidianPlugin }): JSX.Element {
+export function PidianApp({ plugin, keymapScope }: { plugin: PidianPlugin; keymapScope: Scope | null }): JSX.Element {
   const [, rerender] = useReducer((value: number) => value + 1, 0);
   const chatRef = useRef<ChatHandle>(null);
   const [nearBottom, setNearBottom] = useState(true);
@@ -152,6 +153,7 @@ export function PidianApp({ plugin }: { plugin: PidianPlugin }): JSX.Element {
         </div>
         <Composer
           plugin={plugin}
+          keymapScope={keymapScope}
           disabled={!session || !session.provider || !session.model}
           streaming={streaming}
           toolbar={<ModelSelector plugin={plugin} onChange={rerender} />}

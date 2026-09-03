@@ -126,6 +126,7 @@ export const en = {
   uiVisionSupported: "Vision compatible",
   uiThinkingLevel: "Thinking",
   uiPlaceholder: "Ask Pidian...",
+  uiPlaceholderStop: "Esc to stop",
   uiStop: "Stop",
   uiSend: "Send",
   uiSessionHistory: "Session history",

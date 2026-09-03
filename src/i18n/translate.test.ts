@@ -20,6 +20,8 @@ describe("resolveLocale", () => {
 describe("lookup", () => {
   it("returns Japanese strings for ja", () => {
     expect(lookup("ja", "uiSend")).toBe("送信");
+    expect(lookup("ja", "uiPlaceholderStop")).toBe("Esc キーで停止");
+    expect(lookup("en", "uiPlaceholderStop")).toBe("Esc to stop");
     expect(lookup("ja", "uiLoadingSessions")).toBe("セッションを読み込み中...");
     expect(lookup("en", "uiLoadingSessions")).toBe("Loading sessions...");
     expect(lookup("ja", "uiForked")).toBe("会話を分岐しました");

@@ -1,9 +1,11 @@
 import { useLayoutEffect, useRef, useState, type JSX } from "react";
-import { setTooltip } from "obsidian";
+import { setTooltip, type Scope } from "obsidian";
 import { t } from "../i18n";
 import type PidianPlugin from "../main";
+import { shouldAbortOnEscape } from "./composerAbortKey";
 import { shouldSendOnKeyDown } from "./composerSendKey";
 import { fitTextarea } from "./fitTextarea";
+import { useAbortHotkeyScope } from "./useAbortHotkeyScope";
 import { useSendHotkeyScope } from "./useSendHotkeyScope";
 
 const MIN_ROWS = 2;
@@ -11,6 +13,7 @@ const MAX_ROWS = 4;
 
 export function Composer({
   plugin,
+  keymapScope,
   disabled,
   streaming,
   toolbar,
@@ -18,6 +21,7 @@ export function Composer({
   onAbort,
 }: {
   plugin: PidianPlugin;
+  keymapScope: Scope | null;
   disabled: boolean;
   streaming: boolean;
   toolbar?: JSX.Element;
@@ -41,6 +45,7 @@ export function Composer({
   };
 
   useSendHotkeyScope(plugin.app, textareaRef, sendWithCtrlEnter, send);
+  useAbortHotkeyScope(keymapScope, streaming, () => textRef.current.length === 0, onAbort);
 
   useLayoutEffect(() => {
     const el = textareaRef.current;
@@ -66,7 +71,7 @@ export function Composer({
       <textarea
         ref={textareaRef}
         className="pidian-input"
-        placeholder={t("uiPlaceholder")}
+        placeholder={streaming ? t("uiPlaceholderStop") : t("uiPlaceholder")}
         disabled={disabled}
         value={text}
         rows={MIN_ROWS}
@@ -78,11 +83,10 @@ export function Composer({
             send();
             return;
           }
-          if (event.key === "Escape" && !event.nativeEvent.isComposing) {
+          if (shouldAbortOnEscape(event, streaming, textRef.current.length === 0)) {
             event.preventDefault();
-            if (streaming) {
-              onAbort();
-            }
+            event.stopPropagation();
+            onAbort();
           }
         }}
       />

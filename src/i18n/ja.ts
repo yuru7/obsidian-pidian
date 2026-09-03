@@ -126,6 +126,7 @@ export const ja: { [K in keyof typeof en]: string } = {
   uiVisionSupported: "Vision 対応",
   uiThinkingLevel: "思考量",
   uiPlaceholder: "Pidian に聞く...",
+  uiPlaceholderStop: "Esc キーで停止",
   uiStop: "停止",
   uiSend: "送信",
   uiSessionHistory: "セッション履歴",

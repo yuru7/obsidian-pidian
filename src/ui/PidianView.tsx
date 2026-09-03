@@ -1,4 +1,4 @@
-import { ItemView, WorkspaceLeaf } from "obsidian";
+import { ItemView, Scope, WorkspaceLeaf } from "obsidian";
 import { createRoot, type Root } from "react-dom/client";
 import type PidianPlugin from "../main";
 import { PidianApp } from "./PidianApp";
@@ -15,6 +15,7 @@ export class PidianView extends ItemView {
     private readonly plugin: PidianPlugin,
   ) {
     super(leaf);
+    this.scope = new Scope(this.app.scope);
   }
 
   getViewType(): string {
@@ -34,7 +35,7 @@ export class PidianView extends ItemView {
     content.empty();
     content.addClass("pidian-view");
     this.root = createRoot(content);
-    this.root.render(<PidianApp plugin={this.plugin} />);
+    this.root.render(<PidianApp plugin={this.plugin} keymapScope={this.scope} />);
   }
 
   async onClose(): Promise<void> {

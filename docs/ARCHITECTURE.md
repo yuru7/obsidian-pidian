@@ -131,6 +131,7 @@ Composer
               → PiEventMapper → AgentEvent
                   → AgentService が最新 assistant を更新して notify
                       → Chat がストリーム表示
+  → 送信中は停止ボタン、または Pidian ペインがフォーカスかつ Composer が空なら Esc で abort。Composer のプレースホルダは「Esc で停止」
 ```
 
 ユーザーメッセージをクリックすると同じセッション内で編集再送信できる。確定すると `AgentService.editAndResend` が当該メッセージ以降を削除し（1つ前の会話まで保持）、Agent を作り直してから `send` する。Esc は編集キャンセル。送信キーは Composer と同じ（Enter または Ctrl+Enter）。
@@ -340,11 +341,11 @@ Pi のモジュール解決や stub を足すときは、バンドルゲート�
 
 | ファイル | 役割 |
 | --- | --- |
-| `PidianView.tsx` | `ItemView`。React root |
+| `PidianView.tsx` | `ItemView`。React root。`View.scope` でペインフォーカス時のホットキー |
 | `PidianApp.tsx` | ヘッダ、Chat、Composer、ModelSelector、SessionSelector |
 | `OpenActiveSessionButton.tsx` | 開いているファイルがセッションファイルなら「新しいチャット」の左に復元ボタン。不正形式はエラーツールチップ |
 | `Chat.tsx` / `Message.tsx` / `UserMessageEditor.tsx` / `WorkLog.tsx` / `ToolCall.tsx` / `Thinking.tsx` | ストリーム表示。思考とツールは1つの WorkLog にまとめ、中は思考・ツールを時系列のまま出す。思考中でも本文は直下へ出せる。ユーザーメッセージのクリックで編集再送信 |
-| `Composer.tsx` | 入力。`subscribeComposerFocus` でフォーカス |
+| `Composer.tsx` | 入力。`subscribeComposerFocus` でフォーカス。送信中かつ空なら Esc で abort、プレースホルダに停止案内 |
 | `Markdown.tsx` | チャット内 Markdown。`[[wiki]]` はメモアイコン付きで、クリックは既存エディタタブを優先して開く |
 | `PidianSettingTab.ts` | 設定 UI（React ではない） |
 
