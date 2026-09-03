@@ -77,6 +77,8 @@ export class PidianSettingTab extends PluginSettingTab {
   private favoriteDragFrom: number | null = null;
   private expandedFavoriteIds = new Set<string>();
   private expandedCustomModelJson = new Set<string>();
+  private cachedCatalogProviders: CatalogProvider[] | null = null;
+  private cachedCatalogModels: Record<string, CatalogModel[]> = {};
 
   constructor(
     app: App,
@@ -111,6 +113,8 @@ export class PidianSettingTab extends PluginSettingTab {
     this.favoriteDragFrom = null;
     this.expandedFavoriteIds.clear();
     this.expandedCustomModelJson.clear();
+    this.cachedCatalogProviders = null;
+    this.cachedCatalogModels = {};
     super.hide();
   }
 
@@ -142,11 +146,21 @@ export class PidianSettingTab extends PluginSettingTab {
 
   private renderGeneral(containerEl: HTMLElement): void {
     const agentEl = containerEl.createDiv();
-    const fallbackProviders = this.fallbackProviders();
-    const fallbackModels = this.fallbackModels(this.plugin.settings.model);
-    this.renderAgent(agentEl, this.selectableProviders(fallbackProviders), fallbackModels);
+    const cachedProviders = this.cachedCatalogProviders;
+    const cachedModels = cachedProviders && this.plugin.settings.provider
+      ? (this.cachedCatalogModels[this.plugin.settings.provider] ?? null)
+      : null;
+    if (cachedProviders && cachedModels) {
+      this.renderAgent(agentEl, cachedProviders, cachedModels);
+    } else {
+      const fallbackProviders = this.fallbackProviders();
+      const fallbackModels = this.fallbackModels(this.plugin.settings.model);
+      this.renderAgent(agentEl, this.selectableProviders(fallbackProviders), fallbackModels);
+    }
     this.renderOther(containerEl);
-    void this.enrichAgentFromCatalog(agentEl);
+    if (!cachedProviders || !cachedModels) {
+      void this.enrichAgentFromCatalog(agentEl);
+    }
   }
 
   private renderFavorites(containerEl: HTMLElement): void {
@@ -715,19 +729,20 @@ export class PidianSettingTab extends PluginSettingTab {
       return;
     }
     try {
-      const providers = await catalog.listProviders();
+      const listed = await catalog.listProviders();
+      const providers = listed.length > 0 ? listed : this.selectableProviders(this.fallbackProviders());
       const models = this.plugin.settings.provider
         ? await catalog.listModels(this.plugin.settings.provider)
         : [];
+      this.cachedCatalogProviders = providers;
+      if (this.plugin.settings.provider) {
+        this.cachedCatalogModels[this.plugin.settings.provider] = models;
+      }
       if (!agentEl.isConnected) {
         return;
       }
       agentEl.empty();
-      this.renderAgent(
-        agentEl,
-        providers.length > 0 ? providers : this.selectableProviders(this.fallbackProviders()),
-        models,
-      );
+      this.renderAgent(agentEl, providers, models);
     } catch (error) {
       if (!agentEl.isConnected) {
         return;
@@ -754,6 +769,7 @@ export class PidianSettingTab extends PluginSettingTab {
         dropdown.onChange(async (value) => {
           const catalog = this.plugin.modelCatalog;
           const nextModels = catalog ? await catalog.listModels(value).catch(() => []) : [];
+          this.cachedCatalogModels[value] = nextModels;
           const first = nextModels[0];
           await this.applyAgentSelection(value, first?.id ?? "", first?.thinkingLevels ?? []);
           this.refreshSettings();
@@ -1405,11 +1421,28 @@ const EXTRA_JSON_HELP_EXAMPLE = `{
 function addModelSelect(
   parent: HTMLElement,
   models: CatalogModel[],
-  value: string,
+  initialValue: string,
   onChange: (id: string) => void | Promise<void>,
 ): void {
-  const selected = models.find((item) => item.id === value);
+  let currentValue = initialValue;
+  let busy = false;
+
   const wrap = parent.createDiv({ cls: "pidian-settings-model-select" });
+
+  const renderTriggerLabel = (): void => {
+    const labelEl = trigger.querySelector(".pidian-settings-model-trigger-label");
+    const selected = models.find((item) => item.id === currentValue);
+    if (labelEl) {
+      labelEl.textContent = selected?.name ?? currentValue;
+    }
+    const existingBadge = trigger.querySelector(".pidian-vision-badge");
+    if (selected?.supportsImages && !existingBadge) {
+      appendVisionBadge(trigger);
+    } else if (!selected?.supportsImages && existingBadge) {
+      existingBadge.remove();
+    }
+  };
+
   const trigger = wrap.createEl("button", {
     cls: "pidian-settings-model-trigger",
     attr: {
@@ -1418,11 +1451,12 @@ function addModelSelect(
       "aria-expanded": "false",
     },
   });
+  const initialSelected = models.find((item) => item.id === currentValue);
   trigger.createSpan({
     cls: "pidian-settings-model-trigger-label",
-    text: selected?.name ?? value,
+    text: initialSelected?.name ?? currentValue,
   });
-  if (selected?.supportsImages) {
+  if (initialSelected?.supportsImages) {
     appendVisionBadge(trigger);
   }
   trigger.createSpan({ cls: "pidian-caret", attr: { "aria-hidden": "true" } });
@@ -1470,12 +1504,12 @@ function addModelSelect(
 
   for (const model of models) {
     const item = menu.createEl("button", {
-      cls: `pidian-settings-model-menu-item${model.id === value ? " is-selected" : ""}`,
+      cls: `pidian-settings-model-menu-item${model.id === currentValue ? " is-selected" : ""}`,
       attr: {
         type: "button",
         role: "option",
         title: model.name,
-        "aria-selected": model.id === value ? "true" : "false",
+        "aria-selected": model.id === currentValue ? "true" : "false",
       },
     });
     item.createSpan({ cls: "pidian-settings-model-menu-item-label", text: model.name });
@@ -1486,9 +1520,26 @@ function addModelSelect(
       event.preventDefault();
       event.stopPropagation();
       setOpen(false);
-      if (model.id !== value) {
-        void onChange(model.id);
+      if (model.id === currentValue || busy) {
+        return;
       }
+      // Optimistically update UI before async onChange completes
+      const prevValue = currentValue;
+      currentValue = model.id;
+      renderTriggerLabel();
+      menu.querySelectorAll(".pidian-settings-model-menu-item").forEach((el) => {
+        const selected = el.getAttribute("title") === model.name && el === item;
+        el.toggleClass("is-selected", selected);
+        el.setAttr("aria-selected", selected ? "true" : "false");
+      });
+      busy = true;
+      void Promise.resolve(onChange(model.id)).catch(() => {
+        // Roll back optimistic update on error
+        currentValue = prevValue;
+        renderTriggerLabel();
+      }).finally(() => {
+        busy = false;
+      });
     });
   }
 
