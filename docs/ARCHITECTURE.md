@@ -123,6 +123,7 @@ UI は `plugin.agentService.subscribe` と `plugin.subscribeSettings` で再描�
 ```text
 Composer
   → AgentService.send(text)
+      → 未作成なら AgentSession を作る（開いただけでは作らない）。クエリしたセッションを LRU 最大 3 件で保持
       → ContextService.snapshot()（現在ファイルの path。MarkdownView なら 1-based 行範囲。テキスト選択中なら列位置も。Canvas、PNG/JPEG/WebP、MarkdownView ではない .md（Excalidraw など）は path のみ。本文・画像バイトは入れない）
       → ユーザー発言 + 空の assistant を PidianSession に追加して保存
       → AgentSession.prompt({ text: formatAgentPrompt(...), context })
@@ -281,6 +282,7 @@ interface PidianSession {
 - ツール結果の画像バイトはセッションに書かない。`PiEventMapper` が text だけを `toolCall.result` に残す。再開・モデル変更で Pi を作り直したあとは path の履歴だけ。もう一度見るときは `read_image` する。
 - アシスタントの `workedMs` は各 Work 区間が閉じるまでの時間。思考→ツール→思考は同じ Work に時系列の `items` として残し、`thinking_end` だけでは閉じない。本文が出たあと、思考 delta が途切れたとき、またはターン完了で閉じる。思考中の本文は Work の直下へ随時出す。空白だけの delta では区切らない。`blocks` が無い古い保存データは思考・ツールを1つの WorkLog にまとめる。
 - 再開は `PidianSession → AgentConversation → PiAgentAdapter`。ユーザー本文は `formatAgentPrompt` でヘッダ付きに戻す。Pi 固有オブジェクトは保存しない。会話は Pi の `SessionManager` に全文を載せ、`compaction` があればその境界で要約エントリを足してから `createAgentSession` する。LLM 入力は SessionManager が組み直した要約 + 残したメッセージ。画面と `messages` は全文のまま。
+- プロセス内の Pi `AgentSession`（`SessionManager.inMemory()`）は、クエリを投げたセッションだけ最大 3 件を LRU で保持する。開いただけ・新規チャットだけでは枠に入らない。4 件目のクエリで最も長くクエリしていない枠を `dispose` する。切替時は生成中なら abort し、枠にあれば Agent は残す。ディスク上のセッションファイルは消さない。
 - Pi の自動 compaction が走ったら `compaction` を上書き保存する。fork は分岐点より前のチェックポイントだけコピーする。
 - list は JSONL のヘッダと最初の user メッセージだけパースし、ファイル読みは並列化する。破損ファイルはスキップする。
 - 常駐の一覧キャッシュは最大 300 件。`firstQuery` は 200 字で切る。起動時（cleanup のあと）に温め、`save` / `delete` で 1 件更新する。メニューの「セッションを全件読み込む」は開いている間だけ全件を持ち、閉じたら捨てる。
@@ -401,6 +403,7 @@ UI は `AgentService` と `plugin.settings` を読む。Pi 型を import しな�
 - `PermissionService`
 - `ContextService`
 - `SessionCleanupService` / `sessionSerialization` / migration / compaction checkpoint
+- `AgentService` の in-memory LRU（クエリで枠に入る。開いただけでは入らない。4 件目で最古を dispose）
 - `PiEventMapper`
 - `revision` / `replacements`
 - `notePath`（制限パス）
@@ -420,6 +423,7 @@ UI は `AgentService` と `plugin.settings` を読む。Pi 型を import しな�
 | 編集ルール | `EditMarkdownTool`, `replacements.ts`, `ObsidianNoteEditor` | editor を飛ばした `vault.modify` |
 | コンテキスト | `ContextService`, `contextTarget`, `ObsidianContextProvider` | プロンプトにノート全文を埋め込む。`activeEditor` を別タブへ流用 |
 | セッション形式 | `PidianSession`, `sessionSerialization` | Pi session JSON の保存 |
+| メモリ上の Agent | `AgentService` の LRU（クエリ時、最大 3） | 開いただけで Pi セッションを作る。件数の設定項目 |
 | モデル一覧 | `PiModelCatalog`, Settings custom provider | UI での provider 特例 |
 | チャットのノートリンク | `Markdown.tsx`, `chatNoteLink.ts`, `ObsidianWorkspaceNavigator` | `openLinkText` のデフォルト、`instanceof MarkdownView` でのタブ検索 |
 | 非フォーカス選択の表示 | `unfocusedSelectionHighlight.ts`, `styles.css` の `.pidian-unfocused-selection` | 本体が非フォーカス選択を描くようになったあとの残留。消すときは extension・CSS・`main.ts` の登録を一式で |

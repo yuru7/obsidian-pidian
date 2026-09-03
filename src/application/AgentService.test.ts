@@ -6,7 +6,7 @@ import type { AgentSession } from "../domain/agent/AgentSession";
 import type { ContextSnapshot } from "../domain/notes/ContextSnapshot";
 import { toSessionSummary, type PidianSession, type SessionListSnapshot, type SessionRepository, type SessionSummary } from "../domain/sessions/PidianSession";
 import { FakeAgentEngine } from "../infrastructure/fake/FakeAgentEngine";
-import { AgentService } from "./AgentService";
+import { AgentService, MAX_IN_MEMORY_SESSIONS } from "./AgentService";
 import { THINKING_IDLE_MS } from "./assistantContent";
 import { ContextService, formatAgentPrompt } from "./ContextService";
 import { SessionService } from "./SessionService";
@@ -93,6 +93,25 @@ class CapturingEngine implements AgentEngine {
   }
 }
 
+class TrackingEngine implements AgentEngine {
+  readonly created: string[] = [];
+  readonly disposed: string[] = [];
+
+  async createSession(options: AgentSessionOptions): Promise<AgentSession> {
+    this.created.push(options.sessionId);
+    const inner = await new FakeAgentEngine().createSession(options);
+    return {
+      prompt: (request) => inner.prompt(request),
+      abort: () => inner.abort(),
+      subscribe: (listener) => inner.subscribe(listener),
+      dispose: async () => {
+        this.disposed.push(options.sessionId);
+        await inner.dispose();
+      },
+    };
+  }
+}
+
 function createService(
   store: MemoryRepository,
   engine: AgentEngine = new FakeAgentEngine(),
@@ -104,6 +123,13 @@ function createService(
     new ContextService({ getActiveNote }),
     () => [],
   );
+}
+
+async function fillLive(agent: AgentService): Promise<void> {
+  for (let index = 0; index < MAX_IN_MEMORY_SESSIONS; index += 1) {
+    await agent.newChat("openai", "gpt-5");
+    await agent.send(`other ${index}`);
+  }
 }
 
 describe("AgentService.forkFrom", () => {
@@ -300,12 +326,15 @@ describe("AgentService.send", () => {
     await agent.newChat("openai", "gpt-5");
     await agent.send("rewrite this");
     const sessionId = agent.getSession()!.id;
+    const createdAt = agent.getSession()?.messages[0]?.createdAt;
+    await fillLive(agent);
 
+    engine.lastConversation = undefined;
     await agent.openChat(sessionId);
+    expect(engine.lastConversation).toBeUndefined();
 
-    expect(engine.lastConversation?.messages[0]?.text).toBe(
-      formatAgentPrompt("rewrite this", snapshot, agent.getSession()?.messages[0]?.createdAt),
-    );
+    await agent.send("again");
+    expect(engine.lastConversation?.messages[0]?.text).toBe(formatAgentPrompt("rewrite this", snapshot, createdAt));
     expect(engine.lastConversation?.messages[1]?.text).toContain("rewrite this");
     expect(agent.getSession()?.messages[0]?.text).toBe("rewrite this");
   });
@@ -317,13 +346,18 @@ describe("AgentService.send", () => {
     await agent.newChat("openai", "gpt-5");
     await agent.send("from disk");
     const parsed = structuredClone(agent.getSession()!);
+    parsed.id = "from-file";
     parsed.title = "Opened from file";
 
     await agent.newChat("openai", "gpt-5");
+    engine.lastConversation = undefined;
     await agent.restoreChat(parsed);
 
     expect(agent.getSession()?.id).toBe(parsed.id);
     expect(agent.getSession()?.title).toBe("Opened from file");
+    expect(engine.lastConversation).toBeUndefined();
+
+    await agent.send("follow up");
     expect(engine.lastConversation?.messages[0]?.text).toContain("from disk");
   });
 
@@ -340,16 +374,18 @@ describe("AgentService.send", () => {
       createdAt: "2026-01-01T00:00:04.000Z",
     };
     await store.save(session);
+    await fillLive(agent);
 
+    engine.lastConversation = undefined;
     await agent.openChat(session.id);
+    const historyIds = agent.getSession()!.messages.map((message) => message.id);
+    await agent.send("again");
 
     expect(engine.lastConversation?.compaction).toEqual({
       summary: "## Goal\nGreet",
       firstKeptMessageId: session.messages[0]!.id,
     });
-    expect(engine.lastConversation?.messages.map((message) => message.id)).toEqual(
-      session.messages.map((message) => message.id),
-    );
+    expect(engine.lastConversation?.messages.map((message) => message.id)).toEqual(historyIds);
   });
 
   it("records workedMs when thinking ends before text", async () => {
@@ -615,5 +651,131 @@ describe("AgentService.send", () => {
     const current = agent.getSession();
     expect(current?.compaction?.firstKeptMessageId).toBe(current?.messages.at(-1)?.id);
     expect(store.sessions[0]?.compaction?.summary).toBe("## Goal\nGreet");
+  });
+});
+
+describe("AgentService in-memory sessions", () => {
+  it("does not create a Pi session until a query is sent", async () => {
+    const store = new MemoryRepository();
+    const engine = new TrackingEngine();
+    const agent = createService(store, engine);
+    await agent.newChat("openai", "gpt-5");
+
+    expect(engine.created).toEqual([]);
+    expect(agent.getSession()?.id).toEqual(expect.any(String));
+
+    await agent.send("hello");
+    expect(engine.created).toEqual([agent.getSession()!.id]);
+  });
+
+  it("does not create a Pi session when opening a past chat", async () => {
+    const store = new MemoryRepository();
+    const engine = new TrackingEngine();
+    const agent = createService(store, engine);
+    await agent.newChat("openai", "gpt-5");
+    await agent.send("hello");
+    const firstId = agent.getSession()!.id;
+    await fillLive(agent);
+
+    expect(engine.created).toHaveLength(1 + MAX_IN_MEMORY_SESSIONS);
+    const createdAfterFill = engine.created.length;
+    await agent.openChat(firstId);
+    expect(engine.created).toHaveLength(createdAfterFill);
+    expect(agent.getSession()?.id).toBe(firstId);
+  });
+
+  it("reuses the live Pi session when a queried chat is opened again", async () => {
+    const store = new MemoryRepository();
+    const engine = new TrackingEngine();
+    const agent = createService(store, engine);
+    await agent.newChat("openai", "gpt-5");
+    await agent.send("first");
+    const firstId = agent.getSession()!.id;
+    await agent.newChat("openai", "gpt-5");
+    await agent.send("second");
+
+    await agent.openChat(firstId);
+    const created = engine.created.length;
+    await agent.send("again");
+
+    expect(agent.getSession()?.id).toBe(firstId);
+    expect(engine.created).toHaveLength(created);
+    expect(engine.disposed).toEqual([]);
+  });
+
+  it("disposes the least recently queried session when a fourth query arrives", async () => {
+    const store = new MemoryRepository();
+    const engine = new TrackingEngine();
+    const agent = createService(store, engine);
+    const ids: string[] = [];
+    for (let index = 0; index < MAX_IN_MEMORY_SESSIONS + 1; index += 1) {
+      await agent.newChat("openai", "gpt-5");
+      await agent.send(`query ${index}`);
+      ids.push(agent.getSession()!.id);
+    }
+
+    expect(engine.created).toEqual(ids);
+    expect(engine.disposed).toEqual([ids[0]]);
+    expect(store.sessions.map((session) => session.id)).toEqual(ids);
+  });
+
+  it("does not treat opening a chat as a query for LRU order", async () => {
+    const store = new MemoryRepository();
+    const engine = new TrackingEngine();
+    const agent = createService(store, engine);
+    const ids: string[] = [];
+    for (let index = 0; index < MAX_IN_MEMORY_SESSIONS; index += 1) {
+      await agent.newChat("openai", "gpt-5");
+      await agent.send(`query ${index}`);
+      ids.push(agent.getSession()!.id);
+    }
+
+    await agent.openChat(ids[0]!);
+    await agent.newChat("openai", "gpt-5");
+    await agent.send("fourth");
+
+    expect(engine.disposed).toEqual([ids[0]]);
+  });
+
+  it("aborts generation when switching away from a streaming session", async () => {
+    const store = new MemoryRepository();
+    let release!: () => void;
+    let started!: () => void;
+    const startedAt = new Promise<void>((resolve) => {
+      started = resolve;
+    });
+    const hang = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const aborted: string[] = [];
+    const engine: AgentEngine = {
+      async createSession(options) {
+        return {
+          prompt: async () => {
+            started();
+            await hang;
+          },
+          abort: async () => {
+            aborted.push(options.sessionId);
+            release();
+          },
+          subscribe: () => () => undefined,
+          dispose: async () => undefined,
+        };
+      },
+    };
+    const agent = createService(store, engine);
+    await agent.newChat("openai", "gpt-5");
+    const firstId = agent.getSession()!.id;
+    const pending = agent.send("hello");
+    await startedAt;
+    expect(agent.isStreaming()).toBe(true);
+
+    await agent.newChat("openai", "gpt-5");
+    await pending;
+
+    expect(aborted).toEqual([firstId]);
+    expect(agent.isStreaming()).toBe(false);
+    expect(agent.getSession()?.id).not.toBe(firstId);
   });
 });

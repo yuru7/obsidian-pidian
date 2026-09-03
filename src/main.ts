@@ -116,6 +116,7 @@ export default class PidianPlugin extends Plugin {
     this.editorContextListeners.clear();
     this.settingsListeners.clear();
     this.composerFocusListeners.clear();
+    void this.agentService?.dispose();
   }
 
   subscribeEditorContext(listener: () => void): () => void {

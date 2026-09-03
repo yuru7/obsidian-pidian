@@ -24,12 +24,19 @@ export interface ChatListener {
   (): void;
 }
 
+/** Pi in-memory sessions kept after a query. Opening a chat does not occupy a slot. */
+export const MAX_IN_MEMORY_SESSIONS = 3;
+
+type SessionSlot = {
+  session: PidianSession;
+  agent?: AgentSession;
+  unsubscribe: () => void;
+};
+
 export class AgentService {
-  private current?: {
-    session: PidianSession;
-    agent?: AgentSession;
-    unsubscribe: () => void;
-  };
+  private current?: SessionSlot;
+  /** Insertion order is LRU: oldest queried first, most recently queried last. */
+  private readonly live = new Map<string, SessionSlot>();
   private streaming = false;
   private compacting = false;
   private error?: string;
@@ -72,20 +79,13 @@ export class AgentService {
   }
 
   async newChat(provider: string, model: string, thinkingLevel?: string): Promise<PidianSession> {
-    await this.disposeCurrent();
+    await this.parkCurrent();
     const session = this.sessions.create(provider, model, thinkingLevel);
     this.current = {
       session,
       unsubscribe: () => undefined,
     };
     this.error = undefined;
-    if (provider && model) {
-      try {
-        await this.ensureAgent();
-      } catch (error) {
-        this.error = error instanceof Error ? error.message : String(error);
-      }
-    }
     this.notify();
     return session;
   }
@@ -96,47 +96,52 @@ export class AgentService {
     }
     const source = this.requireSession();
     const session = this.sessions.fork(source, messageId);
-    await this.disposeCurrent();
+    await this.parkCurrent();
     this.current = {
       session,
       unsubscribe: () => undefined,
     };
     this.error = undefined;
-    if (session.provider && session.model) {
-      try {
-        await this.ensureAgent();
-      } catch (error) {
-        this.error = error instanceof Error ? error.message : String(error);
-      }
-    }
     await this.sessions.save(session);
     this.notify();
     return session;
   }
 
   async openChat(id: string): Promise<PidianSession> {
+    const live = this.live.get(id);
+    if (live) {
+      await this.showSlot(live);
+      return live.session;
+    }
+    if (this.current?.session.id === id) {
+      return this.current.session;
+    }
     const loaded = await this.sessions.load(id);
     if (!loaded) {
       throw new Error(`Session not found: ${id}`);
     }
-    await this.bindSession(loaded);
+    await this.showSession(loaded);
     return loaded;
   }
 
   async restoreChat(session: PidianSession): Promise<PidianSession> {
-    await this.bindSession(session);
+    const live = this.live.get(session.id);
+    if (live) {
+      await this.showSlot(live);
+      return live.session;
+    }
+    if (this.current?.session.id === session.id) {
+      return this.current.session;
+    }
+    await this.showSession(session);
     return session;
   }
 
   async setModel(provider: string, model: string, thinkingLevel?: string): Promise<void> {
-    const session = this.requireSession();
+    const slot = this.requireSlot();
+    const session = slot.session;
     const nextThinking = thinkingLevel ?? session.thinkingLevel;
-    if (
-      session.provider === provider &&
-      session.model === model &&
-      session.thinkingLevel === nextThinking &&
-      (this.current?.agent || !provider)
-    ) {
+    if (session.provider === provider && session.model === model && session.thinkingLevel === nextThinking) {
       return;
     }
     session.provider = provider;
@@ -145,16 +150,16 @@ export class AgentService {
     if (session.messages.length > 0) {
       await this.sessions.save(session);
     }
-    await this.recreateAgent();
+    if (slot.agent) {
+      await this.recreateAgent();
+    }
     this.notify();
   }
 
   async reloadModel(): Promise<void> {
-    const session = this.getSession();
-    if (!session?.provider || !session.model) {
-      return;
+    for (const slot of this.live.values()) {
+      await this.replaceAgent(slot, slot === this.current);
     }
-    await this.recreateAgent();
     this.notify();
   }
 
@@ -179,10 +184,21 @@ export class AgentService {
     if (!trimmed) {
       return;
     }
-    const session = this.requireSession();
+    const slot = this.requireSlot();
+    const session = slot.session;
     if (this.streaming) {
       throw new Error("The agent is already responding.");
     }
+
+    let agent: AgentSession;
+    try {
+      agent = await this.ensureAgent();
+    } catch (error) {
+      this.error = error instanceof Error ? error.message : String(error);
+      this.notify();
+      return;
+    }
+    await this.keepLive();
 
     const snapshot = this.context.snapshot();
     this.sessions.applyFirstUserTitle(session, trimmed);
@@ -207,22 +223,26 @@ export class AgentService {
     this.notify();
 
     try {
-      const agent = await this.ensureAgent();
       await agent.prompt({
         text: formatAgentPrompt(trimmed, snapshot, userMessage.createdAt),
         context: snapshot,
       });
     } catch (error) {
-      this.error = error instanceof Error ? error.message : String(error);
-      const failed = this.latestAssistant();
+      const message = error instanceof Error ? error.message : String(error);
+      if (this.current?.session.id === session.id) {
+        this.error = message;
+      }
+      const failed = this.latestAssistant(session);
       if (failed) {
-        applyAssistantError(failed, this.error);
+        applyAssistantError(failed, message);
       }
       this.notify();
     } finally {
       this.clearThinkingIdle();
-      this.streaming = false;
-      const assistant = this.latestAssistant();
+      if (this.current?.session.id === session.id) {
+        this.streaming = false;
+      }
+      const assistant = this.latestAssistant(session);
       if (assistant) {
         closeOpenWork(assistant);
       }
@@ -236,43 +256,74 @@ export class AgentService {
   }
 
   async deleteCurrent(): Promise<void> {
-    const session = this.current?.session;
-    if (!session) {
+    const slot = this.current;
+    if (!slot) {
       return;
     }
-    await this.disposeCurrent();
-    await this.sessions.delete(session.id);
+    this.live.delete(slot.session.id);
+    await this.disposeSlot(slot);
+    this.current = undefined;
+    this.streaming = false;
+    this.compacting = false;
+    this.clearThinkingIdle();
+    await this.sessions.delete(slot.session.id);
     this.notify();
   }
 
+  async dispose(): Promise<void> {
+    this.clearThinkingIdle();
+    const slots = new Set(this.live.values());
+    if (this.current) {
+      slots.add(this.current);
+    }
+    for (const slot of slots) {
+      await this.disposeSlot(slot);
+    }
+    this.live.clear();
+    this.current = undefined;
+    this.streaming = false;
+    this.compacting = false;
+  }
+
   private async recreateAgent(): Promise<void> {
-    const session = this.requireSession();
-    this.current?.unsubscribe();
-    await this.current?.agent?.dispose();
-    this.current = { session, unsubscribe: () => undefined };
-    if (!session.provider || !session.model) {
+    const slot = this.requireSlot();
+    if (!slot.session.provider || !slot.session.model) {
+      await this.replaceAgent(slot, false);
       this.error = undefined;
       return;
     }
     try {
-      await this.ensureAgent();
+      await this.replaceAgent(slot, true);
       this.error = undefined;
     } catch (error) {
       this.error = error instanceof Error ? error.message : String(error);
     }
   }
 
-  private async ensureAgent(): Promise<AgentSession> {
-    const session = this.requireSession();
-    if (this.current?.agent) {
-      return this.current.agent;
+  private async replaceAgent(slot: SessionSlot, subscribe: boolean): Promise<void> {
+    slot.unsubscribe();
+    slot.unsubscribe = () => undefined;
+    await slot.agent?.dispose();
+    slot.agent = undefined;
+    if (!slot.session.provider || !slot.session.model) {
+      return;
     }
-    const agent = await this.createAgent(session);
-    this.current = {
-      session,
-      agent,
-      unsubscribe: agent.subscribe((event) => this.handleEvent(event)),
-    };
+    const agent = await this.createAgent(slot.session);
+    slot.agent = agent;
+    if (subscribe) {
+      slot.unsubscribe = agent.subscribe((event) => this.handleEvent(event));
+    }
+  }
+
+  private async ensureAgent(): Promise<AgentSession> {
+    const slot = this.requireSlot();
+    if (slot.agent) {
+      return slot.agent;
+    }
+    const agent = await this.createAgent(slot.session);
+    slot.agent = agent;
+    slot.unsubscribe();
+    slot.unsubscribe = agent.subscribe((event) => this.handleEvent(event));
     return agent;
   }
 
@@ -377,8 +428,8 @@ export class AgentService {
     };
   }
 
-  private latestAssistant(): PidianMessage | undefined {
-    const messages = this.current?.session.messages;
+  private latestAssistant(session = this.current?.session): PidianMessage | undefined {
+    const messages = session?.messages;
     if (!messages) {
       return undefined;
     }
@@ -391,37 +442,90 @@ export class AgentService {
     return undefined;
   }
 
-  private requireSession(): PidianSession {
+  private requireSlot(): SessionSlot {
     if (!this.current) {
       throw new Error("No active chat session.");
     }
-    return this.current.session;
+    return this.current;
   }
 
-  private async bindSession(session: PidianSession): Promise<void> {
-    await this.disposeCurrent();
+  private requireSession(): PidianSession {
+    return this.requireSlot().session;
+  }
+
+  private async showSlot(slot: SessionSlot): Promise<void> {
+    if (this.current === slot) {
+      return;
+    }
+    await this.parkCurrent();
+    this.current = slot;
+    this.error = undefined;
+    this.subscribeCurrent();
+    this.notify();
+  }
+
+  private async showSession(session: PidianSession): Promise<void> {
+    await this.parkCurrent();
     this.current = {
       session,
       unsubscribe: () => undefined,
     };
     this.error = undefined;
-    if (session.provider && session.model) {
-      try {
-        await this.ensureAgent();
-      } catch (error) {
-        this.error = error instanceof Error ? error.message : String(error);
-      }
-    }
     this.notify();
   }
 
-  private async disposeCurrent(): Promise<void> {
+  private subscribeCurrent(): void {
+    const slot = this.current;
+    if (!slot?.agent) {
+      return;
+    }
+    slot.unsubscribe();
+    slot.unsubscribe = slot.agent.subscribe((event) => this.handleEvent(event));
+  }
+
+  private async parkCurrent(): Promise<void> {
     this.clearThinkingIdle();
-    this.current?.unsubscribe();
-    await this.current?.agent?.dispose();
-    this.current = undefined;
-    this.streaming = false;
+    const slot = this.current;
+    if (!slot) {
+      this.streaming = false;
+      this.compacting = false;
+      return;
+    }
+    slot.unsubscribe();
+    slot.unsubscribe = () => undefined;
+    if (this.streaming) {
+      await slot.agent?.abort();
+      this.streaming = false;
+    }
     this.compacting = false;
+    if (!this.live.has(slot.session.id)) {
+      await this.disposeSlot(slot);
+    }
+  }
+
+  private async keepLive(): Promise<void> {
+    const slot = this.requireSlot();
+    this.live.delete(slot.session.id);
+    this.live.set(slot.session.id, slot);
+    const currentId = slot.session.id;
+    while (this.live.size > MAX_IN_MEMORY_SESSIONS) {
+      const victimId = oldestLiveId(this.live, currentId);
+      if (!victimId) {
+        break;
+      }
+      const victim = this.live.get(victimId);
+      this.live.delete(victimId);
+      if (victim) {
+        await this.disposeSlot(victim);
+      }
+    }
+  }
+
+  private async disposeSlot(slot: SessionSlot): Promise<void> {
+    slot.unsubscribe();
+    slot.unsubscribe = () => undefined;
+    await slot.agent?.dispose();
+    slot.agent = undefined;
   }
 
   private scheduleThinkingIdle(): void {
@@ -450,4 +554,13 @@ export class AgentService {
       listener();
     }
   }
+}
+
+function oldestLiveId(live: Map<string, SessionSlot>, except: string): string | undefined {
+  for (const id of live.keys()) {
+    if (id !== except) {
+      return id;
+    }
+  }
+  return undefined;
 }
