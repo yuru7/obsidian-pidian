@@ -78,6 +78,10 @@ class CapturingEngine implements AgentEngine {
 
   constructor(private readonly inner = new FakeAgentEngine()) {}
 
+  capturedConversation(): AgentConversation | undefined {
+    return this.lastConversation;
+  }
+
   async createSession(options: AgentSessionOptions): Promise<AgentSession> {
     this.lastConversation = options.conversation;
     const session = await this.inner.createSession(options);
@@ -334,8 +338,8 @@ describe("AgentService.send", () => {
     expect(engine.lastConversation).toBeUndefined();
 
     await agent.send("again");
-    expect(engine.lastConversation?.messages[0]?.text).toBe(formatAgentPrompt("rewrite this", snapshot, createdAt));
-    expect(engine.lastConversation?.messages[1]?.text).toContain("rewrite this");
+    expect(engine.capturedConversation()?.messages[0]?.text).toBe(formatAgentPrompt("rewrite this", snapshot, createdAt));
+    expect(engine.capturedConversation()?.messages[1]?.text).toContain("rewrite this");
     expect(agent.getSession()?.messages[0]?.text).toBe("rewrite this");
   });
 
@@ -358,7 +362,7 @@ describe("AgentService.send", () => {
     expect(engine.lastConversation).toBeUndefined();
 
     await agent.send("follow up");
-    expect(engine.lastConversation?.messages[0]?.text).toContain("from disk");
+    expect(engine.capturedConversation()?.messages[0]?.text).toContain("from disk");
   });
 
   it("passes the compaction checkpoint when the agent session is recreated", async () => {
@@ -380,12 +384,13 @@ describe("AgentService.send", () => {
     await agent.openChat(session.id);
     const historyIds = agent.getSession()!.messages.map((message) => message.id);
     await agent.send("again");
+    const conversation = engine.capturedConversation();
 
-    expect(engine.lastConversation?.compaction).toEqual({
+    expect(conversation?.compaction).toEqual({
       summary: "## Goal\nGreet",
       firstKeptMessageId: session.messages[0]!.id,
     });
-    expect(engine.lastConversation?.messages.map((message) => message.id)).toEqual(historyIds);
+    expect(conversation?.messages.map((message) => message.id)).toEqual(historyIds);
   });
 
   it("records workedMs when thinking ends before text", async () => {
