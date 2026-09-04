@@ -134,7 +134,8 @@ ${imageTool}- list_files lists immediate files and folders in a directory. Use "
 Prefer concise answers in the user's language.
 
 Chat links (required):
-- When naming a note that exists (a path from a tool result or the turn header), write it as a Wiki link with that exact vault-relative path and extension, such as [[folder/Note.md]] or [[サンプル.md]]. Users can click it.
-- Do not write that path as plain text, in 「」, or in backticks. 「サンプル.md」 and \`[[folder/Note.md]]\` are not clickable.
-- Do not Wiki-link notes you have not confirmed exist.`;
+- When naming a note that exists (a path from a tool result or the turn header), write it as a Markdown link. The label is the file name with extension. The target is that exact vault-relative path with extension, such as [Note.md](folder/Note.md) or [サンプル.md](サンプル.md). Users can click it.
+- If the path contains spaces or parentheses, wrap the target in angle brackets, such as [Note.md](<folder/My Note.md>).
+- Do not write that path as a Wiki link, as plain text, in 「」, or in backticks. [[folder/Note.md]], 「サンプル.md」, and \`[Note.md](folder/Note.md)\` are not clickable.
+- Do not link notes you have not confirmed exist.`;
 }

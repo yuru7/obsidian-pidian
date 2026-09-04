@@ -370,14 +370,14 @@ Pi のモジュール解決や stub を足すときは、バンドルゲート�
 | `OpenActiveSessionButton.tsx` | 開いているファイルがセッションファイルなら「新しいチャット」の左に復元ボタン。不正形式はエラーツールチップ |
 | `Chat.tsx` / `Message.tsx` / `UserMessageEditor.tsx` / `WorkLog.tsx` / `ToolCall.tsx` / `Thinking.tsx` / `SelectionQuoteToolbar.tsx` | ストリーム表示。思考とツールは1つの WorkLog にまとめ、中は思考・ツールを時系列のまま出す。思考中でも本文は直下へ出せる。ユーザーメッセージのクリックで編集再送信。`.pidian-chat` 内の文字列選択で「引用」ツールバーを出し、Composer へ `> ` 引用を挿入 |
 | `Composer.tsx` | 入力。設定の編集モードがライブプレビューなら Obsidian Markdown Live Preview（内部 API が使えないときは textarea）、プレーンなら textarea。`subscribeComposerFocus` でフォーカス。送信中かつ空なら Esc で abort、プレースホルダに停止案内。`insertQuote` で選択引用を末尾挿入。Enter / Esc は入力欄 wrapper の capture で処理し、エディター実装に依存しない |
-| `Markdown.tsx` | チャット内 Markdown。`[[wiki]]` はメモアイコン付きで、クリックは既存エディタタブを優先して開く |
+| `Markdown.tsx` | チャット内 Markdown。ノートリンクはファイル名表示＋パスのツールチップ（`setTooltip` 上位置、OS の `title` は付けない）。クリックは既存エディタタブを優先して開く |
 | `PidianSettingTab.ts` | 設定 UI（React ではない） |
 
 スタイルはルート `styles.css`。クラスは `pidian-` 接頭辞。アイコン ID は `PIDIAN_ICON_ID`。
 
 UI は `AgentService` と `plugin.settings` を読む。Pi 型を import しない。モデル一覧は `plugin.modelCatalog`。
 
-チャットの内部リンクは `MarkdownRenderer` が `a.internal-link` に描画するが、カスタム `ItemView` ではクリックが付かない。`Markdown.tsx` がクリックを受け、`WorkspaceNavigator.openFile` で開く。既存タブの検索は `leaf.getViewState().state.file`（非表示タブは `DeferredView` のため `instanceof MarkdownView` は使わない）。未オープンなら root split に新しいエディタタブを開く。`openLinkText` は使わない（アクティブなサイドバー leaf を置換しうる）。
+チャットの内部リンクは `MarkdownRenderer` が `a.internal-link` に描画するが、カスタム `ItemView` ではクリックが付かない。エージェントは `[Note.md](folder/Note.md)` 形式の Markdown リンクを書く。`Markdown.tsx` がラベルをファイル名にし、パスを `setTooltip(..., { placement: "top" })` で出し、クリックは `WorkspaceNavigator.openFile` で開く。既存タブの検索は `leaf.getViewState().state.file`（非表示タブは `DeferredView` のため `instanceof MarkdownView` は使わない）。未オープンなら root split に新しいエディタタブを開く。`openLinkText` は使わない（アクティブなサイドバー leaf を置換しうる）。
 
 ---
 

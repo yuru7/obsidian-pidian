@@ -1,8 +1,13 @@
 import { useEffect, useRef, type JSX } from "react";
-import { Component, MarkdownRenderer, Notice, setIcon, type App } from "obsidian";
+import { Component, MarkdownRenderer, Notice, setIcon, setTooltip, type App } from "obsidian";
 import { t } from "../i18n";
 import { ObsidianWorkspaceNavigator } from "../infrastructure/obsidian/ObsidianWorkspaceNavigator";
-import { internalLinktextFromAttributes, openChatNoteLink } from "./chatNoteLink";
+import {
+  internalLinktextFromAttributes,
+  linkpathFromLinktext,
+  noteFilenameFromLinkpath,
+  openChatNoteLink,
+} from "./chatNoteLink";
 
 export function Markdown({ app, markdown }: { app: App; markdown: string }): JSX.Element {
   const ref = useRef<HTMLDivElement>(null);
@@ -47,15 +52,29 @@ export function Markdown({ app, markdown }: { app: App; markdown: string }): JSX
 
 function decorateInternalNoteLinks(root: HTMLElement): void {
   for (const node of root.querySelectorAll("a.internal-link")) {
-    if (!node.instanceOf(HTMLElement) || node.querySelector(":scope > .pidian-note-link-icon")) {
+    if (!node.instanceOf(HTMLElement)) {
       continue;
     }
+    const linktext = internalLinktextFromAttributes(
+      node.getAttribute("data-href"),
+      node.getAttribute("href"),
+    );
+    const path = linktext ? linkpathFromLinktext(linktext) : "";
+    const filename = noteFilenameFromLinkpath(path) || node.getText().trim();
+    node.empty();
     const icon = node.createSpan({
       cls: "pidian-note-link-icon",
       attr: { "aria-hidden": "true" },
-      prepend: true,
     });
     setIcon(icon, "sticky-note");
+    if (filename) {
+      node.appendText(filename);
+    }
+    // Native `title` would show an OS tooltip; Obsidian setTooltip uses aria-label instead.
+    node.removeAttribute("title");
+    if (path) {
+      setTooltip(node, path, { placement: "top" });
+    }
   }
 }
 

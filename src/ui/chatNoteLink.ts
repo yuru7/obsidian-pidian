@@ -1,6 +1,6 @@
 /**
  * Linktext from MarkdownRenderer's `a.internal-link` (no surrounding `[[ ]]`).
- * `data-href` is the wiki target; `href` is a fallback.
+ * `data-href` is the wiki/markdown target; `href` is a fallback.
  */
 export function internalLinktextFromAttributes(
   dataHref: string | null,
@@ -26,6 +26,12 @@ export function linkpathFromLinktext(linktext: string): string {
     path = path.slice(0, pipeIndex);
   }
   return path.trim();
+}
+
+/** File name (last path segment, with extension) for the visible chat note link label. */
+export function noteFilenameFromLinkpath(linkpath: string): string {
+  const slash = linkpath.lastIndexOf("/");
+  return slash >= 0 ? linkpath.slice(slash + 1) : linkpath;
 }
 
 export async function openChatNoteLink(

@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import {
   internalLinktextFromAttributes,
   linkpathFromLinktext,
+  noteFilenameFromLinkpath,
   openChatNoteLink,
 } from "./chatNoteLink";
 
@@ -34,6 +35,23 @@ describe("linkpathFromLinktext", () => {
   it("strips a display alias", () => {
     expect(linkpathFromLinktext("docs/ARCHITECTURE|Architecture")).toBe("docs/ARCHITECTURE");
     expect(linkpathFromLinktext("docs/ARCHITECTURE#UI|UI")).toBe("docs/ARCHITECTURE");
+  });
+});
+
+describe("noteFilenameFromLinkpath", () => {
+  it("returns the last path segment with extension", () => {
+    expect(noteFilenameFromLinkpath("無題のフォルダ/無題のフォルダ/サブフォルダーのノート.md")).toBe(
+      "サブフォルダーのノート.md",
+    );
+    expect(noteFilenameFromLinkpath("folder/Note.md")).toBe("Note.md");
+  });
+
+  it("returns a vault-root file name unchanged", () => {
+    expect(noteFilenameFromLinkpath("サンプル.md")).toBe("サンプル.md");
+  });
+
+  it("returns empty when the path is empty", () => {
+    expect(noteFilenameFromLinkpath("")).toBe("");
   });
 });
 

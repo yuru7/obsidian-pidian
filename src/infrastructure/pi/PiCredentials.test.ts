@@ -117,13 +117,14 @@ describe("pidianSystemPrompt", () => {
     expect(prompt).toContain("Do not use those tools to try them, experiment");
   });
 
-  it("requires clickable wiki links and forbids quoted or plain paths", () => {
+  it("requires clickable markdown links and forbids wiki, quoted, or plain paths", () => {
     const prompt = pidianSystemPrompt(false);
     expect(prompt).toContain("Chat links (required):");
-    expect(prompt).toContain("write it as a Wiki link with that exact vault-relative path and extension");
-    expect(prompt).toContain("[[folder/Note.md]] or [[サンプル.md]]");
-    expect(prompt).toContain('Do not write that path as plain text, in 「」, or in backticks');
-    expect(prompt).toContain("Do not Wiki-link notes you have not confirmed exist");
+    expect(prompt).toContain("write it as a Markdown link");
+    expect(prompt).toContain("[Note.md](folder/Note.md) or [サンプル.md](サンプル.md)");
+    expect(prompt).toContain("[Note.md](<folder/My Note.md>)");
+    expect(prompt).toContain("Do not write that path as a Wiki link, as plain text, in 「」, or in backticks");
+    expect(prompt).toContain("Do not link notes you have not confirmed exist");
     expect(prompt.indexOf("Chat links (required):")).toBeGreaterThan(
       prompt.indexOf("Prefer concise answers in the user's language."),
     );
