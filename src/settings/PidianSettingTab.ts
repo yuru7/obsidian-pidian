@@ -19,6 +19,7 @@ import {
   isDuplicateModelSettingName,
   uniqueCustomProviderName,
   DEFAULT_SETTINGS,
+  parseComposerEditMode,
   parseSessionFileFormat,
   type CustomOpenAIProvider,
   type CustomProviderModel,
@@ -158,6 +159,7 @@ export class PidianSettingTab extends PluginSettingTab {
       const fallbackModels = this.fallbackModels(this.plugin.settings.model);
       this.renderAgent(agentEl, this.selectableProviders(fallbackProviders), fallbackModels);
     }
+    this.renderEditor(containerEl);
     this.renderOther(containerEl);
     if (!cachedProviders || !cachedModels) {
       void this.enrichAgentFromCatalog(agentEl);
@@ -965,8 +967,20 @@ export class PidianSettingTab extends PluginSettingTab {
     return this.customRetentionSelected || !RETENTION_PRESETS.has(String(this.plugin.settings.retentionDays));
   }
 
-  private renderOther(containerEl: HTMLElement): void {
-    new Setting(containerEl).setName(t("settingsOther")).setHeading();
+  private renderEditor(containerEl: HTMLElement): void {
+    new Setting(containerEl).setName(t("settingsEditor")).setHeading();
+    new Setting(containerEl)
+      .setName(t("settingsEditMode"))
+      .setDesc(t("settingsEditModeDesc"))
+      .addDropdown((dropdown) => {
+        dropdown.addOption("livePreview", t("settingsEditModeLivePreview"));
+        dropdown.addOption("plain", t("settingsEditModePlain"));
+        dropdown.setValue(this.plugin.settings.composerEditMode);
+        dropdown.onChange(async (value) => {
+          this.plugin.settings.composerEditMode = parseComposerEditMode(value);
+          await this.plugin.saveSettings();
+        });
+      });
     new Setting(containerEl)
       .setName(t("settingsSendWithCtrlEnter"))
       .setDesc(t("settingsSendWithCtrlEnterDesc"))
@@ -977,6 +991,10 @@ export class PidianSettingTab extends PluginSettingTab {
           await this.plugin.saveSettings();
         });
       });
+  }
+
+  private renderOther(containerEl: HTMLElement): void {
+    new Setting(containerEl).setName(t("settingsOther")).setHeading();
     this.renderPluginDirectory(containerEl);
   }
 

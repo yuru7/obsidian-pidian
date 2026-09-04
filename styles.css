@@ -524,6 +524,10 @@ input.pidian-model-search-input:focus-visible {
   overflow: auto;
 }
 
+.pidian-view .pidian-composer-input:has(.has-textarea) {
+  overflow: hidden;
+}
+
 .pidian-view .pidian-composer-placeholder {
   position: absolute;
   top: 6px;
@@ -624,7 +628,7 @@ input.pidian-model-search-input:focus-visible {
   border: none;
   background: transparent;
   min-height: calc(2lh + 12px);
-  max-height: none;
+  max-height: calc(4lh + 12px);
 }
 
 .pidian-chat {

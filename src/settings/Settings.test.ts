@@ -73,6 +73,13 @@ describe("mergeSettings", () => {
     expect(mergeSettings({ sendWithCtrlEnter: "yes" } as Record<string, unknown>).sendWithCtrlEnter).toBe(false);
   });
 
+  it("defaults composerEditMode to livePreview and keeps plain", () => {
+    expect(mergeSettings({}).composerEditMode).toBe("livePreview");
+    expect(mergeSettings({ composerEditMode: "livePreview" }).composerEditMode).toBe("livePreview");
+    expect(mergeSettings({ composerEditMode: "plain" }).composerEditMode).toBe("plain");
+    expect(mergeSettings({ composerEditMode: "nope" } as Record<string, unknown>).composerEditMode).toBe("livePreview");
+  });
+
   it("defaults firecrawlApiKey to empty and keeps an explicit value", () => {
     expect(mergeSettings({}).firecrawlApiKey).toBe("");
     expect(mergeSettings({ firecrawlApiKey: "fc-test" }).firecrawlApiKey).toBe("fc-test");

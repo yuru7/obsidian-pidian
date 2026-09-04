@@ -65,6 +65,11 @@ export const ja: { [K in keyof typeof en]: string } = {
   settingsPermissionAllow: "常に許可",
   settingsPermissionAsk: "毎回確認",
   settingsPermissionDeny: "拒否",
+  settingsEditor: "エディター",
+  settingsEditMode: "編集モード",
+  settingsEditModeDesc: "ライブプレビューは Obsidian の Markdown エディターを使います。プレーンはテキストエリアを使います。",
+  settingsEditModeLivePreview: "ライブプレビュー",
+  settingsEditModePlain: "プレーン",
   settingsOther: "その他",
   settingsSendWithCtrlEnter: "Ctrl+Enter で送信",
   settingsSendWithCtrlEnterDesc:

@@ -126,6 +126,8 @@ export function fillModelSettingNameFromId(model: CustomProviderModel, previousM
 
 export type SessionFileFormat = "jsonl" | "jsonl.md";
 
+export type ComposerEditMode = "livePreview" | "plain";
+
 export interface StoredOAuthCredential {
   type: "oauth";
   access: string;
@@ -150,6 +152,7 @@ export interface PidianSettings {
   maxSessionCount: number;
   modelFavorites: ModelFavorite[];
   firecrawlApiKey: string;
+  composerEditMode: ComposerEditMode;
   sendWithCtrlEnter: boolean;
 }
 
@@ -175,11 +178,16 @@ export const DEFAULT_SETTINGS: PidianSettings = {
   maxSessionCount: 5000,
   modelFavorites: [],
   firecrawlApiKey: "",
+  composerEditMode: "livePreview",
   sendWithCtrlEnter: false,
 };
 
 export function parseSessionFileFormat(value: unknown): SessionFileFormat {
   return value === "jsonl" || value === "json" ? "jsonl" : "jsonl.md";
+}
+
+export function parseComposerEditMode(value: unknown): ComposerEditMode {
+  return value === "plain" ? "plain" : "livePreview";
 }
 
 function parseCustomProviders(raw: unknown): CustomOpenAIProvider[] {
@@ -327,6 +335,7 @@ export function mergeSettings(raw: unknown): PidianSettings {
     thinkingLevel: parseThinkingLevel(input.thinkingLevel),
     modelFavorites: parseModelFavorites(input.modelFavorites),
     firecrawlApiKey: typeof input.firecrawlApiKey === "string" ? input.firecrawlApiKey : DEFAULT_SETTINGS.firecrawlApiKey,
+    composerEditMode: parseComposerEditMode(input.composerEditMode),
     sendWithCtrlEnter: input.sendWithCtrlEnter === true,
     autoDeleteSessions: input.autoDeleteSessions === true,
     limitSessionCount: input.limitSessionCount === true,

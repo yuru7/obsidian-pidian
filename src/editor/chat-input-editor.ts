@@ -13,9 +13,12 @@ export interface ChatInputEditor {
   setDisabled(disabled: boolean): void;
 }
 
+export type ChatInputEditorMode = "livePreview" | "plain";
+
 export type ChatInputEditorOptions = {
   disabled?: boolean;
   onChange?: (value: string) => void;
+  mode?: ChatInputEditorMode;
 };
 
 const LIVE_EDITOR_FALLBACK_WARNING =
@@ -23,7 +26,8 @@ const LIVE_EDITOR_FALLBACK_WARNING =
 
 /**
  * Mount a chat composer editor into `containerEl`.
- * Tries Obsidian Live Preview first; any failure falls back to a textarea.
+ * Live Preview tries Obsidian's Markdown editor first and falls back to a
+ * textarea. Plain always uses a textarea.
  *
  * The editor owns an inner mount node so React can keep updating attributes on
  * `containerEl` without wiping Live Preview / textarea DOM.
@@ -51,6 +55,9 @@ export function createChatInputEditor(
 }
 
 function createEditor(app: App, mount: HTMLElement, options: ChatInputEditorOptions): ChatInputEditor {
+  if (options.mode === "plain") {
+    return createTextareaEditor(mount, options);
+  }
   try {
     return createObsidianLiveEditor(app, mount, options);
   } catch (error) {

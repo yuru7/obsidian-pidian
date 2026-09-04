@@ -34,11 +34,13 @@ export function Composer({
   const [empty, setEmpty] = useState(true);
   const hostRef = useRef<HTMLDivElement>(null);
   const editorRef = useRef<ChatInputEditor | null>(null);
+  const draftRef = useRef("");
   const disabledRef = useRef(disabled);
   const streamingRef = useRef(streaming);
   const sendWithCtrlEnterRef = useRef(plugin.settings.sendWithCtrlEnter);
   const onSendRef = useRef(onSend);
   const onAbortRef = useRef(onAbort);
+  const editMode = plugin.settings.composerEditMode;
   disabledRef.current = disabled;
   streamingRef.current = streaming;
   sendWithCtrlEnterRef.current = plugin.settings.sendWithCtrlEnter;
@@ -55,6 +57,7 @@ export function Composer({
       return;
     }
     editor.clear();
+    draftRef.current = "";
     setEmpty(true);
     onSendRef.current(trimmed);
   };
@@ -92,10 +95,15 @@ export function Composer({
     }
     const editor = createChatInputEditor(plugin.app, host, {
       disabled: disabledRef.current,
+      mode: editMode,
       onChange(value) {
+        draftRef.current = value;
         setEmpty(value.length === 0);
       },
     });
+    if (draftRef.current) {
+      editor.setValue(draftRef.current);
+    }
     editorRef.current = editor;
     setEmpty(editor.getValue().length === 0);
 
@@ -148,7 +156,7 @@ export function Composer({
       editor.destroy();
       editorRef.current = null;
     };
-  }, [plugin]);
+  }, [plugin, editMode]);
 
   const placeholder = streaming ? t("uiPlaceholderStop") : t("uiPlaceholder");
 
@@ -158,7 +166,6 @@ export function Composer({
         <div
           ref={hostRef}
           className="pidian-composer-input"
-          aria-label={placeholder}
           onMouseDown={(event) => {
             if (event.target === event.currentTarget) {
               editorRef.current?.focus();

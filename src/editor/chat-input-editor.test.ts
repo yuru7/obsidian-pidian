@@ -204,6 +204,18 @@ describe("createChatInputEditor", () => {
     warn.mockRestore();
   });
 
+  it("uses a textarea when the mode is plain, even if Live Preview is available", () => {
+    getMarkdownEditorConstructor.mockReturnValue(FakeMarkdownEditor as unknown as MarkdownEditorConstructor);
+    const host = createFakeEl();
+    const editor = createChatInputEditor({} as App, host as unknown as HTMLElement, { mode: "plain" });
+    expect(getMarkdownEditorConstructor).not.toHaveBeenCalled();
+    expect(host.children[0]?.children[0]?.tag).toBe("textarea");
+    expect(host.children[0]?.className).toContain("has-textarea");
+    editor.setValue("plain");
+    expect(editor.getValue()).toBe("plain");
+    editor.destroy();
+  });
+
   it("falls back to a textarea when Live Preview construction throws", () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     class BrokenEditor {

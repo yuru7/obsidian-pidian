@@ -63,6 +63,11 @@ export const en = {
   settingsPermissionAllow: "Always allow",
   settingsPermissionAsk: "Ask every time",
   settingsPermissionDeny: "Deny",
+  settingsEditor: "Editor",
+  settingsEditMode: "Edit mode",
+  settingsEditModeDesc: "Live Preview uses Obsidian's Markdown editor. Plain uses a textarea.",
+  settingsEditModeLivePreview: "Live Preview",
+  settingsEditModePlain: "Plain",
   settingsOther: "Other",
   settingsSendWithCtrlEnter: "Send with Ctrl+Enter",
   settingsSendWithCtrlEnterDesc:
