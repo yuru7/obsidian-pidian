@@ -11,7 +11,7 @@ import {
   type SearchIndexFile,
 } from "./SearchIndexFile";
 
-export const SEARCH_INDEX_UPDATE_DEBOUNCE_MS = 750;
+export const SEARCH_INDEX_UPDATE_DEBOUNCE_MS = 1500;
 export const SEARCH_INDEX_PERSIST_IDLE_MS = 45_000;
 export const SEARCH_INDEX_CHUNK_SIZE = 100;
 

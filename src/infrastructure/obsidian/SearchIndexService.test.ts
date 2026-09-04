@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import {
+  SEARCH_INDEX_UPDATE_DEBOUNCE_MS,
   SearchIndexService,
   type SearchIndexHost,
   type SearchIndexNoteMeta,
@@ -122,7 +123,7 @@ describe("SearchIndexService", () => {
     service.scheduleUpsert("old.md");
     expect(host.reads).toEqual([]);
 
-    await vi.advanceTimersByTimeAsync(750);
+    await vi.advanceTimersByTimeAsync(SEARCH_INDEX_UPDATE_DEBOUNCE_MS);
     expect(host.reads).toEqual(["old.md"]);
     expect((await service.search("after two")).map((hit) => hit.path)).toEqual(["old.md"]);
 
