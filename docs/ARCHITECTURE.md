@@ -56,6 +56,7 @@ src/infrastructure/
   search/                   Firecrawl、DuckDuckGo、SearchService 工場
   http/                     cors 回避用の Web アクセス補助
 src/tools/                  PidianTool 実装。Pi の defineTool は書かない
+src/editor/                 チャット入力欄。Live Preview と textarea の Adapter。非公開 Markdown Editor API はここに閉じる
 src/ui/                     サイドバー React。plugin / AgentService を購読する
 src/settings/               設定スキーマと SettingTab
 src/i18n/                   en がキーの正本。ja は同じキーを全部埋める
@@ -368,7 +369,7 @@ Pi のモジュール解決や stub を足すときは、バンドルゲート�
 | `PidianApp.tsx` | ヘッダ、Chat、Composer、ModelSelector、SessionSelector |
 | `OpenActiveSessionButton.tsx` | 開いているファイルがセッションファイルなら「新しいチャット」の左に復元ボタン。不正形式はエラーツールチップ |
 | `Chat.tsx` / `Message.tsx` / `UserMessageEditor.tsx` / `WorkLog.tsx` / `ToolCall.tsx` / `Thinking.tsx` / `SelectionQuoteToolbar.tsx` | ストリーム表示。思考とツールは1つの WorkLog にまとめ、中は思考・ツールを時系列のまま出す。思考中でも本文は直下へ出せる。ユーザーメッセージのクリックで編集再送信。`.pidian-chat` 内の文字列選択で「引用」ツールバーを出し、Composer へ `> ` 引用を挿入 |
-| `Composer.tsx` | 入力。`subscribeComposerFocus` でフォーカス。送信中かつ空なら Esc で abort、プレースホルダに停止案内。`insertQuote` で選択引用を末尾挿入 |
+| `Composer.tsx` | 入力。可能な場合は Obsidian Markdown Live Preview、内部 API が使えないときは textarea。`subscribeComposerFocus` でフォーカス。送信中かつ空なら Esc で abort、プレースホルダに停止案内。`insertQuote` で選択引用を末尾挿入。Enter / Esc は入力欄 wrapper の capture で処理し、エディター実装に依存しない |
 | `Markdown.tsx` | チャット内 Markdown。`[[wiki]]` はメモアイコン付きで、クリックは既存エディタタブを優先して開く |
 | `PidianSettingTab.ts` | 設定 UI（React ではない） |
 
@@ -451,6 +452,7 @@ UI は `AgentService` と `plugin.settings` を読む。Pi 型を import しな�
 | メモリ上の Agent | `AgentService` の LRU（クエリ時、最大 3） | 開いただけで Pi セッションを作る。件数の設定項目 |
 | モデル一覧 | `PiModelCatalog`, Settings custom provider | UI での provider 特例 |
 | チャットのノートリンク | `Markdown.tsx`, `chatNoteLink.ts`, `ObsidianWorkspaceNavigator` | `openLinkText` のデフォルト、`instanceof MarkdownView` でのタブ検索 |
+| チャット入力欄 | `src/editor/`, `Composer.tsx` | UI から `embedRegistry` / `editMode` を直接触る。失敗時にチャット入力自体を止める |
 | 非フォーカス選択の表示 | `unfocusedSelectionHighlight.ts`, `styles.css` の `.pidian-unfocused-selection` | 本体が非フォーカス選択を描くようになったあとの残留。消すときは extension・CSS・`main.ts` の登録を一式で |
 | システム指示 | `pidianSystemPrompt`, Vault `AGENTS.md` | Pi のデフォルト AGENTS 探索（fs stub で止めてある） |
 | CORS / LLM HTTP | `corsFreeFetch`, `customRequestBody` | レンダラの `fetch` に戻す |

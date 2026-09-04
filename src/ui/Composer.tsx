@@ -1,16 +1,12 @@
 import { useImperativeHandle, useLayoutEffect, useRef, useState, type JSX, type Ref } from "react";
 import { setTooltip, type Scope } from "obsidian";
+import { createChatInputEditor, type ChatInputEditor } from "../editor/chat-input-editor";
 import { t } from "../i18n";
 import type PidianPlugin from "../main";
-import { shouldAbortOnEscape } from "./composerAbortKey";
-import { shouldSendOnKeyDown } from "./composerSendKey";
-import { fitTextarea } from "./fitTextarea";
+import { composerInputKeyAction } from "./composerInputKey";
 import { insertQuoteIntoComposer } from "./quoteSelection";
 import { useAbortHotkeyScope } from "./useAbortHotkeyScope";
 import { useSendHotkeyScope } from "./useSendHotkeyScope";
-
-const MIN_ROWS = 2;
-const MAX_ROWS = 4;
 
 export type ComposerHandle = {
   insertQuote: (selectedText: string) => void;
@@ -35,92 +31,142 @@ export function Composer({
   onAbort: () => void;
   ref?: Ref<ComposerHandle>;
 }): JSX.Element {
-  const [text, setText] = useState("");
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const textRef = useRef(text);
-  const pendingCursorRef = useRef<number | null>(null);
-  const sendWithCtrlEnter = plugin.settings.sendWithCtrlEnter;
-  textRef.current = text;
+  const [empty, setEmpty] = useState(true);
+  const hostRef = useRef<HTMLDivElement>(null);
+  const editorRef = useRef<ChatInputEditor | null>(null);
+  const disabledRef = useRef(disabled);
+  const streamingRef = useRef(streaming);
+  const sendWithCtrlEnterRef = useRef(plugin.settings.sendWithCtrlEnter);
+  const onSendRef = useRef(onSend);
+  const onAbortRef = useRef(onAbort);
+  disabledRef.current = disabled;
+  streamingRef.current = streaming;
+  sendWithCtrlEnterRef.current = plugin.settings.sendWithCtrlEnter;
+  onSendRef.current = onSend;
+  onAbortRef.current = onAbort;
+
+  const send = (): void => {
+    const editor = editorRef.current;
+    if (!editor) {
+      return;
+    }
+    const trimmed = editor.getValue().trim();
+    if (!trimmed || disabledRef.current || streamingRef.current) {
+      return;
+    }
+    editor.clear();
+    setEmpty(true);
+    onSendRef.current(trimmed);
+  };
+
+  const sendRef = useRef(send);
+  sendRef.current = send;
 
   useImperativeHandle(ref, () => ({
     insertQuote(selectedText: string) {
-      const next = insertQuoteIntoComposer(textRef.current, selectedText);
+      const editor = editorRef.current;
+      if (!editor) {
+        return;
+      }
+      const next = insertQuoteIntoComposer(editor.getValue(), selectedText);
       if (!next) {
         return;
       }
-      pendingCursorRef.current = next.cursor;
-      textRef.current = next.text;
-      setText(next.text);
+      editor.setValue(next.text);
+      editor.focus();
+      setEmpty(next.text.length === 0);
     },
   }));
 
-  const send = () => {
-    const trimmed = textRef.current.trim();
-    if (!trimmed || disabled || streaming) {
-      return;
-    }
-    textRef.current = "";
-    setText("");
-    onSend(trimmed);
-  };
-
-  useSendHotkeyScope(plugin.app, textareaRef, sendWithCtrlEnter, send);
-  useAbortHotkeyScope(keymapScope, streaming, () => textRef.current.length === 0, onAbort);
+  useSendHotkeyScope(plugin.app, hostRef, plugin.settings.sendWithCtrlEnter, send);
+  useAbortHotkeyScope(keymapScope, streaming, () => editorRef.current?.getValue().length === 0, onAbort);
 
   useLayoutEffect(() => {
-    const el = textareaRef.current;
-    if (!el) {
-      return;
-    }
-    fitTextarea(el, MIN_ROWS, MAX_ROWS);
-    const cursor = pendingCursorRef.current;
-    if (cursor === null) {
-      return;
-    }
-    pendingCursorRef.current = null;
-    if (el.disabled) {
-      return;
-    }
-    el.focus();
-    el.setSelectionRange(cursor, cursor);
-  }, [text]);
+    editorRef.current?.setDisabled(disabled);
+  }, [disabled]);
 
   useLayoutEffect(() => {
+    const host = hostRef.current;
+    if (!host) {
+      return;
+    }
+    const editor = createChatInputEditor(plugin.app, host, {
+      disabled: disabledRef.current,
+      onChange(value) {
+        setEmpty(value.length === 0);
+      },
+    });
+    editorRef.current = editor;
+    setEmpty(editor.getValue().length === 0);
+
+    const handleInputKeyDown = (event: KeyboardEvent): void => {
+      // Synthetic Enter from newline() must reach CodeMirror as a plain Enter.
+      if (!event.isTrusted) {
+        return;
+      }
+      const current = editorRef.current;
+      if (!current) {
+        return;
+      }
+      const action = composerInputKeyAction(event, {
+        sendWithCtrlEnter: sendWithCtrlEnterRef.current,
+        streaming: streamingRef.current,
+        empty: current.getValue().length === 0,
+      });
+      if (action === "abort") {
+        event.preventDefault();
+        event.stopPropagation();
+        onAbortRef.current();
+        return;
+      }
+      if (action === "send") {
+        event.preventDefault();
+        event.stopPropagation();
+        sendRef.current();
+        return;
+      }
+      if (action === "newline") {
+        event.preventDefault();
+        event.stopPropagation();
+        current.newline();
+      }
+    };
+    host.addEventListener("keydown", handleInputKeyDown, true);
+
     const tryFocus = (): boolean => {
-      const el = textareaRef.current;
-      if (!el || el.disabled) {
+      if (disabledRef.current) {
         return false;
       }
-      el.focus();
-      return document.activeElement === el;
+      editor.focus();
+      return Boolean(host.contains(host.ownerDocument.activeElement));
     };
-    return plugin.subscribeComposerFocus(tryFocus);
-  }, [plugin, disabled]);
+    const unsubFocus = plugin.subscribeComposerFocus(tryFocus);
+
+    return () => {
+      host.removeEventListener("keydown", handleInputKeyDown, true);
+      unsubFocus();
+      editor.destroy();
+      editorRef.current = null;
+    };
+  }, [plugin]);
+
+  const placeholder = streaming ? t("uiPlaceholderStop") : t("uiPlaceholder");
 
   return (
     <div className="pidian-composer">
-      <textarea
-        ref={textareaRef}
-        className="pidian-input"
-        placeholder={streaming ? t("uiPlaceholderStop") : t("uiPlaceholder")}
-        disabled={disabled}
-        value={text}
-        rows={MIN_ROWS}
-        onFocus={(event) => fitTextarea(event.currentTarget, MIN_ROWS, MAX_ROWS)}
-        onChange={(event) => setText(event.target.value)}
-        onKeyDown={(event) => {
-          if (shouldSendOnKeyDown(event, sendWithCtrlEnter)) {
-            event.preventDefault();
-            send();
-            return;
-          }
-          if (shouldAbortOnEscape(event, streaming, textRef.current.length === 0)) {
-            event.preventDefault();
-            event.stopPropagation();
-            onAbort();
-          }
-        }}
-      />
+      <div className={empty ? "pidian-composer-field is-empty" : "pidian-composer-field"}>
+        <div
+          ref={hostRef}
+          className="pidian-composer-input"
+          aria-label={placeholder}
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) {
+              editorRef.current?.focus();
+            }
+          }}
+        />
+        {empty ? <div className="pidian-composer-placeholder">{placeholder}</div> : null}
+      </div>
       <div className="pidian-composer-actions">
         {toolbar}
         {streaming ? (

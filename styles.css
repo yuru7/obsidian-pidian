@@ -508,6 +508,125 @@ input.pidian-model-search-input:focus-visible {
   padding: 6px 8px;
 }
 
+.pidian-composer-field {
+  position: relative;
+}
+
+.pidian-view .pidian-composer-input {
+  box-sizing: border-box;
+  width: 100%;
+  background: var(--background-primary);
+  color: var(--text-normal);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--radius-s);
+  min-height: calc(2lh + 12px + 2px);
+  max-height: calc(4lh + 12px + 2px);
+  overflow: auto;
+}
+
+.pidian-view .pidian-composer-placeholder {
+  position: absolute;
+  top: 6px;
+  left: 8px;
+  right: 8px;
+  color: var(--text-faint);
+  line-height: var(--line-height-normal, 1.5);
+  pointer-events: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pidian-view .pidian-composer-mount {
+  min-height: inherit;
+}
+
+.pidian-view .pidian-composer-mount.has-live-editor .markdown-source-view,
+.pidian-view .pidian-composer-mount.has-live-editor .cm-editor {
+  background: transparent;
+  border: none;
+  padding: 0;
+  font-size: var(--font-ui-small);
+}
+
+.pidian-view .pidian-composer-mount.has-live-editor .cm-gutters,
+.pidian-view .pidian-composer-mount.has-live-editor .inline-title,
+.pidian-view .pidian-composer-mount.has-live-editor .metadata-container {
+  display: none;
+}
+
+.pidian-view .pidian-composer-mount.has-live-editor .cm-scroller {
+  font-size: var(--font-ui-small);
+  min-height: calc(2lh + 12px);
+}
+
+.pidian-view .pidian-composer-mount.has-live-editor .cm-content {
+  font-size: var(--font-ui-small);
+  padding: 6px 8px;
+}
+
+/* Compact headings: note H1–H6 sizes overflow a 2–4 line composer.
+   `--hN-size: inherit` would still inherit the note heading size from :root. */
+.pidian-view .pidian-composer-mount.has-live-editor {
+  --editor-font-size: var(--font-ui-small);
+  --font-text-size: var(--font-ui-small);
+  --h1-size: 1.2em;
+  --h2-size: 1.2em;
+  --h3-size: 1.2em;
+  --h4-size: 1.2em;
+  --h5-size: 1.2em;
+  --h6-size: 1.2em;
+  --h1-weight: var(--bold-weight, 600);
+  --h2-weight: var(--bold-weight, 600);
+  --h3-weight: var(--bold-weight, 600);
+  --h4-weight: var(--bold-weight, 600);
+  --h5-weight: var(--bold-weight, 600);
+  --h6-weight: var(--bold-weight, 600);
+  --h1-line-height: var(--line-height-normal, 1.5);
+  --h2-line-height: var(--line-height-normal, 1.5);
+  --h3-line-height: var(--line-height-normal, 1.5);
+  --h4-line-height: var(--line-height-normal, 1.5);
+  --h5-line-height: var(--line-height-normal, 1.5);
+  --h6-line-height: var(--line-height-normal, 1.5);
+  --heading-spacing: 0;
+}
+
+.pidian-view .pidian-composer-mount.has-live-editor :is(
+  .HyperMD-header,
+  .HyperMD-header-1,
+  .HyperMD-header-2,
+  .HyperMD-header-3,
+  .HyperMD-header-4,
+  .HyperMD-header-5,
+  .HyperMD-header-6
+) {
+  font-size: 1.2em;
+  font-weight: var(--bold-weight, 600);
+  line-height: var(--line-height-normal, 1.5);
+  padding-block: 0;
+}
+
+.pidian-view .pidian-composer-mount.has-live-editor :is(
+  .cm-header,
+  .cm-header-1,
+  .cm-header-2,
+  .cm-header-3,
+  .cm-header-4,
+  .cm-header-5,
+  .cm-header-6
+) {
+  font-size: inherit;
+  font-weight: inherit;
+  line-height: inherit;
+}
+
+.pidian-view .pidian-composer-input textarea.pidian-input {
+  border: none;
+  background: transparent;
+  min-height: calc(2lh + 12px);
+  max-height: none;
+}
+
 .pidian-chat {
   flex: 1;
   overflow: auto;

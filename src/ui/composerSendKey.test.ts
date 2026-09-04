@@ -1,18 +1,24 @@
 import { describe, expect, it } from "vitest";
-import { shouldSendOnKeyDown } from "./composerSendKey";
+import { IME_ENTER_KEYCODE, shouldSendOnKeyDown } from "./composerSendKey";
 
-function enter(overrides: {
-  shiftKey?: boolean;
-  ctrlKey?: boolean;
-  metaKey?: boolean;
-  isComposing?: boolean;
-} = {}) {
+function enter(
+  overrides: {
+    shiftKey?: boolean;
+    ctrlKey?: boolean;
+    metaKey?: boolean;
+    isComposing?: boolean;
+    keyCode?: number;
+  } = {},
+) {
   return {
     key: "Enter" as const,
     shiftKey: overrides.shiftKey ?? false,
     ctrlKey: overrides.ctrlKey ?? false,
     metaKey: overrides.metaKey ?? false,
-    nativeEvent: { isComposing: overrides.isComposing ?? false },
+    nativeEvent: {
+      isComposing: overrides.isComposing ?? false,
+      keyCode: overrides.keyCode ?? 0,
+    },
   };
 }
 
@@ -33,6 +39,25 @@ describe("shouldSendOnKeyDown", () => {
   it("does not send while an IME composition is active", () => {
     expect(shouldSendOnKeyDown(enter({ isComposing: true }), false)).toBe(false);
     expect(shouldSendOnKeyDown(enter({ ctrlKey: true, isComposing: true }), true)).toBe(false);
+  });
+
+  it("does not send on IME confirmation Enter (keyCode 229)", () => {
+    expect(shouldSendOnKeyDown(enter({ keyCode: IME_ENTER_KEYCODE }), false)).toBe(false);
+    expect(
+      shouldSendOnKeyDown(
+        { key: "Enter", isComposing: false, keyCode: IME_ENTER_KEYCODE },
+        false,
+      ),
+    ).toBe(false);
+  });
+
+  it("reads isComposing from a native KeyboardEvent shape", () => {
+    expect(
+      shouldSendOnKeyDown({ key: "Enter", shiftKey: false, isComposing: false }, false),
+    ).toBe(true);
+    expect(
+      shouldSendOnKeyDown({ key: "Enter", shiftKey: false, isComposing: true }, false),
+    ).toBe(false);
   });
 
   it("ignores keys other than Enter", () => {

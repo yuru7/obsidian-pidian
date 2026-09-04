@@ -1,10 +1,10 @@
 import { Scope, type App } from "obsidian";
 import { useLayoutEffect, useRef, type RefObject } from "react";
 
-/** Obsidian's default Mod+Enter (toggle checkbox) is consumed by the app keymap before textarea keydown. */
-export function useSendHotkeyScope(
+/** Obsidian's default Mod+Enter (toggle checkbox) is consumed by the app keymap before editor keydown. */
+export function useSendHotkeyScope<T extends HTMLElement>(
   app: App,
-  textareaRef: RefObject<HTMLTextAreaElement | null>,
+  targetRef: RefObject<T | null>,
   sendWithCtrlEnter: boolean,
   onSend: () => void,
 ): void {
@@ -15,7 +15,7 @@ export function useSendHotkeyScope(
     if (!sendWithCtrlEnter) {
       return;
     }
-    const el = textareaRef.current;
+    const el = targetRef.current;
     if (!el) {
       return;
     }
@@ -41,15 +41,26 @@ export function useSendHotkeyScope(
         pushed = false;
       }
     };
-    el.addEventListener("focus", push);
-    el.addEventListener("blur", pop);
-    if (el.isActiveElement()) {
+    const onFocusIn = (): void => {
+      push();
+    };
+    const onFocusOut = (event: FocusEvent): void => {
+      const next = event.relatedTarget;
+      if (next instanceof Node && el.contains(next)) {
+        return;
+      }
+      pop();
+    };
+    el.addEventListener("focusin", onFocusIn);
+    el.addEventListener("focusout", onFocusOut);
+    const active = el.ownerDocument.activeElement;
+    if (active && el.contains(active)) {
       push();
     }
     return () => {
-      el.removeEventListener("focus", push);
-      el.removeEventListener("blur", pop);
+      el.removeEventListener("focusin", onFocusIn);
+      el.removeEventListener("focusout", onFocusOut);
       pop();
     };
-  }, [app, sendWithCtrlEnter, textareaRef]);
+  }, [app, sendWithCtrlEnter, targetRef]);
 }

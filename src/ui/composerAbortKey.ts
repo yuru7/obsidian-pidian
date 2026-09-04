@@ -1,10 +1,9 @@
+import { keyIsComposing, type ComposerKeyEvent } from "./composerSendKey";
+
 export function shouldAbortOnEscape(
-  event: {
-    key: string;
-    nativeEvent: { isComposing: boolean };
-  },
+  event: ComposerKeyEvent,
   streaming: boolean,
   empty: boolean,
 ): boolean {
-  return event.key === "Escape" && !event.nativeEvent.isComposing && streaming && empty;
+  return event.key === "Escape" && !keyIsComposing(event) && streaming && empty;
 }

@@ -23,6 +23,7 @@ describe("shouldAbortOnEscape", () => {
 
   it("does not abort while an IME composition is active", () => {
     expect(shouldAbortOnEscape(escapeEvent(true), true, true)).toBe(false);
+    expect(shouldAbortOnEscape({ key: "Escape", isComposing: true }, true, true)).toBe(false);
   });
 
   it("ignores keys other than Escape", () => {
