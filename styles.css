@@ -769,7 +769,8 @@ button.pidian-selection-quote:hover {
 
 .pidian-view .pidian-markdown a.internal-link {
   /* Icon is a separate inline-block; without this the line can break between icon and text. */
-  white-space: nowrap;
+  white-space: normal;
+  word-break: break-word;
   margin-inline: 0.14em;
 }
 
