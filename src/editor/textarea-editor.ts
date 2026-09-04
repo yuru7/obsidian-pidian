@@ -2,7 +2,7 @@ import { fitTextarea } from "../ui/fitTextarea";
 import type { ChatInputEditor, ChatInputEditorOptions } from "./chat-input-editor";
 
 const MIN_ROWS = 2;
-const MAX_ROWS = 4;
+const MAX_ROWS = 8;
 
 export function createTextareaEditor(
   containerEl: HTMLElement,
