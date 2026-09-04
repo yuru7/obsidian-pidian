@@ -3,7 +3,8 @@ import { PermissionService } from "../application/PermissionService";
 import { ReadRevisionTracker } from "../application/ReadRevisionTracker";
 import { computeRevision } from "../application/revision";
 import type { ImageRepository, VaultImage } from "../domain/notes/ImageRepository";
-import type { Note, NoteRepository, SearchHit } from "../domain/notes/NoteRepository";
+import type { Note, NoteRepository } from "../domain/notes/NoteRepository";
+import type { NoteSearchIndex } from "../domain/notes/NoteSearchIndex";
 import { NOTE_NOT_ACTIVE_EDITOR, type NoteEditor, type Replacement } from "../domain/notes/NoteEditor";
 import type { OpenFileResult, WorkspaceNavigator, WorkspaceTab } from "../domain/workspace/WorkspaceNavigator";
 import { applyReplacementsToText } from "../application/replacements";
@@ -21,10 +22,6 @@ class MemoryNotes implements NoteRepository {
       throw new Error(`Note not found: ${path}`);
     }
     return { path, content, revision: computeRevision(content) };
-  }
-
-  async search(_query: string): Promise<SearchHit[]> {
-    return [];
   }
 
   async list(_directory: string) {
@@ -53,6 +50,10 @@ class MemoryImages implements ImageRepository {
     throw new Error(`unused image ${path}`);
   }
 }
+
+const unusedNoteSearch: NoteSearchIndex = {
+  search: async () => [],
+};
 
 class MemoryWorkspace implements WorkspaceNavigator {
   async openFile(_path: string): Promise<OpenFileResult> {
@@ -215,6 +216,7 @@ describe("read then edit flow", () => {
     const tools = createPidianTools({
       sessionId: "s1",
       notes,
+      noteSearch: unusedNoteSearch,
       images: new MemoryImages(),
       editor,
       workspace: new MemoryWorkspace(),
@@ -254,6 +256,7 @@ describe("read then edit flow", () => {
     const tools = createPidianTools({
       sessionId: "s1",
       notes,
+      noteSearch: unusedNoteSearch,
       images: new MemoryImages(),
       editor,
       workspace: new MemoryWorkspace(),

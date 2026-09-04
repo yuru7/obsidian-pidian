@@ -40,7 +40,7 @@ Obsidian Desktop のサイドバーから [Pi](https://github.com/badlogic/pi-mo
 src/main.ts                 合成ルート。Plugin lifecycle、配線、command、view
 src/domain/                 型・ポート・純粋な値。Obsidian / Pi を知らない
   agent/                    AgentEngine, AgentSession, AgentEvent, ModelCatalog
-  notes/                    NoteRepository, NoteEditor, ContextSnapshot, ImageRepository
+  notes/                    NoteRepository, NoteSearchIndex, NoteEditor, ContextSnapshot, ImageRepository
   permissions/              Permission, ToolCategory, PermissionPrompter
   sessions/                 PidianSession, SessionRepository
   tools/                    PidianTool（Pi 非依存）
@@ -71,6 +71,7 @@ Application / Domain
     │
     ├── AgentEngine ──────────► PiAgentAdapter ──► pi-coding-agent
     ├── NoteRepository ───────► ObsidianNoteRepository
+    ├── NoteSearchIndex ──────► SearchIndexService（MiniSearch。Vault イベントで差分更新）
     ├── ImageRepository ──────► ObsidianImageRepository
     ├── NoteEditor ───────────► ObsidianNoteEditor
     ├── WorkspaceNavigator ───► ObsidianWorkspaceNavigator
@@ -94,7 +95,7 @@ Application / Domain
 3. `initServices()`（失敗しても View / ribbon / command は登録する）
 4. `PidianView`（`VIEW_TYPE_PIDIAN = "pidian-view"`）
 5. ribbon と command（`open`, `new-chat`）。開く処理は `ensureSideLeaf(VIEW_TYPE_PIDIAN, "right")`。ユーザー操作では続けて Composer にフォーカスする
-6. layout ready 後に `bootstrap()`（既定モデル解決、新規チャット、古いセッション掃除）。サイドバーはここで開かない
+6. layout ready 後に検索インデックスを初期化し、Vault の create/modify/delete/rename を監視する。続けて `bootstrap()`（既定モデル解決、新規チャット、古いセッション掃除）。サイドバーはここで開かない
 7. 初回有効化のみ `onUserEnable` でサイドバーを開く（フォーカスは移さない）。更新・再起動はワークスペースが leaf を復元する
 
 `initServices()` が作るもの:
@@ -102,6 +103,7 @@ Application / Domain
 | 役割 | 具象 |
 | --- | --- |
 | notes | `ObsidianNoteRepository` |
+| note search | `SearchIndexService`（MiniSearch。`onLayoutReady` でロード + 差分同期。インデックスは `{plugin install dir}/search-index.json`） |
 | images | `ObsidianImageRepository` |
 | editor | `ObsidianNoteEditor` |
 | workspace | `ObsidianWorkspaceNavigator` |
@@ -181,7 +183,7 @@ User: <user text>
 | --- | --- | --- |
 | `read_note` | read | `.md` / `.canvas` を行範囲で読む。任意で開始/終了列。前後 50 文字を `beforeContext` / `afterContext` で返す。revision を返す。`ReadRevisionTracker` に記録。Canvas は offset 1 から |
 | `read_image` | read | PNG / JPEG / WebP を読む。このターンだけ image ブロックを Pi に付ける。セッション jsonl には path のテキストだけ残す。復元時は付け直さない。Pi の `model.input` に `image` が無いときは `customTools` からもシステムプロンプトからも外す |
-| `search_notes` | read | `.md` / `.canvas` のファイル名 + 本文検索。`AGENTS.md` と制限パスは除外 |
+| `search_notes` | read | `.md` / `.canvas` のファイル名 + 本文検索。MiniSearch インデックス（メモリ常駐、起動時は永続化ファイルから復元して mtime/size の差分だけ再読込）。結果の上位だけ `cachedRead()` して snippet を作る。`AGENTS.md` と制限パスは除外 |
 | `list_files` | read | 直下のみ。再帰しない。`""` / `"/"` が Vault ルート。任意の `glob` は直下の name に `*` で絞る（`**` とパス区切りは拒否） |
 | `open_file` | read | 開いてアクティブにする。未オープンなら開く |
 | `workspace_tabs` | read | タブ一覧。`tabId` または `path` でフォーカス |
@@ -250,6 +252,27 @@ revision は本文の SHA-256（`src/application/revision.ts`）。トラッカ�
 - パスの `..` / `.`、空パス
 
 検索からは上記に加え `pidian/AGENTS.md` も除外する。プラグインフォルダ名は Settings の `pluginDirectory`（既定 `pidian`）。config 配下には置けない。
+
+---
+
+## ノート検索インデックス
+
+`search_notes` は `NoteRepository` ではなく `NoteSearchIndex`（具象 `SearchIndexService` + MiniSearch）を使う。
+
+```text
+onLayoutReady
+  → persisted search-index.json をロード
+  → Vault の mtime/size と差分同期（変更ファイルだけ cachedRead）
+  → create / modify は debounce して upsert
+  → delete は discard、rename は discard(old) + add(new)
+
+検索
+  → MiniSearch（title を boost）上位 50
+  → ファイル名の exact / partial を優先
+  → snippet 用に上位 20 件だけ cachedRead
+```
+
+本文は MiniSearch の `storeFields` に入れない。永続化は設定の `data.json` と分け、プラグイン導入ディレクトリの `search-index.json` に書く（Adapter。`dynamicModels.json` と同じ場所）。毎編集では保存せず、dirty のとき idle 約 45 秒、または plugin unload で flush する。トークナイザやフィールドを変えたら `SEARCH_INDEX_VERSION` を上げて再構築する。
 
 ---
 
@@ -361,7 +384,7 @@ UI は `AgentService` と `plugin.settings` を読む。Pi 型を import しな�
 
 スキーマは `src/settings/Settings.ts` の `PidianSettings`。`mergeSettings` がロード時の正規化。廃止キー（`maxEditableNotes`, `includeSelectionContext`）はここで捨てる。
 
-保存は `Plugin.saveData`。API キーはプラグイン data。Vault のノートには書かない。
+保存は `Plugin.saveData`。API キーはプラグイン data。Vault のノートには書かない。検索インデックスは `data.json` に入れず `{plugin install dir}/search-index.json` へ分ける。
 
 設定を足すとき:
 
@@ -420,6 +443,7 @@ UI は `AgentService` と `plugin.settings` を読む。Pi 型を import しな�
 | やりたいこと | 触る場所 | 触らない場所 |
 | --- | --- | --- |
 | ツール追加 | `src/tools/`, `createPidianTools` | `infrastructure/pi` の `defineTool` 直書き、Pi 標準ツール有効化 |
+| ノート検索 | `SearchIndexService`, `MiniSearchNoteIndex`, `SearchNotesTool` | `NoteRepository.search`、本文の `storeFields`、巨大インデックスの `saveData` |
 | 画像読み | `ReadImageTool`, `ImageRepository`, `prepareToolImage`, `visionModel` | Pi 標準 `read`、jsonl への base64 保存、復元時の再添付、非 Vision へのツール公開 |
 | 編集ルール | `EditMarkdownTool`, `replacements.ts`, `ObsidianNoteEditor` | editor を飛ばした `vault.modify` |
 | コンテキスト | `ContextService`, `contextTarget`, `ObsidianContextProvider` | プロンプトにノート全文を埋め込む。`activeEditor` を別タブへ流用 |

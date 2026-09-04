@@ -31,6 +31,12 @@ import { ObsidianImageRepository } from "./infrastructure/obsidian/ObsidianImage
 import { ObsidianInstructionReader } from "./infrastructure/obsidian/ObsidianInstructionReader";
 import { ObsidianNoteEditor } from "./infrastructure/obsidian/ObsidianNoteEditor";
 import { ObsidianNoteRepository } from "./infrastructure/obsidian/ObsidianNoteRepository";
+import {
+  bindVaultSearchIndexEvents,
+  createObsidianSearchIndexHost,
+} from "./infrastructure/obsidian/ObsidianSearchIndexHost";
+import { createSearchIndexFile } from "./infrastructure/obsidian/SearchIndexFile";
+import { SearchIndexService } from "./infrastructure/obsidian/SearchIndexService";
 import { ObsidianPermissionPrompter } from "./infrastructure/obsidian/ObsidianPermissionPrompter";
 import { ObsidianWorkspaceNavigator } from "./infrastructure/obsidian/ObsidianWorkspaceNavigator";
 import { ObsidianSessionRepository } from "./infrastructure/obsidian/ObsidianSessionRepository";
@@ -47,6 +53,7 @@ export default class PidianPlugin extends Plugin {
   modelCatalog?: PiModelCatalog;
   credentials?: CredentialResolver;
   subscriptionAuth?: SubscriptionAuth;
+  private noteSearch?: SearchIndexService;
   private readonly editorContextListeners = new Set<() => void>();
   private readonly settingsListeners = new Set<() => void>();
   private readonly composerFocusListeners = new Set<() => boolean>();
@@ -95,6 +102,10 @@ export default class PidianPlugin extends Plugin {
     });
 
     this.app.workspace.onLayoutReady(() => {
+      if (this.noteSearch) {
+        bindVaultSearchIndexEvents(this.app.vault, (ref) => this.registerEvent(ref), this.noteSearch);
+        void this.noteSearch.initialize();
+      }
       if (this.agentService) {
         void this.bootstrap();
       }
@@ -116,6 +127,7 @@ export default class PidianPlugin extends Plugin {
     this.editorContextListeners.clear();
     this.settingsListeners.clear();
     this.composerFocusListeners.clear();
+    void this.noteSearch?.dispose();
     void this.agentService?.dispose();
   }
 
@@ -179,6 +191,12 @@ export default class PidianPlugin extends Plugin {
 
   private initServices(): void {
     const notes = new ObsidianNoteRepository(this.app);
+    const pluginInstallDir = this.manifest.dir ?? `${this.app.vault.configDir}/plugins/${this.manifest.id}`;
+    const noteSearch = new SearchIndexService(
+      createObsidianSearchIndexHost(this.app),
+      createSearchIndexFile(this.app.vault.adapter, pluginInstallDir),
+    );
+    this.noteSearch = noteSearch;
     const images = new ObsidianImageRepository(this.app);
     const editor = new ObsidianNoteEditor(this.app);
     const workspace = new ObsidianWorkspaceNavigator(this.app);
@@ -255,6 +273,7 @@ export default class PidianPlugin extends Plugin {
         createPidianTools({
           sessionId,
           notes,
+          noteSearch,
           images,
           editor,
           workspace,

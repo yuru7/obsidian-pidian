@@ -1,12 +1,8 @@
 import { MarkdownView, TFile, TFolder, type App } from "obsidian";
-import type { ListedEntry, Note, NoteRepository, SearchHit } from "../../domain/notes/NoteRepository";
+import type { ListedEntry, Note, NoteRepository } from "../../domain/notes/NoteRepository";
 import { computeRevision } from "../../application/revision";
-import { selectFilenameHits } from "../../application/filenameSearch";
-import { assertNoteFilePath, isNoteExtension } from "../../application/noteFile";
-import { assertSafeDirectoryPath, assertSafeNotePath, isExcludedFromSearch, isRestrictedVaultPath } from "../../application/notePath";
-
-const SEARCH_LIMIT = 50;
-const SNIPPET_RADIUS = 80;
+import { assertNoteFilePath } from "../../application/noteFile";
+import { assertSafeDirectoryPath, assertSafeNotePath, isRestrictedVaultPath } from "../../application/notePath";
 
 export class ObsidianNoteRepository implements NoteRepository {
   constructor(private readonly app: App) {}
@@ -65,49 +61,6 @@ export class ObsidianNoteRepository implements NoteRepository {
     await this.app.fileManager.trashFile(file);
   }
 
-  async search(query: string): Promise<SearchHit[]> {
-    const needle = query.trim();
-    if (!needle) {
-      return [];
-    }
-    const files = this.app.vault
-      .getFiles()
-      .filter((file) => isNoteExtension(file.extension) && !isExcludedFromSearch(file.path));
-    const filenameHits = selectFilenameHits(
-      files.map((file) => file.path),
-      needle,
-    );
-    const hits: SearchHit[] = filenameHits.slice(0, SEARCH_LIMIT).map((path) => ({
-      path,
-      matchType: "filename" as const,
-      snippet: path,
-    }));
-    if (hits.length >= SEARCH_LIMIT) {
-      return hits;
-    }
-
-    const filenameHitPaths = new Set(filenameHits);
-    const lowerNeedle = needle.toLowerCase();
-    for (const file of files) {
-      if (hits.length >= SEARCH_LIMIT) {
-        break;
-      }
-      if (filenameHitPaths.has(file.path)) {
-        continue;
-      }
-      const content = await this.app.vault.cachedRead(file);
-      const index = content.toLowerCase().indexOf(lowerNeedle);
-      if (index >= 0) {
-        hits.push({
-          path: file.path,
-          matchType: "content",
-          snippet: snippetAround(content, index, needle.length),
-        });
-      }
-    }
-    return hits;
-  }
-
   private async readNormalized(path: string): Promise<Note> {
     const content = await this.readContent(path);
     return {
@@ -142,12 +95,4 @@ export class ObsidianNoteRepository implements NoteRepository {
     }
     return this.app.vault.read(file);
   }
-}
-
-function snippetAround(content: string, index: number, queryLength: number): string {
-  const start = Math.max(0, index - SNIPPET_RADIUS);
-  const end = Math.min(content.length, index + queryLength + SNIPPET_RADIUS);
-  const prefix = start > 0 ? "…" : "";
-  const suffix = end < content.length ? "…" : "";
-  return `${prefix}${content.slice(start, end).replace(/\s+/g, " ")}${suffix}`;
 }

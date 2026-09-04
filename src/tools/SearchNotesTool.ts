@@ -1,10 +1,10 @@
-import type { NoteRepository } from "../domain/notes/NoteRepository";
+import type { NoteSearchIndex } from "../domain/notes/NoteSearchIndex";
 import type { PidianTool } from "../domain/tools/PidianTool";
 import { PermissionService } from "../application/PermissionService";
 import { agentsFilePath, formatConfigDirExclusion, sessionsDir } from "../application/notePath";
 
 export function createSearchNotesTool(options: {
-  notes: NoteRepository;
+  noteSearch: NoteSearchIndex;
   permissions: PermissionService;
 }): PidianTool {
   return {
@@ -39,7 +39,7 @@ export function createSearchNotesTool(options: {
         if (!decision.allowed) {
           return { content: decision.reason ?? "Tool execution denied by user", isError: true };
         }
-        const hits = await options.notes.search(query);
+        const hits = await options.noteSearch.search(query);
         return {
           content: JSON.stringify({ query, hits }, null, 2),
         };

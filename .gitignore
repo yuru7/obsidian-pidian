@@ -5,6 +5,7 @@ main.js
 *.map
 data.json
 dynamicModels.json
+search-index.json
 .DS_Store
 reference_implement
 

@@ -1,5 +1,6 @@
 import type { NoteEditor } from "../domain/notes/NoteEditor";
 import type { NoteRepository } from "../domain/notes/NoteRepository";
+import type { NoteSearchIndex } from "../domain/notes/NoteSearchIndex";
 import type { ImageRepository } from "../domain/notes/ImageRepository";
 import type { PidianTool } from "../domain/tools/PidianTool";
 import type { WorkspaceNavigator } from "../domain/workspace/WorkspaceNavigator";
@@ -22,6 +23,7 @@ import { createWorkspaceTabsTool } from "./WorkspaceTabsTool";
 export function createPidianTools(options: {
   sessionId: string;
   notes: NoteRepository;
+  noteSearch: NoteSearchIndex;
   images: ImageRepository;
   editor: NoteEditor;
   workspace: WorkspaceNavigator;
@@ -33,7 +35,7 @@ export function createPidianTools(options: {
   return [
     createReadNoteTool(options),
     createReadImageTool(options),
-    createSearchNotesTool(options),
+    createSearchNotesTool({ noteSearch: options.noteSearch, permissions: options.permissions }),
     createListFilesTool(options),
     createOpenFileTool(options),
     createWorkspaceTabsTool(options),

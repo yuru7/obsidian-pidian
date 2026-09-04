@@ -35,6 +35,7 @@
     "@mozilla/readability": "^0.6.0",
     "defuddle": "^0.19.3",
     "linkedom": "^0.18.13",
+    "minisearch": "^7.2.0",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "turndown": "^7.2.4",

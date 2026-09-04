@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { PermissionService } from "../application/PermissionService";
 import { ReadRevisionTracker } from "../application/ReadRevisionTracker";
 import { computeRevision } from "../application/revision";
-import type { Note, NoteRepository, SearchHit } from "../domain/notes/NoteRepository";
+import type { Note, NoteRepository } from "../domain/notes/NoteRepository";
 import { createReadNoteTool } from "./ReadNoteTool";
 
 class MemoryNotes implements NoteRepository {
@@ -14,10 +14,6 @@ class MemoryNotes implements NoteRepository {
       throw new Error(`Note not found: ${path}`);
     }
     return { path, content, revision: computeRevision(content) };
-  }
-
-  async search(_query: string): Promise<SearchHit[]> {
-    return [];
   }
 
   async list(_directory: string) {

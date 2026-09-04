@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { NAME_GLOB_RULE } from "../application/nameGlob";
 import { PermissionService } from "../application/PermissionService";
-import type { ListedEntry, Note, NoteRepository, SearchHit } from "../domain/notes/NoteRepository";
+import type { ListedEntry, Note, NoteRepository } from "../domain/notes/NoteRepository";
 import { createListFilesTool } from "./ListFilesTool";
 
 class MemoryNotes implements NoteRepository {
@@ -9,10 +9,6 @@ class MemoryNotes implements NoteRepository {
 
   async read(_path: string): Promise<Note> {
     throw new Error("unused");
-  }
-
-  async search(_query: string): Promise<SearchHit[]> {
-    return [];
   }
 
   async list(directory: string): Promise<ListedEntry[]> {
