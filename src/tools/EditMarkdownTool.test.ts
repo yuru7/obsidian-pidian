@@ -3,6 +3,7 @@ import { PermissionService } from "../application/PermissionService";
 import { ReadRevisionTracker } from "../application/ReadRevisionTracker";
 import { computeRevision } from "../application/revision";
 import type { ImageRepository, VaultImage } from "../domain/notes/ImageRepository";
+import type { NoteMetadataIndex } from "../domain/notes/NoteMetadata";
 import type { Note, NoteRepository } from "../domain/notes/NoteRepository";
 import type { NoteSearchIndex } from "../domain/notes/NoteSearchIndex";
 import { NOTE_NOT_ACTIVE_EDITOR, type NoteEditor, type Replacement } from "../domain/notes/NoteEditor";
@@ -53,6 +54,15 @@ class MemoryImages implements ImageRepository {
 
 const unusedNoteSearch: NoteSearchIndex = {
   search: async () => [],
+};
+
+const unusedMetadata: NoteMetadataIndex = {
+  getNoteMetadata: async () => {
+    throw new Error("unused");
+  },
+  getVaultLinks: async () => {
+    throw new Error("unused");
+  },
 };
 
 class MemoryWorkspace implements WorkspaceNavigator {
@@ -217,6 +227,7 @@ describe("read then edit flow", () => {
       sessionId: "s1",
       notes,
       noteSearch: unusedNoteSearch,
+      metadata: unusedMetadata,
       images: new MemoryImages(),
       editor,
       workspace: new MemoryWorkspace(),
@@ -257,6 +268,7 @@ describe("read then edit flow", () => {
       sessionId: "s1",
       notes,
       noteSearch: unusedNoteSearch,
+      metadata: unusedMetadata,
       images: new MemoryImages(),
       editor,
       workspace: new MemoryWorkspace(),

@@ -102,6 +102,9 @@ describe("pidianSystemPrompt", () => {
     expect(prompt).toContain("prefer a date the user wrote");
     expect(prompt).toContain("LINE_RANGE is the Markdown cursor (`L12`) or a text selection (`L3:C4-L5:C3`)");
     expect(prompt).toContain("beforeContext and afterContext");
+    expect(prompt).toContain("Call get_note_metadata when you need Markdown frontmatter, headings, tags, or links without the note body");
+    expect(prompt).toContain("get_note_metadata reads a Markdown note's frontmatter");
+    expect(prompt).toContain("get_vault_links reads vault-wide resolved and unresolved link maps");
   });
 
   it("forbids write tools unless the user explicitly asked to change a note", () => {

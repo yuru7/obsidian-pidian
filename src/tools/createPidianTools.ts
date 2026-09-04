@@ -1,4 +1,5 @@
 import type { NoteEditor } from "../domain/notes/NoteEditor";
+import type { NoteMetadataIndex } from "../domain/notes/NoteMetadata";
 import type { NoteRepository } from "../domain/notes/NoteRepository";
 import type { NoteSearchIndex } from "../domain/notes/NoteSearchIndex";
 import type { ImageRepository } from "../domain/notes/ImageRepository";
@@ -12,6 +13,8 @@ import { createCreateNoteTool } from "./CreateNoteTool";
 import { createDeleteNoteTool } from "./DeleteNoteTool";
 import { createEditMarkdownTool } from "./EditMarkdownTool";
 import { createFetchUrlTool } from "./FetchUrlTool";
+import { createGetNoteMetadataTool } from "./GetNoteMetadataTool";
+import { createGetVaultLinksTool } from "./GetVaultLinksTool";
 import { createListFilesTool } from "./ListFilesTool";
 import { createOpenFileTool } from "./OpenFileTool";
 import { createReadImageTool } from "./ReadImageTool";
@@ -24,6 +27,7 @@ export function createPidianTools(options: {
   sessionId: string;
   notes: NoteRepository;
   noteSearch: NoteSearchIndex;
+  metadata: NoteMetadataIndex;
   images: ImageRepository;
   editor: NoteEditor;
   workspace: WorkspaceNavigator;
@@ -37,6 +41,8 @@ export function createPidianTools(options: {
     createReadImageTool(options),
     createSearchNotesTool({ noteSearch: options.noteSearch, permissions: options.permissions }),
     createListFilesTool(options),
+    createGetNoteMetadataTool({ metadata: options.metadata, permissions: options.permissions }),
+    createGetVaultLinksTool({ metadata: options.metadata, permissions: options.permissions }),
     createOpenFileTool(options),
     createWorkspaceTabsTool(options),
     createWebSearchTool(options),

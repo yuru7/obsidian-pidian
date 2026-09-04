@@ -30,6 +30,7 @@ import { ObsidianContextProvider } from "./infrastructure/obsidian/ObsidianConte
 import { ObsidianImageRepository } from "./infrastructure/obsidian/ObsidianImageRepository";
 import { ObsidianInstructionReader } from "./infrastructure/obsidian/ObsidianInstructionReader";
 import { ObsidianNoteEditor } from "./infrastructure/obsidian/ObsidianNoteEditor";
+import { ObsidianNoteMetadata } from "./infrastructure/obsidian/ObsidianNoteMetadata";
 import { ObsidianNoteRepository } from "./infrastructure/obsidian/ObsidianNoteRepository";
 import {
   bindVaultSearchIndexEvents,
@@ -199,6 +200,7 @@ export default class PidianPlugin extends Plugin {
     this.noteSearch = noteSearch;
     const images = new ObsidianImageRepository(this.app);
     const editor = new ObsidianNoteEditor(this.app);
+    const metadata = new ObsidianNoteMetadata(this.app);
     const workspace = new ObsidianWorkspaceNavigator(this.app);
     const sessions = new SessionService(
       new ObsidianSessionRepository(
@@ -274,6 +276,7 @@ export default class PidianPlugin extends Plugin {
           sessionId,
           notes,
           noteSearch,
+          metadata,
           images,
           editor,
           workspace,

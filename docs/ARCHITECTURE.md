@@ -40,7 +40,7 @@ Obsidian Desktop のサイドバーから [Pi](https://github.com/badlogic/pi-mo
 src/main.ts                 合成ルート。Plugin lifecycle、配線、command、view
 src/domain/                 型・ポート・純粋な値。Obsidian / Pi を知らない
   agent/                    AgentEngine, AgentSession, AgentEvent, ModelCatalog
-  notes/                    NoteRepository, NoteSearchIndex, NoteEditor, ContextSnapshot, ImageRepository
+  notes/                    NoteRepository, NoteSearchIndex, NoteMetadataIndex, NoteEditor, ContextSnapshot, ImageRepository
   permissions/              Permission, ToolCategory, PermissionPrompter
   sessions/                 PidianSession, SessionRepository
   tools/                    PidianTool（Pi 非依存）
@@ -73,6 +73,7 @@ Application / Domain
     ├── AgentEngine ──────────► PiAgentAdapter ──► pi-coding-agent
     ├── NoteRepository ───────► ObsidianNoteRepository
     ├── NoteSearchIndex ──────► SearchIndexService（MiniSearch。Vault イベントで差分更新）
+    ├── NoteMetadataIndex ────► ObsidianNoteMetadata
     ├── ImageRepository ──────► ObsidianImageRepository
     ├── NoteEditor ───────────► ObsidianNoteEditor
     ├── WorkspaceNavigator ───► ObsidianWorkspaceNavigator
@@ -105,6 +106,7 @@ Application / Domain
 | --- | --- |
 | notes | `ObsidianNoteRepository` |
 | note search | `SearchIndexService`（MiniSearch。`onLayoutReady` でロード + 差分同期。インデックスは `{plugin install dir}/search-index.json`） |
+| metadata | `ObsidianNoteMetadata`（`MetadataCache`。ツールは Domain の `NoteMetadataIndex` だけを見る） |
 | images | `ObsidianImageRepository` |
 | editor | `ObsidianNoteEditor` |
 | workspace | `ObsidianWorkspaceNavigator` |
@@ -172,7 +174,7 @@ User: <user text>
 
 ユーザー発言の `text` は本文だけ保存する。ヘッダ（時刻・path）は保存しない。送信時の `ContextSnapshot`（path と、Markdown エディタなら行範囲。テキスト選択なら列位置も。本文は入れない）はユーザーメッセージの任意フィールド `context` に残す。再開・モデル変更で Pi を作り直すとき、`toConversation` が `formatAgentPrompt` で当時のヘッダを復元する。`context` が無い古い保存は timestamp と `User: <user text>` のみ。
 
-ファイル本文はコンテキストに載せない。エージェントは `read_note` でノートを読む。Vision モデルでは `read_image` で PNG/JPEG/WebP を読む。システムプロンプトは `pidianSystemPrompt`（`src/infrastructure/pi/PiCredentials.ts`）。Vision でないときは `read_image` の説明を出さない。Vault の `pidian/AGENTS.md`（プラグインフォルダ設定に追随）は任意の追加指示。
+ファイル本文はコンテキストに載せない。エージェントは `read_note` でノートを読む。構造・属性・リンクだけなら `get_note_metadata` / `get_vault_links`。Vision モデルでは `read_image` で PNG/JPEG/WebP を読む。システムプロンプトは `pidianSystemPrompt`（`src/infrastructure/pi/PiCredentials.ts`）。Vision でないときは `read_image` の説明を出さない。Vault の `pidian/AGENTS.md`（プラグインフォルダ設定に追随）は任意の追加指示。
 
 ---
 
@@ -186,6 +188,8 @@ User: <user text>
 | `read_image` | read | PNG / JPEG / WebP を読む。このターンだけ image ブロックを Pi に付ける。セッション jsonl には path のテキストだけ残す。復元時は付け直さない。Pi の `model.input` に `image` が無いときは `customTools` からもシステムプロンプトからも外す |
 | `search_notes` | read | `.md` / `.canvas` のファイル名 + 本文検索。MiniSearch インデックス（メモリ常駐、起動時は永続化ファイルから復元して mtime/size の差分だけ再読込）。結果の上位だけ `cachedRead()` して snippet を作る。`AGENTS.md` と制限パスは除外 |
 | `list_files` | read | 直下のみ。再帰しない。`""` / `"/"` が Vault ルート。任意の `glob` は直下の name に `*` で絞る（`**` とパス区切りは拒否） |
+| `get_note_metadata` | read | Markdown の frontmatter / tags / aliases / headings / embeds / listItems / sections / links / backlinks。本文は読まない。`fields` で項目を絞る。Adapter は `ObsidianNoteMetadata`。backlinks の個別参照は公開 API に無いので `getBacklinksForFile`（非公開。無ければ `resolvedLinks` から再構築） |
+| `get_vault_links` | read | Vault 全体の `resolvedLinks` / `unresolvedLinks`。`path` でソース絞り込み、`limit` で件数制限 |
 | `open_file` | read | 開いてアクティブにする。未オープンなら開く |
 | `workspace_tabs` | read | タブ一覧。`tabId` または `path` でフォーカス |
 | `web_search` | webSearch | Firecrawl（既定）→ DuckDuckGo。結果に `provider` を含める。Pi / Obsidian に依存しない |
@@ -445,6 +449,7 @@ UI は `AgentService` と `plugin.settings` を読む。Pi 型を import しな�
 | --- | --- | --- |
 | ツール追加 | `src/tools/`, `createPidianTools` | `infrastructure/pi` の `defineTool` 直書き、Pi 標準ツール有効化 |
 | ノート検索 | `SearchIndexService`, `MiniSearchNoteIndex`, `SearchNotesTool` | `NoteRepository.search`、本文の `storeFields`、巨大インデックスの `saveData` |
+| ノートメタデータ | `ObsidianNoteMetadata`, `GetNoteMetadataTool`, `GetVaultLinksTool` | ツールから `MetadataCache` を直接触る。Obsidian の cache 生データをそのまま返す |
 | 画像読み | `ReadImageTool`, `ImageRepository`, `prepareToolImage`, `visionModel` | Pi 標準 `read`、jsonl への base64 保存、復元時の再添付、非 Vision へのツール公開 |
 | 編集ルール | `EditMarkdownTool`, `replacements.ts`, `ObsidianNoteEditor` | editor を飛ばした `vault.modify` |
 | コンテキスト | `ContextService`, `contextTarget`, `ObsidianContextProvider` | プロンプトにノート全文を埋め込む。`activeEditor` を別タブへ流用 |
