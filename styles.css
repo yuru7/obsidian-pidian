@@ -397,6 +397,62 @@
   box-shadow: var(--shadow-s);
 }
 
+.pidian-model-menu.has-search {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.pidian-model-menu.has-search .pidian-model-menu-list {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+}
+
+.pidian-model-search {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  background: var(--background-primary);
+  border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.pidian-model-search-icon {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  color: var(--text-muted);
+}
+
+.pidian-model-search-icon svg,
+.pidian-model-search-icon .pidian-icon {
+  width: 14px;
+  height: 14px;
+}
+
+input.pidian-model-search-input {
+  flex: 1;
+  min-width: 0;
+  height: auto;
+  margin: 0;
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  color: var(--text-normal);
+  font-size: inherit;
+  cursor: text;
+}
+
+input.pidian-model-search-input:focus,
+input.pidian-model-search-input:focus-visible {
+  border: none;
+  box-shadow: none;
+}
+
 .pidian-view .pidian-model-menu-item {
   display: flex;
   align-items: center;
@@ -425,6 +481,11 @@
 .pidian-view .pidian-model-menu-item.is-selected,
 .pidian-view .pidian-session-item.is-selected {
   background-color: var(--background-modifier-hover);
+}
+
+.pidian-view .pidian-model-menu-item.is-active {
+  outline: 2px solid var(--interactive-accent);
+  outline-offset: -2px;
 }
 
 .pidian-view textarea.pidian-input {
@@ -1577,7 +1638,7 @@ button.pidian-settings-model-trigger {
   width: max-content;
   max-width: min(280px, 70vw);
   max-height: 280px;
-  overflow: auto;
+  overflow: hidden;
   background: var(--background-primary);
   border: 1px solid var(--background-modifier-border);
   border-radius: var(--radius-s);
@@ -1585,7 +1646,14 @@ button.pidian-settings-model-trigger {
 }
 
 .pidian-settings-model-select.is-open .pidian-settings-model-menu {
-  display: block;
+  display: flex;
+  flex-direction: column;
+}
+
+.pidian-settings-model-menu .pidian-model-menu-list {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
 }
 
 button.pidian-settings-model-menu-item {
@@ -1610,9 +1678,18 @@ button.pidian-settings-model-menu-item:last-child {
   border-bottom: 0;
 }
 
+button.pidian-settings-model-menu-item.is-hidden {
+  display: none;
+}
+
 button.pidian-settings-model-menu-item.is-selected,
 button.pidian-settings-model-menu-item:hover {
   background-color: var(--background-modifier-hover);
+}
+
+button.pidian-settings-model-menu-item.is-active {
+  outline: 2px solid var(--interactive-accent);
+  outline-offset: -2px;
 }
 
 .pidian-settings-model-menu-item-label {

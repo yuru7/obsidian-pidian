@@ -10,6 +10,7 @@ import { ObsidianWorkspaceNavigator } from "../infrastructure/obsidian/ObsidianW
 import { isSubscriptionLoginAbort, ObsidianSubscriptionLoginModal } from "../infrastructure/obsidian/ObsidianSubscriptionLoginModal";
 import { ENABLED_SUBSCRIPTION_PROVIDERS } from "../application/subscriptionProviders";
 import { addFavorite, moveFavorite, removeFavoriteById, type ModelFavorite } from "./modelFavorites";
+import { filterModelsByQuery, MODEL_SEARCH_DEBOUNCE_MS, clampMenuActiveIndex } from "../ui/filterModelsByQuery";
 import { parseExtraRequestBody } from "../infrastructure/pi/customRequestBody";
 import {
   createEmptyCustomProviderModel,
@@ -1462,6 +1463,78 @@ function addModelSelect(
   trigger.createSpan({ cls: "pidian-caret", attr: { "aria-hidden": "true" } });
 
   const menu = wrap.createDiv({ cls: "pidian-settings-model-menu", attr: { role: "listbox" } });
+  const search = menu.createDiv({ cls: "pidian-model-search" });
+  const searchIcon = search.createSpan({ cls: "pidian-model-search-icon" });
+  setIcon(searchIcon, "search");
+  const searchInput = search.createEl("input", {
+    type: "text",
+    cls: "pidian-model-search-input",
+    attr: {
+      placeholder: t("uiSearchModels"),
+      "aria-label": t("uiSearchModels"),
+      autocomplete: "off",
+      spellcheck: "false",
+    },
+  });
+  const list = menu.createDiv({ cls: "pidian-model-menu-list" });
+  const itemEls: HTMLElement[] = [];
+  let filterTimer = 0;
+  let activeIndex = 0;
+  const visibleItemEls = (): HTMLElement[] => itemEls.filter((el) => !el.hasClass("is-hidden"));
+  const syncActive = (index: number): void => {
+    const visible = visibleItemEls();
+    const next = clampMenuActiveIndex(index, visible.length);
+    itemEls.forEach((el) => el.toggleClass("is-active", false));
+    if (next >= 0) {
+      visible[next]?.toggleClass("is-active", true);
+      visible[next]?.scrollIntoView({ block: "nearest" });
+    }
+    activeIndex = next;
+  };
+  const applyFilter = (query: string): void => {
+    const visibleIds = new Set(filterModelsByQuery(models, query).map((model) => model.id));
+    models.forEach((model, index) => {
+      itemEls[index]?.toggleClass("is-hidden", !visibleIds.has(model.id));
+    });
+    syncActive(0);
+  };
+  const resetFilter = (): void => {
+    window.clearTimeout(filterTimer);
+    searchInput.value = "";
+    applyFilter("");
+  };
+  searchInput.addEventListener("input", () => {
+    window.clearTimeout(filterTimer);
+    filterTimer = window.setTimeout(() => applyFilter(searchInput.value), MODEL_SEARCH_DEBOUNCE_MS);
+  });
+  searchInput.addEventListener("keydown", (event) => {
+    if (event.isComposing) {
+      return;
+    }
+    if (event.key === "ArrowDown") {
+      event.preventDefault();
+      event.stopPropagation();
+      syncActive(activeIndex + 1);
+      return;
+    }
+    if (event.key === "ArrowUp") {
+      event.preventDefault();
+      event.stopPropagation();
+      syncActive(activeIndex - 1);
+      return;
+    }
+    if (event.key === "Enter") {
+      event.preventDefault();
+      event.stopPropagation();
+      visibleItemEls()[activeIndex]?.click();
+      return;
+    }
+    if (event.key === "Escape") {
+      event.preventDefault();
+      event.stopPropagation();
+      setOpen(false);
+    }
+  });
   const containsTarget = (target: EventTarget | null): boolean => {
     return target instanceof Node && wrap.contains(target);
   };
@@ -1491,9 +1564,11 @@ function addModelSelect(
     open = next;
     wrap.toggleClass("is-open", next);
     trigger.setAttr("aria-expanded", next ? "true" : "false");
+    resetFilter();
     if (next) {
       document.addEventListener("pointerdown", onPointerDown, true);
       document.addEventListener("keydown", onKeyDown);
+      searchInput.focus();
     } else {
       document.removeEventListener("pointerdown", onPointerDown, true);
       document.removeEventListener("keydown", onKeyDown);
@@ -1503,7 +1578,7 @@ function addModelSelect(
   wrap.addEventListener("focusout", onFocusOut);
 
   for (const model of models) {
-    const item = menu.createEl("button", {
+    const item = list.createEl("button", {
       cls: `pidian-settings-model-menu-item${model.id === currentValue ? " is-selected" : ""}`,
       attr: {
         type: "button",
@@ -1516,6 +1591,14 @@ function addModelSelect(
     if (model.supportsImages) {
       appendVisionBadge(item);
     }
+    itemEls.push(item);
+    item.addEventListener("pointerenter", () => {
+      const visible = visibleItemEls();
+      const index = visible.indexOf(item);
+      if (index >= 0) {
+        syncActive(index);
+      }
+    });
     item.addEventListener("click", (event) => {
       event.preventDefault();
       event.stopPropagation();

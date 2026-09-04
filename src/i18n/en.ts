@@ -123,6 +123,7 @@ export const en = {
   uiSessionFileInvalid: "This session file could not be read because it is not a valid session.",
   uiNoActiveNote: "No active file",
   uiNoModel: "No model selected",
+  uiSearchModels: "Search models...",
   uiVisionSupported: "Vision compatible",
   uiThinkingLevel: "Thinking",
   uiPlaceholder: "Ask Pidian...",

@@ -10,6 +10,7 @@ import {
   hasSelectableThinkingLevels,
 } from "../domain/agent/thinkingLevel";
 import { favoriteSelectionKey, isFavoriteSelection, toggleFavorite, type ModelFavorite } from "../settings/modelFavorites";
+import { filterModelsByQuery, MODEL_SEARCH_DEBOUNCE_MS, clampMenuActiveIndex } from "./filterModelsByQuery";
 import { useOverflowMarquee } from "./useOverflowMarquee";
 
 type MenuItem = { id: string; name: string; supportsImages?: boolean };
@@ -241,6 +242,7 @@ export function ModelSelector({
               items={sortCatalogModels(models)}
               value={model}
               placeholder={t("uiNoModel")}
+              searchable
               open={openList === "model"}
               onToggle={() => setOpenList((current) => (current === "model" ? null : "model"))}
               onSelect={changeModel}
@@ -331,24 +333,31 @@ function MarqueeMenuItem({
   id,
   name,
   selected,
+  active = false,
   supportsImages,
   onSelect,
+  onActivate,
 }: {
   id: string;
   name: string;
   selected: boolean;
+  active?: boolean;
   supportsImages?: boolean;
   onSelect: (id: string) => void;
+  onActivate?: () => void;
 }): JSX.Element {
   const marquee = useOverflowMarquee(name);
   return (
     <button
       type="button"
       role="menuitem"
-      className={`pidian-model-menu-item${selected ? " is-selected" : ""}`}
+      className={`pidian-model-menu-item${selected ? " is-selected" : ""}${active ? " is-active" : ""}`}
       title={name}
       onClick={() => onSelect(id)}
-      onPointerEnter={marquee.onPointerEnter}
+      onPointerEnter={() => {
+        onActivate?.();
+        marquee.onPointerEnter();
+      }}
       onPointerLeave={marquee.onPointerLeave}
     >
       <span ref={marquee.viewportRef} className="pidian-model-trigger-label">
@@ -425,10 +434,30 @@ function EyeIcon(): JSX.Element {
   );
 }
 
+function SearchIcon(): JSX.Element {
+  return (
+    <svg
+      className="pidian-icon"
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <circle cx="11" cy="11" r="8" />
+      <path d="m21 21-4.3-4.3" />
+    </svg>
+  );
+}
+
 function ChoiceDropdown({
   items,
   value,
   placeholder,
+  searchable = false,
   open,
   onToggle,
   onSelect,
@@ -436,13 +465,68 @@ function ChoiceDropdown({
   items: MenuItem[];
   value: string;
   placeholder: string;
+  searchable?: boolean;
   open: boolean;
   onToggle: () => void;
   onSelect: (id: string) => void;
 }): JSX.Element {
+  const searchRef = useRef<HTMLInputElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const [query, setQuery] = useState("");
+  const [debouncedQuery, setDebouncedQuery] = useState("");
+  const [activeIndex, setActiveIndex] = useState(0);
   const selectedItem = items.find((item) => item.id === value);
   const selected = selectedItem?.name ?? (value || placeholder);
   const marquee = useOverflowMarquee(selected);
+  const visibleItems = searchable ? filterModelsByQuery(items, debouncedQuery) : items;
+  const visibleKey = visibleItems.map((item) => item.id).join("\n");
+  const safeActive = searchable ? clampMenuActiveIndex(activeIndex, visibleItems.length) : -1;
+
+  useEffect(() => {
+    if (!open) {
+      setQuery("");
+      setDebouncedQuery("");
+      setActiveIndex(0);
+      return;
+    }
+    if (searchable) {
+      searchRef.current?.focus();
+    }
+  }, [open, searchable]);
+
+  useEffect(() => {
+    if (!searchable || !open) {
+      return;
+    }
+    const timer = window.setTimeout(() => setDebouncedQuery(query), MODEL_SEARCH_DEBOUNCE_MS);
+    return () => window.clearTimeout(timer);
+  }, [open, query, searchable]);
+
+  useEffect(() => {
+    if (!searchable || !open) {
+      return;
+    }
+    setActiveIndex(visibleKey === "" ? -1 : 0);
+  }, [open, searchable, visibleKey]);
+
+  useLayoutEffect(() => {
+    if (!searchable || !open || safeActive < 0) {
+      return;
+    }
+    menuRef.current?.querySelector(".pidian-model-menu-item.is-active")?.scrollIntoView({ block: "nearest" });
+  }, [open, safeActive, searchable, visibleKey]);
+
+  const moveActive = (delta: number) => {
+    setActiveIndex((current) => clampMenuActiveIndex(current + delta, visibleItems.length));
+  };
+
+  const selectActive = () => {
+    const item = visibleItems[safeActive];
+    if (item) {
+      onSelect(item.id);
+    }
+  };
+
   return (
     <span className={`pidian-select${open ? " is-open" : ""}`}>
       <button
@@ -462,17 +546,67 @@ function ChoiceDropdown({
         <span className="pidian-caret" aria-hidden="true" />
       </button>
       {open ? (
-        <div className="pidian-model-menu" role="menu">
-          {items.map((item) => (
-            <MarqueeMenuItem
-              key={item.id}
-              id={item.id}
-              name={item.name}
-              selected={item.id === value}
-              supportsImages={item.supportsImages}
-              onSelect={onSelect}
-            />
-          ))}
+        <div className={`pidian-model-menu${searchable ? " has-search" : ""}`} role="menu">
+          {searchable ? (
+            <div className="pidian-model-search">
+              <span className="pidian-model-search-icon">
+                <SearchIcon />
+              </span>
+              <input
+                ref={searchRef}
+                type="text"
+                className="pidian-model-search-input"
+                value={query}
+                placeholder={t("uiSearchModels")}
+                aria-label={t("uiSearchModels")}
+                autoComplete="off"
+                spellCheck={false}
+                onChange={(event) => setQuery(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.nativeEvent.isComposing) {
+                    return;
+                  }
+                  if (event.key === "ArrowDown") {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    moveActive(1);
+                    return;
+                  }
+                  if (event.key === "ArrowUp") {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    moveActive(-1);
+                    return;
+                  }
+                  if (event.key === "Enter") {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    selectActive();
+                    return;
+                  }
+                  if (event.key === "Escape") {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    onToggle();
+                  }
+                }}
+              />
+            </div>
+          ) : null}
+          <div ref={menuRef} className="pidian-model-menu-list">
+            {visibleItems.map((item, index) => (
+              <MarqueeMenuItem
+                key={item.id}
+                id={item.id}
+                name={item.name}
+                selected={item.id === value}
+                active={searchable && index === safeActive}
+                supportsImages={item.supportsImages}
+                onSelect={onSelect}
+                onActivate={() => setActiveIndex(index)}
+              />
+            ))}
+          </div>
         </div>
       ) : null}
     </span>
