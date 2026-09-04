@@ -1,7 +1,15 @@
-import { Scope, type App } from "obsidian";
+import { type App } from "obsidian";
 import { useLayoutEffect, useRef, type RefObject } from "react";
+import { composerOwnsKeyEvent } from "./composerHasFocus";
+import { keyIsComposing } from "./composerSendKey";
 
-/** Obsidian's default Mod+Enter (toggle checkbox) is consumed by the app keymap before editor keydown. */
+/**
+ * Obsidian consumes Mod+Enter (open link / checkbox) in the app keymap before
+ * editor keydown. Live Preview also pushes its own keymap Scope on focus, which
+ * used to bury a composer-local Scope. Register on app.scope (always on the
+ * parent chain) and intercept at the window in capture so Ctrl+Enter still
+ * sends while the composer is focused.
+ */
 export function useSendHotkeyScope<T extends HTMLElement>(
   app: App,
   targetRef: RefObject<T | null>,
@@ -19,48 +27,33 @@ export function useSendHotkeyScope<T extends HTMLElement>(
     if (!el) {
       return;
     }
-    const keymap = app.keymap;
-    const scope = new Scope(app.scope);
-    scope.register(["Mod"], "Enter", (event) => {
-      if (event.isComposing) {
+    const trySend = (event: KeyboardEvent): false | undefined => {
+      if (
+        keyIsComposing(event) ||
+        !composerOwnsKeyEvent(el, event, el.ownerDocument.activeElement)
+      ) {
         return;
       }
       onSendRef.current();
       return false;
-    });
-    let pushed = false;
-    const push = (): void => {
-      if (!pushed) {
-        keymap.pushScope(scope);
-        pushed = true;
-      }
     };
-    const pop = (): void => {
-      if (pushed) {
-        keymap.popScope(scope);
-        pushed = false;
-      }
-    };
-    const onFocusIn = (): void => {
-      push();
-    };
-    const onFocusOut = (event: FocusEvent): void => {
-      const next = event.relatedTarget;
-      if (next instanceof Node && el.contains(next)) {
+    const appHandler = app.scope.register(["Mod"], "Enter", trySend);
+    const onWindowKeyDown = (event: KeyboardEvent): void => {
+      if (event.key !== "Enter" || !(event.ctrlKey || event.metaKey)) {
         return;
       }
-      pop();
+      if (trySend(event) === false) {
+        event.preventDefault();
+        event.stopPropagation();
+      }
     };
-    el.addEventListener("focusin", onFocusIn);
-    el.addEventListener("focusout", onFocusOut);
-    const active = el.ownerDocument.activeElement;
-    if (active && el.contains(active)) {
-      push();
-    }
+    // Capture on the owner window so pop-out leaves still intercept before
+    // document-level keymap. Composer.send is a no-op after the first clear.
+    const win = el.ownerDocument.defaultView;
+    win?.addEventListener("keydown", onWindowKeyDown, true);
     return () => {
-      el.removeEventListener("focusin", onFocusIn);
-      el.removeEventListener("focusout", onFocusOut);
-      pop();
+      win?.removeEventListener("keydown", onWindowKeyDown, true);
+      app.scope.unregister(appHandler);
     };
   }, [app, sendWithCtrlEnter, targetRef]);
 }
