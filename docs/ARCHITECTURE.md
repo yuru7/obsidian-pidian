@@ -381,7 +381,7 @@ Pi のモジュール解決や stub を足すときは、バンドルゲート�
 
 UI は `AgentService` と `plugin.settings` を読む。Pi 型を import しない。モデル一覧は `plugin.modelCatalog`。
 
-チャットの内部リンクは `MarkdownRenderer` が `a.internal-link` に描画するが、カスタム `ItemView` ではクリックが付かない。エージェントは `[Note.md](folder/Note.md)` 形式の Markdown リンクを書く。`Markdown.tsx` がラベルをファイル名にし、パスを `setTooltip(..., { placement: "top" })` で出し、クリックは `WorkspaceNavigator.openFile` で開く。既存タブの検索は `leaf.getViewState().state.file`（非表示タブは `DeferredView` のため `instanceof MarkdownView` は使わない）。未オープンなら root split に新しいエディタタブを開く。`openLinkText` は使わない（アクティブなサイドバー leaf を置換しうる）。
+チャットの内部リンクは `MarkdownRenderer` が `a.internal-link` に描画するが、カスタム `ItemView` ではクリックが付かない。エージェントは `[Note.md](<folder/Note.md>)` 形式の Markdown リンクを書く（ターゲットは常に `<>` で囲む。スペース等を壊さないため）。`Markdown.tsx` がラベルをファイル名にし、パスを `setTooltip(..., { placement: "top" })` で出し、クリックは `WorkspaceNavigator.openFile` で開く。既存タブの検索は `leaf.getViewState().state.file`（非表示タブは `DeferredView` のため `instanceof MarkdownView` は使わない）。未オープンなら root split に新しいエディタタブを開く。`openLinkText` は使わない（アクティブなサイドバー leaf を置換しうる）。
 
 ---
 

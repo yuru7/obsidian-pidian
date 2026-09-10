@@ -124,8 +124,8 @@ describe("pidianSystemPrompt", () => {
     const prompt = pidianSystemPrompt(false);
     expect(prompt).toContain("Chat links (required):");
     expect(prompt).toContain("write it as a Markdown link");
-    expect(prompt).toContain("[Note.md](folder/Note.md) or [サンプル.md](サンプル.md)");
-    expect(prompt).toContain("[Note.md](<folder/My Note.md>)");
+    expect(prompt).toContain("[Note.md](<folder/Note.md>) or [サンプル.md](<サンプル.md>)");
+    expect(prompt).toContain("always wrapped in angle brackets");
     expect(prompt).toContain("Do not write that path as a Wiki link, as plain text, in 「」, or in backticks");
     expect(prompt).toContain("Do not link notes you have not confirmed exist");
     expect(prompt.indexOf("Chat links (required):")).toBeGreaterThan(
