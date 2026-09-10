@@ -319,11 +319,14 @@ export default class PidianPlugin extends Plugin {
         return;
       }
       const models = await catalog.listModels(provider);
-      const hasModel = models.some((model) => model.id === this.settings.model);
-      this.settings.provider = provider;
-      if (!hasModel) {
-        this.settings.model = models[0]?.id ?? "";
+      const nextModel = models.some((model) => model.id === this.settings.model)
+        ? this.settings.model
+        : (models[0]?.id ?? "");
+      if (this.settings.provider === provider && this.settings.model === nextModel) {
+        return;
       }
+      this.settings.provider = provider;
+      this.settings.model = nextModel;
       await this.saveSettings();
     } catch {
       // Catalog may be unavailable until credentials exist.

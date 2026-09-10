@@ -97,7 +97,7 @@ Application / Domain
 3. `initServices()`（失敗しても View / ribbon / command は登録する）
 4. `PidianView`（`VIEW_TYPE_PIDIAN = "pidian-view"`）
 5. ribbon と command（`open`, `new-chat`）。開く処理は `ensureSideLeaf(VIEW_TYPE_PIDIAN, "right")`。ユーザー操作では続けて Composer にフォーカスする
-6. layout ready 後に検索インデックスを初期化し、Vault の create/modify/delete/rename を監視する。続けて `bootstrap()`（既定モデル解決、新規チャット、古いセッション掃除）。サイドバーはここで開かない
+6. layout ready 後に検索インデックスを初期化し、Vault の create/modify/delete/rename を監視する。続けて `bootstrap()`（既定モデル解決、新規チャット、古いセッション掃除）。既定モデルはカタログに無い選択だけ先頭へ寄せ、変わったときだけ `saveData` する。サイドバーはここで開かない
 7. 初回有効化のみ `onUserEnable` でサイドバーを開く（フォーカスは移さない）。更新・再起動はワークスペースが leaf を復元する
 
 `initServices()` が作るもの:
@@ -389,7 +389,7 @@ UI は `AgentService` と `plugin.settings` を読む。Pi 型を import しな�
 
 スキーマは `src/settings/Settings.ts` の `PidianSettings`。`mergeSettings` がロード時の正規化。廃止キー（`maxEditableNotes`, `includeSelectionContext`）はここで捨てる。
 
-保存は `Plugin.saveData`。API キーはプラグイン data。Vault のノートには書かない。検索インデックスは `data.json` に入れず `{plugin install dir}/search-index.json` へ分ける。
+保存は `Plugin.saveData`。API キーはプラグイン data。Vault のノートには書かない。検索インデックスは `data.json` に入れず `{plugin install dir}/search-index.json` へ分ける。起動時の既定モデル解決は provider / model が変わったときだけ書く。OAuth の refresh 書き戻しは別経路。
 
 設定を足すとき:
 
