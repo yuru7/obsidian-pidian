@@ -133,6 +133,20 @@ describe("pidianSystemPrompt", () => {
     );
   });
 
+  it("requires markdown footnotes when the answer uses notes or the web", () => {
+    const prompt = pidianSystemPrompt(false);
+    expect(prompt).toContain("Sources (required when the answer uses notes or the web):");
+    expect(prompt).toContain("cite those sources with Markdown footnotes");
+    expect(prompt).toContain("Skip footnotes when the only source is the current file from the turn header");
+    expect(prompt).toContain("If you also used other notes or the web, footnote those and omit the current file");
+    expect(prompt).toContain("[^1]: [Note.md](<folder/Note.md>) — short quote or where in the note.");
+    expect(prompt).toContain("[^1]: [Page title](https://example.com) — short quote.");
+    expect(prompt).toContain("Do not cite notes or URLs you did not use");
+    expect(prompt.indexOf("Sources (required when the answer uses notes or the web):")).toBeGreaterThan(
+      prompt.indexOf("Chat links (required):"),
+    );
+  });
+
   it("omits read_image when the model does not support vision", () => {
     const prompt = pidianSystemPrompt(false);
     expect(prompt).not.toContain("read_image");

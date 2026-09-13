@@ -794,6 +794,79 @@ button.pidian-selection-quote:hover {
   height: 0.95em;
 }
 
+.pidian-view .pidian-markdown sup.footnote-ref,
+.pidian-view .pidian-markdown .footnotes li {
+  scroll-margin-block: 12px;
+}
+
+.pidian-view .pidian-markdown .pidian-footnote-flash {
+  background-color: var(--text-highlight-bg);
+  box-shadow: 0 0 0 3px var(--text-highlight-bg);
+  border-radius: var(--radius-s);
+}
+
+.pidian-footnote-balloon {
+  position: fixed;
+  inset: auto;
+  width: auto;
+  height: auto;
+  z-index: var(--layer-popover, 70);
+  box-sizing: border-box;
+  max-width: min(360px, calc(100vw - 16px));
+  padding: 8px 10px;
+  background: var(--background-secondary);
+  color: var(--text-normal);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--radius-s);
+  box-shadow: var(--shadow-s);
+  font-size: var(--font-ui-small);
+  line-height: 1.4;
+  overflow: visible;
+  overflow-wrap: anywhere;
+  word-break: normal;
+  white-space: normal;
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+.pidian-footnote-balloon::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 8px;
+  top: 100%;
+}
+
+.pidian-footnote-balloon.is-below::after {
+  top: auto;
+  bottom: 100%;
+}
+
+.pidian-footnote-balloon p {
+  margin: 0;
+}
+
+.pidian-footnote-balloon a.internal-link {
+  white-space: pre-wrap;
+  word-break: break-all;
+  margin-inline: 0.14em;
+}
+
+.pidian-footnote-balloon .pidian-note-link-icon {
+  display: inline-block;
+  width: 0.95em;
+  height: 0.95em;
+  margin-right: 0.07;
+  vertical-align: -0.12em;
+  color: inherit;
+}
+
+.pidian-footnote-balloon .pidian-note-link-icon svg {
+  width: 0.95em;
+  height: 0.95em;
+}
+
 .pidian-markdown :first-child {
   margin-block-start: 0;
 }

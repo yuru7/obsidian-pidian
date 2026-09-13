@@ -138,5 +138,13 @@ Prefer concise answers in the user's language.
 Chat links (required):
 - When naming a note that exists (a path from a tool result or the turn header), write it as a Markdown link. The label is the file name with extension. The target is that exact vault-relative path with extension, always wrapped in angle brackets so spaces and other characters stay intact, such as [Note.md](<folder/Note.md>) or [サンプル.md](<サンプル.md>). Users can click it.
 - Do not write that path as a Wiki link, as plain text, in 「」, or in backticks. [[folder/Note.md]], 「サンプル.md」, and \`[Note.md](<folder/Note.md>)\` are not clickable.
-- Do not link notes you have not confirmed exist.`;
+- Do not link notes you have not confirmed exist.
+
+Sources (required when the answer uses notes or the web):
+- If the reply draws on a vault note you read (read_note, search_notes, get_note_metadata) or a web page (web_search, fetch_url), cite those sources with Markdown footnotes.
+- Skip footnotes when the only source is the current file from the turn header. The user already knows that is the source. If you also used other notes or the web, footnote those and omit the current file.
+- Put \`[^n]\` right after the claim. List definitions at the end of the reply. Reuse the same number when citing the same source again.
+- Note: \`[^1]: [Note.md](<folder/Note.md>) — short quote or where in the note.\`
+- Web: \`[^1]: [Page title](https://example.com) — short quote.\`
+- Do not cite notes or URLs you did not use. Do not invent footnotes.`;
 }

@@ -2,6 +2,7 @@ import { useEffect, useRef, type JSX } from "react";
 import { Component, MarkdownRenderer, Notice, setIcon, setTooltip, type App } from "obsidian";
 import { t } from "../i18n";
 import { ObsidianWorkspaceNavigator } from "../infrastructure/obsidian/ObsidianWorkspaceNavigator";
+import { bindChatFootnotes } from "./chatFootnote";
 import {
   internalLinktextFromAttributes,
   linkpathFromLinktext,
@@ -20,12 +21,17 @@ export function Markdown({ app, markdown }: { app: App; markdown: string }): JSX
     const component = new Component();
     component.load();
     const workspace = new ObsidianWorkspaceNavigator(app);
-    // MarkdownRenderer does not bind clicks in a custom ItemView. Delegate on the
-    // container so links still work after each stream re-render.
-    const onClick = (event: MouseEvent) => {
+    const openInternalLink = (event: MouseEvent) => {
       handleInternalLinkClick(event, app, workspace);
     };
-    el.addEventListener("click", onClick);
+    // MarkdownRenderer does not bind clicks in a custom ItemView. Delegate on the
+    // container so links and footnote jumps still work after each stream re-render.
+    el.addEventListener("click", openInternalLink);
+    const unbindFootnotes = bindChatFootnotes(el, {
+      createBalloon: () => createDiv({ cls: "pidian-footnote-balloon pidian-markdown" }),
+      decorateBalloon: decorateInternalNoteLinks,
+      onBalloonClick: openInternalLink,
+    });
     let cancelled = false;
     const frame = window.requestAnimationFrame(() => {
       if (cancelled) {
@@ -42,7 +48,8 @@ export function Markdown({ app, markdown }: { app: App; markdown: string }): JSX
     return () => {
       cancelled = true;
       window.cancelAnimationFrame(frame);
-      el.removeEventListener("click", onClick);
+      el.removeEventListener("click", openInternalLink);
+      unbindFootnotes();
       component.unload();
     };
   }, [app, markdown]);
@@ -75,6 +82,9 @@ function decorateInternalNoteLinks(root: HTMLElement): void {
     if (path) {
       setTooltip(node, path, { placement: "top" });
     }
+  }
+  for (const node of root.querySelectorAll("a.footnote-link, a.footnote-backref")) {
+    node.removeAttribute("title");
   }
 }
 
