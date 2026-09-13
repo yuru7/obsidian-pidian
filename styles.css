@@ -829,6 +829,12 @@ button.pidian-selection-quote:hover {
   -webkit-user-select: text;
 }
 
+.pidian-footnote-balloon.is-measuring {
+  visibility: hidden;
+  left: 0;
+  top: 0;
+}
+
 .pidian-footnote-balloon::after {
   content: "";
   position: absolute;

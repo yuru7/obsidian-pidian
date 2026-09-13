@@ -184,7 +184,7 @@ describe("bindChatFootnotes", () => {
       scrolled.push(row);
     };
     const unbind = bindChatFootnotes(root, {
-      createBalloon: () => document.createElement("div"),
+      createBalloon: () => createTestBalloon(document),
       decorateBalloon: () => undefined,
       onBalloonClick: () => undefined,
       host: document.body,
@@ -204,7 +204,7 @@ describe("bindChatFootnotes", () => {
       scrolled.push(secondRef);
     };
     const unbind = bindChatFootnotes(root, {
-      createBalloon: () => document.createElement("div"),
+      createBalloon: () => createTestBalloon(document),
       decorateBalloon: () => undefined,
       onBalloonClick: () => undefined,
       host: document.body,
@@ -221,7 +221,7 @@ describe("bindChatFootnotes", () => {
     stubBox(root.querySelector("#fnref-1-aaa a.footnote-link") as HTMLElement);
     const decorated: HTMLElement[] = [];
     const unbind = bindChatFootnotes(root, {
-      createBalloon: () => document.createElement("div"),
+      createBalloon: () => createTestBalloon(document),
       decorateBalloon: (balloon) => {
         decorated.push(balloon);
       },
@@ -243,7 +243,7 @@ describe("bindChatFootnotes", () => {
     const { root, document } = renderMarkdown();
     stubBox(root.querySelector("#fnref-1-aaa a.footnote-link") as HTMLElement);
     const unbind = bindChatFootnotes(root, {
-      createBalloon: () => document.createElement("div"),
+      createBalloon: () => createTestBalloon(document),
       decorateBalloon: () => undefined,
       onBalloonClick: () => undefined,
       host: document.body,
@@ -259,6 +259,14 @@ function renderMarkdown(): { root: HTMLElement; document: Document } {
   const { document } = parseHTML(`<body>${MARKDOWN_HTML}</body>`);
   const root = document.querySelector(".pidian-markdown") as HTMLElement;
   return { root, document };
+}
+
+function createTestBalloon(document: Document): HTMLElement {
+  const el = document.createElement("div") as HTMLElement;
+  el.setCssStyles = (styles) => {
+    Object.assign(el.style, styles);
+  };
+  return el;
 }
 
 function clickEvent(document: Document): Event {

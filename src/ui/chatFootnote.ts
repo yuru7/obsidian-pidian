@@ -323,9 +323,9 @@ function relatedTargetOf(event: Event): EventTarget | null {
 
 function positionBalloon(balloon: HTMLElement, anchor: HTMLElement, win: Window): void {
   balloon.classList.remove("is-below");
-  balloon.style.visibility = "hidden";
-  balloon.style.left = "0px";
-  balloon.style.top = "0px";
+  balloon.classList.add("is-measuring");
+  balloon.style.removeProperty("left");
+  balloon.style.removeProperty("top");
   const rect = anchor.getBoundingClientRect();
   const width = balloon.offsetWidth;
   const height = balloon.offsetHeight;
@@ -338,9 +338,11 @@ function positionBalloon(balloon: HTMLElement, anchor: HTMLElement, win: Window)
     top = Math.min(rect.bottom + FOOTNOTE_BALLOON_GAP_PX, vh - height - FOOTNOTE_BALLOON_GAP_PX);
     balloon.classList.add("is-below");
   }
-  balloon.style.left = `${Math.round(left)}px`;
-  balloon.style.top = `${Math.round(Math.max(FOOTNOTE_BALLOON_GAP_PX, top))}px`;
-  balloon.style.visibility = "visible";
+  balloon.setCssStyles({
+    left: `${Math.round(left)}px`,
+    top: `${Math.round(Math.max(FOOTNOTE_BALLOON_GAP_PX, top))}px`,
+  });
+  balloon.classList.remove("is-measuring");
 }
 
 function cssEscape(id: string): string {
