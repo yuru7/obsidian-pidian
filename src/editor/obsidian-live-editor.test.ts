@@ -173,7 +173,48 @@ describe("createObsidianLiveEditor", () => {
     editor.destroy();
     expect(instance?.unloaded).toBe(true);
     expect(host.listeners.get("input")?.size ?? 0).toBe(0);
+    expect(host.listeners.get("paste")?.size ?? 0).toBe(0);
+    expect(host.listeners.get("keyup")?.size ?? 0).toBe(0);
     expect(host.className).not.toContain("has-live-editor");
+  });
+
+  it("emits onChange after paste when CodeMirror skips the native input event", () => {
+    vi.useFakeTimers();
+    try {
+      const host = createHost();
+      const onChange = vi.fn();
+      const editor = createObsidianLiveEditor({} as App, host as unknown as HTMLElement, { onChange });
+      const instance = FakeMarkdownEditor.instances[0];
+      expect(instance).toBeDefined();
+      instance!.value = "pasted";
+      for (const listener of host.listeners.get("paste") ?? []) {
+        if (typeof listener === "function") {
+          listener(new Event("paste"));
+        }
+      }
+      expect(onChange).not.toHaveBeenCalled();
+      vi.runAllTimers();
+      expect(onChange).toHaveBeenCalledWith("pasted");
+      editor.destroy();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("emits onChange on keyup so deleting the last character can restore empty", () => {
+    const host = createHost();
+    const onChange = vi.fn();
+    const editor = createObsidianLiveEditor({} as App, host as unknown as HTMLElement, { onChange });
+    const instance = FakeMarkdownEditor.instances[0];
+    expect(instance).toBeDefined();
+    instance!.value = "";
+    for (const listener of host.listeners.get("keyup") ?? []) {
+      if (typeof listener === "function") {
+        listener(new Event("keyup"));
+      }
+    }
+    expect(onChange).toHaveBeenCalledWith("");
+    editor.destroy();
   });
 
   it("throws when the constructor is unavailable", () => {

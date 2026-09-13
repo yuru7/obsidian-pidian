@@ -138,5 +138,28 @@ describe("createTextareaEditor", () => {
     editor.destroy();
     expect(host.children).toHaveLength(0);
     expect(textarea.listeners.get("input")?.size ?? 0).toBe(0);
+    expect(textarea.listeners.get("paste")?.size ?? 0).toBe(0);
+  });
+
+  it("emits onChange after paste when the native input event is skipped", () => {
+    vi.useFakeTimers();
+    try {
+      const host = createFakeEl();
+      const onChange = vi.fn();
+      const editor = createTextareaEditor(host as unknown as HTMLElement, { onChange });
+      const textarea = textareaOf(host);
+      textarea.value = "pasted";
+      for (const listener of textarea.listeners.get("paste") ?? []) {
+        if (typeof listener === "function") {
+          listener(new Event("paste"));
+        }
+      }
+      expect(onChange).not.toHaveBeenCalled();
+      vi.runAllTimers();
+      expect(onChange).toHaveBeenCalledWith("pasted");
+      editor.destroy();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

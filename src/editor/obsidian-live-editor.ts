@@ -1,5 +1,6 @@
 import type { App } from "obsidian";
 import type { ChatInputEditor, ChatInputEditorOptions } from "./chat-input-editor";
+import { listenClipboardContentChange } from "./clipboardContentChange";
 import {
   createMarkdownEditorOwner,
   getMarkdownEditorConstructor,
@@ -54,10 +55,11 @@ function wrapLiveEditor(
   containerEl.addClass(LIVE_CLASS);
   applyDisabled(containerEl, disabled);
 
-  const onInput = (): void => {
+  const emit = (): void => {
     options.onChange?.(readValue(instance));
   };
-  containerEl.addEventListener("input", onInput);
+  containerEl.addEventListener("input", emit);
+  const stopClipboard = listenClipboardContentChange(containerEl, emit);
 
   const editor: ChatInputEditor = {
     getValue() {
@@ -97,7 +99,8 @@ function wrapLiveEditor(
       options.onChange?.("");
     },
     destroy() {
-      containerEl.removeEventListener("input", onInput);
+      containerEl.removeEventListener("input", emit);
+      stopClipboard();
       containerEl.removeClass(LIVE_CLASS);
       disposeInstance(instance);
       try {

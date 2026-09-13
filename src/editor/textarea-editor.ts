@@ -1,5 +1,6 @@
 import { fitTextarea } from "../ui/fitTextarea";
 import type { ChatInputEditor, ChatInputEditorOptions } from "./chat-input-editor";
+import { listenClipboardContentChange } from "./clipboardContentChange";
 
 const MIN_ROWS = 2;
 const MAX_ROWS = 8;
@@ -27,6 +28,7 @@ export function createTextareaEditor(
   };
   textarea.addEventListener("input", onInput);
   textarea.addEventListener("focus", () => tryFit(textarea));
+  const stopClipboard = listenClipboardContentChange(textarea, onInput);
 
   return {
     getValue() {
@@ -67,6 +69,7 @@ export function createTextareaEditor(
     },
     destroy() {
       textarea.removeEventListener("input", onInput);
+      stopClipboard();
       containerEl.removeClass("has-textarea");
       try {
         containerEl.empty();
