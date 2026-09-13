@@ -2,7 +2,7 @@ import type { AgentEngine } from "../domain/agent/AgentEngine";
 import type { AgentEvent } from "../domain/agent/AgentEvent";
 import type { AgentSession } from "../domain/agent/AgentSession";
 import type { PidianTool } from "../domain/tools/PidianTool";
-import type { PidianMessage, PidianSession } from "../domain/sessions/PidianSession";
+import type { PidianImageAttachment, PidianMessage, PidianSession } from "../domain/sessions/PidianSession";
 import { DEFAULT_THINKING_LEVEL } from "../domain/agent/thinkingLevel";
 import {
   applyAssistantError,
@@ -163,25 +163,32 @@ export class AgentService {
     this.notify();
   }
 
-  async editAndResend(messageId: string, text: string): Promise<void> {
+  async editAndResend(
+    messageId: string,
+    text: string,
+    attachments?: readonly PidianImageAttachment[],
+  ): Promise<void> {
     const trimmed = text.trim();
-    if (!trimmed) {
-      return;
-    }
     if (this.streaming) {
       throw new Error("The agent is already responding.");
     }
     const session = this.requireSession();
+    const original = session.messages.find((message) => message.id === messageId);
+    const images = attachments ?? original?.attachments;
+    if (!trimmed && (images?.length ?? 0) === 0) {
+      return;
+    }
     this.sessions.truncateBefore(session, messageId);
     this.notify();
     await this.recreateAgent();
     await this.sessions.save(session);
-    await this.send(trimmed);
+    await this.send(trimmed, images);
   }
 
-  async send(text: string): Promise<void> {
+  async send(text: string, attachments?: readonly PidianImageAttachment[]): Promise<void> {
     const trimmed = text.trim();
-    if (!trimmed) {
+    const images = cloneAttachments(attachments);
+    if (!trimmed && !images) {
       return;
     }
     const slot = this.requireSlot();
@@ -207,6 +214,7 @@ export class AgentService {
       role: "user",
       text: trimmed,
       ...(snapshot ? { context: { ...snapshot } } : {}),
+      ...(images ? { attachments: images } : {}),
       createdAt: new Date().toISOString(),
     };
     this.sessions.appendMessage(session, userMessage);
@@ -226,6 +234,7 @@ export class AgentService {
       await agent.prompt({
         text: formatAgentPrompt(trimmed, snapshot, userMessage.createdAt),
         context: snapshot,
+        ...(images ? { images: images.map(({ mimeType, data }) => ({ mimeType, data })) } : {}),
       });
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
@@ -554,6 +563,15 @@ export class AgentService {
       listener();
     }
   }
+}
+
+function cloneAttachments(
+  attachments: readonly PidianImageAttachment[] | undefined,
+): PidianImageAttachment[] | undefined {
+  if (!attachments || attachments.length === 0) {
+    return undefined;
+  }
+  return attachments.map((attachment) => ({ ...attachment }));
 }
 
 function oldestLiveId(live: Map<string, SessionSlot>, except: string): string | undefined {

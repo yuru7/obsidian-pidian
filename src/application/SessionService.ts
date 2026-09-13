@@ -62,6 +62,8 @@ export class SessionService {
       messages: session.messages.map((message) => ({
         id: message.id,
         role: message.role,
+        // User attachments stay on PidianSession for the chat UI. Restored Pi
+        // sessions omit them, same as read_image bytes.
         text:
           message.role === "user"
             ? formatAgentPrompt(message.text, message.context, message.createdAt)

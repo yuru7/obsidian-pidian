@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { IMAGE_MIME_PNG } from "../../application/imageFile";
 import { PNG_1X1 } from "../../application/imageFile.test";
-import { bytesToBase64, MAX_INLINE_IMAGE_BYTES, prepareInlineImage, toPiToolContent } from "./prepareToolImage";
+import { bytesToBase64, MAX_INLINE_IMAGE_BYTES, prepareInlineImage, toPiPromptImages, toPiToolContent } from "./prepareToolImage";
 
 describe("toPiToolContent", () => {
   it("maps text-only results", async () => {
@@ -46,6 +46,20 @@ describe("toPiToolContent", () => {
         text: `${stub}\n[Current model does not support images. The image was omitted.]`,
       },
     ]);
+  });
+});
+
+describe("toPiPromptImages", () => {
+  it("prepares pasted attachments as Pi image blocks", async () => {
+    await expect(
+      toPiPromptImages([{ mimeType: IMAGE_MIME_PNG, data: bytesToBase64(PNG_1X1) }]),
+    ).resolves.toEqual([{ type: "image", data: bytesToBase64(PNG_1X1), mimeType: IMAGE_MIME_PNG }]);
+  });
+
+  it("omits attachments that cannot be inlined", async () => {
+    const bytes = new Uint8Array(Math.ceil((MAX_INLINE_IMAGE_BYTES * 3) / 4) + 16);
+    bytes.set([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+    await expect(toPiPromptImages([{ mimeType: IMAGE_MIME_PNG, data: bytesToBase64(bytes) }])).resolves.toEqual([]);
   });
 });
 

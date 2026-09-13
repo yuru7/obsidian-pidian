@@ -1,7 +1,8 @@
 import { useEffect, useState, type JSX } from "react";
 import type { App } from "obsidian";
 import { t } from "../i18n";
-import { contentBlocks, workItems, type PidianMessage } from "../domain/sessions/PidianSession";
+import { contentBlocks, workItems, type PidianImageAttachment, type PidianMessage } from "../domain/sessions/PidianSession";
+import { AttachmentStrip } from "./AttachmentStrip";
 import { Markdown } from "./Markdown";
 import { shouldStartMessageEdit } from "./shouldStartMessageEdit";
 import { Thinking } from "./Thinking";
@@ -19,6 +20,7 @@ export function Message({
   editing = false,
   editDisabled = false,
   sendWithCtrlEnter = false,
+  supportsImages = false,
   editToolbar,
   onStartEdit,
   onCancelEdit,
@@ -32,10 +34,11 @@ export function Message({
   editing?: boolean;
   editDisabled?: boolean;
   sendWithCtrlEnter?: boolean;
+  supportsImages?: boolean;
   editToolbar?: JSX.Element;
   onStartEdit?: (messageId: string) => void;
   onCancelEdit?: () => void;
-  onResend?: (messageId: string, text: string) => void;
+  onResend?: (messageId: string, text: string, attachments: PidianImageAttachment[]) => void;
 }): JSX.Element {
   const name = message.role === "user" ? t("uiYou") : "Pidian";
   const assistant = message.role === "assistant";
@@ -92,15 +95,22 @@ export function Message({
               <UserMessageEditor
                 app={app}
                 initialText={message.text}
+                initialAttachments={message.attachments ?? []}
                 sendWithCtrlEnter={sendWithCtrlEnter}
+                supportsImages={supportsImages}
                 toolbar={editToolbar}
-                onSubmit={(text) => onResend?.(message.id, text)}
+                onSubmit={(text, attachments) => onResend?.(message.id, text, attachments)}
                 onCancel={() => onCancelEdit?.()}
               />
             )
-          : message.text
-            ? <Markdown app={app} markdown={message.text} />
-            : null}
+          : (
+              <>
+                {user && message.attachments?.length ? (
+                  <AttachmentStrip app={app} attachments={message.attachments} />
+                ) : null}
+                {message.text ? <Markdown app={app} markdown={message.text} /> : null}
+              </>
+            )}
       {assistant && message.text ? (
         <div className="pidian-message-actions">
           <CopyButton markdown={message.text} />

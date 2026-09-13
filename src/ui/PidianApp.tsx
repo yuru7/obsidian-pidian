@@ -12,6 +12,7 @@ import { OpenActiveSessionButton } from "./OpenActiveSessionButton";
 import { SessionSelector } from "./SessionSelector";
 import { Spinner } from "./Thinking";
 import { TokenUsageDisplay } from "./TokenUsageDisplay";
+import { useModelSupportsImages } from "./useModelSupportsImages";
 import { useOverflowMarquee } from "./useOverflowMarquee";
 
 function fileNameFromPath(notePath: string): string {
@@ -24,6 +25,7 @@ export function PidianApp({ plugin, keymapScope }: { plugin: PidianPlugin; keyma
   const composerRef = useRef<ComposerHandle>(null);
   const [nearBottom, setNearBottom] = useState(true);
   const sessionId = plugin.agentService?.getSession()?.id;
+  const supportsImages = useModelSupportsImages(plugin);
 
   useEffect(() => {
     const unsubAgent = plugin.agentService?.subscribe(() => rerender());
@@ -97,6 +99,7 @@ export function PidianApp({ plugin, keymapScope }: { plugin: PidianPlugin; keyma
         forkDisabled={streaming}
         streaming={streaming}
         sendWithCtrlEnter={plugin.settings.sendWithCtrlEnter}
+        supportsImages={supportsImages}
         editDisabled={streaming || agent.isCompacting() || !session?.provider || !session?.model}
         editToolbar={<ModelSelector plugin={plugin} onChange={rerender} />}
         onNearBottomChange={setNearBottom}
@@ -105,8 +108,8 @@ export function PidianApp({ plugin, keymapScope }: { plugin: PidianPlugin; keyma
             console.error("Pidian: failed to fork session", error);
           });
         }}
-        onResend={(messageId, text) => {
-          void agent.editAndResend(messageId, text).catch((error: unknown) => {
+        onResend={(messageId, text, attachments) => {
+          void agent.editAndResend(messageId, text, attachments).catch((error: unknown) => {
             console.error("Pidian: failed to resend message", error);
           });
         }}
@@ -161,9 +164,10 @@ export function PidianApp({ plugin, keymapScope }: { plugin: PidianPlugin; keyma
           keymapScope={keymapScope}
           disabled={!session || !session.provider || !session.model}
           streaming={streaming}
+          supportsImages={supportsImages}
           toolbar={<ModelSelector plugin={plugin} onChange={rerender} />}
-          onSend={(text) => {
-            void agent.send(text);
+          onSend={(text, attachments) => {
+            void agent.send(text, attachments);
           }}
           onAbort={() => {
             void agent.abort();

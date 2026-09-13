@@ -1,9 +1,14 @@
 import { useImperativeHandle, useLayoutEffect, useRef, useState, type JSX, type Ref } from "react";
 import { setTooltip, type Scope } from "obsidian";
+import type { PidianImageAttachment } from "../domain/sessions/PidianSession";
 import { createChatInputEditor, type ChatInputEditor } from "../editor/chat-input-editor";
 import { t } from "../i18n";
 import type PidianPlugin from "../main";
+import { AttachmentStrip } from "./AttachmentStrip";
+import { clipboardHasPlainText, imageBlobsFromClipboard } from "./clipboardImage";
+import { attachmentFromClipboardBlob } from "./clipboardImageConvert";
 import { composerInputKeyAction } from "./composerInputKey";
+import { composerHasSendableContent, composerVisionBlocksSend } from "./composerSendState";
 import { insertQuoteIntoComposer } from "./quoteSelection";
 import { useAbortHotkeyScope } from "./useAbortHotkeyScope";
 import { useSendHotkeyScope } from "./useSendHotkeyScope";
@@ -17,6 +22,7 @@ export function Composer({
   keymapScope,
   disabled,
   streaming,
+  supportsImages,
   toolbar,
   onSend,
   onAbort,
@@ -26,23 +32,30 @@ export function Composer({
   keymapScope: Scope | null;
   disabled: boolean;
   streaming: boolean;
+  supportsImages: boolean;
   toolbar?: JSX.Element;
-  onSend: (text: string) => void;
+  onSend: (text: string, attachments: PidianImageAttachment[]) => void;
   onAbort: () => void;
   ref?: Ref<ComposerHandle>;
 }): JSX.Element {
   const [empty, setEmpty] = useState(true);
+  const [attachments, setAttachments] = useState<PidianImageAttachment[]>([]);
+  const composerRef = useRef<HTMLDivElement>(null);
   const hostRef = useRef<HTMLDivElement>(null);
   const editorRef = useRef<ChatInputEditor | null>(null);
   const draftRef = useRef("");
+  const attachmentsRef = useRef(attachments);
   const disabledRef = useRef(disabled);
   const streamingRef = useRef(streaming);
+  const supportsImagesRef = useRef(supportsImages);
   const sendWithCtrlEnterRef = useRef(plugin.settings.sendWithCtrlEnter);
   const onSendRef = useRef(onSend);
   const onAbortRef = useRef(onAbort);
   const editMode = plugin.settings.composerEditMode;
+  attachmentsRef.current = attachments;
   disabledRef.current = disabled;
   streamingRef.current = streaming;
+  supportsImagesRef.current = supportsImages;
   sendWithCtrlEnterRef.current = plugin.settings.sendWithCtrlEnter;
   onSendRef.current = onSend;
   onAbortRef.current = onAbort;
@@ -53,13 +66,21 @@ export function Composer({
       return;
     }
     const trimmed = editor.getValue().trim();
-    if (!trimmed || disabledRef.current || streamingRef.current) {
+    const images = attachmentsRef.current;
+    if (disabledRef.current || streamingRef.current) {
+      return;
+    }
+    if (composerVisionBlocksSend(images.length, supportsImagesRef.current)) {
+      return;
+    }
+    if (!composerHasSendableContent(trimmed, images.length)) {
       return;
     }
     editor.clear();
     draftRef.current = "";
     setEmpty(true);
-    onSendRef.current(trimmed);
+    setAttachments([]);
+    onSendRef.current(trimmed, images);
   };
 
   const sendRef = useRef(send);
@@ -82,11 +103,49 @@ export function Composer({
   }));
 
   useSendHotkeyScope(plugin.app, hostRef, plugin.settings.sendWithCtrlEnter, send);
-  useAbortHotkeyScope(keymapScope, streaming, () => editorRef.current?.getValue().length === 0, onAbort);
+  useAbortHotkeyScope(
+    keymapScope,
+    streaming,
+    () => editorRef.current?.getValue().length === 0 && attachmentsRef.current.length === 0,
+    onAbort,
+  );
 
   useLayoutEffect(() => {
     editorRef.current?.setDisabled(disabled);
   }, [disabled]);
+
+  useLayoutEffect(() => {
+    const root = composerRef.current;
+    if (!root) {
+      return;
+    }
+    const handlePaste = (event: ClipboardEvent): void => {
+      const blobs = imageBlobsFromClipboard(event.clipboardData);
+      if (blobs.length === 0) {
+        return;
+      }
+      if (!clipboardHasPlainText(event.clipboardData)) {
+        event.preventDefault();
+        event.stopPropagation();
+      }
+      void (async () => {
+        const next: PidianImageAttachment[] = [];
+        for (const blob of blobs) {
+          const attachment = await attachmentFromClipboardBlob(blob);
+          if (attachment) {
+            next.push(attachment);
+          }
+        }
+        if (next.length > 0) {
+          setAttachments((current) => [...current, ...next]);
+        }
+      })();
+    };
+    root.addEventListener("paste", handlePaste, true);
+    return () => {
+      root.removeEventListener("paste", handlePaste, true);
+    };
+  }, []);
 
   useLayoutEffect(() => {
     const host = hostRef.current;
@@ -119,7 +178,7 @@ export function Composer({
       const action = composerInputKeyAction(event, {
         sendWithCtrlEnter: sendWithCtrlEnterRef.current,
         streaming: streamingRef.current,
-        empty: current.getValue().length === 0,
+        empty: current.getValue().length === 0 && attachmentsRef.current.length === 0,
       });
       if (action === "abort") {
         event.preventDefault();
@@ -159,9 +218,15 @@ export function Composer({
   }, [plugin, editMode]);
 
   const placeholder = streaming ? t("uiPlaceholderStop") : t("uiPlaceholder");
+  const visionBlocked = composerVisionBlocksSend(attachments.length, supportsImages);
 
   return (
-    <div className="pidian-composer">
+    <div ref={composerRef} className="pidian-composer">
+      <AttachmentStrip
+        app={plugin.app}
+        attachments={attachments}
+        onRemove={(id) => setAttachments((current) => current.filter((item) => item.id !== id))}
+      />
       <div className={empty ? "pidian-composer-field is-empty" : "pidian-composer-field"}>
         <div
           ref={hostRef}
@@ -181,8 +246,12 @@ export function Composer({
             <StopIcon />
           </SendActionButton>
         ) : (
-          <SendActionButton label={t("uiSend")} disabled={disabled} onClick={send}>
-            <SendIcon />
+          <SendActionButton
+            label={visionBlocked ? t("uiVisionRequiredToSend") : t("uiSend")}
+            disabled={disabled || visionBlocked}
+            onClick={send}
+          >
+            {visionBlocked ? <WarningIcon /> : <SendIcon />}
           </SendActionButton>
         )}
       </div>
@@ -201,7 +270,7 @@ function SendActionButton({
   onClick: () => void;
   children: JSX.Element;
 }): JSX.Element {
-  const ref = useRef<HTMLButtonElement>(null);
+  const ref = useRef<HTMLSpanElement>(null);
 
   useLayoutEffect(() => {
     const el = ref.current;
@@ -211,15 +280,16 @@ function SendActionButton({
   }, [label]);
 
   return (
-    <button
-      ref={ref}
-      className="pidian-button pidian-button-primary pidian-send-button"
-      disabled={disabled}
-      onClick={onClick}
-      aria-label={label}
-    >
-      {children}
-    </button>
+    <span ref={ref} className="pidian-send-button-wrap">
+      <button
+        className="pidian-button pidian-button-primary pidian-send-button"
+        disabled={disabled}
+        onClick={onClick}
+        aria-label={label}
+      >
+        {children}
+      </button>
+    </span>
   );
 }
 
@@ -251,6 +321,26 @@ function SendIcon(): JSX.Element {
       aria-hidden="true"
     >
       <polygon points="21.368 12.001 3 21.609 3 14 11 12 3 9.794 3 2.394" />
+    </svg>
+  );
+}
+
+function WarningIcon(): JSX.Element {
+  return (
+    <svg
+      className="pidian-icon"
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3" />
+      <path d="M12 9v4" />
+      <path d="M12 17h.01" />
     </svg>
   );
 }

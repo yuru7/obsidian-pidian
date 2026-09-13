@@ -27,12 +27,26 @@ export interface PidianTextBlock {
 
 export type PidianContentBlock = PidianWorkBlock | PidianTextBlock;
 
+/** Clipboard / composer image stored as base64 in the session file. */
+export interface PidianImageAttachment {
+  id: string;
+  mimeType: string;
+  /** Raw base64 payload without a data-URL prefix. */
+  data: string;
+}
+
+export function imageAttachmentDataUrl(attachment: PidianImageAttachment): string {
+  return `data:${attachment.mimeType};base64,${attachment.data}`;
+}
+
 export interface PidianMessage {
   id: string;
   role: "user" | "assistant";
   text: string;
   /** Active file location when this user turn was sent. Line range is omitted when the file has no cursor. Columns are present only for a non-empty selection. Missing when none, or on older sessions. */
   context?: ContextSnapshot;
+  /** Pasted images for this user turn. Shown in the chat UI; omitted when hydrating Pi. */
+  attachments?: PidianImageAttachment[];
   thinking?: string;
   toolCalls?: PidianToolCall[];
   usage?: TokenUsage;

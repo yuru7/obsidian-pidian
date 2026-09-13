@@ -118,6 +118,7 @@ pnpm test --watch
 
 - [ ] Sidebar 起動
 - [ ] Chat 送信
+- [ ] クリップボード画像の貼り付け（Vision 対応 / 非対応）
 - [ ] Streaming 表示
 - [ ] Model 切替
 - [ ] 現在ファイル Context（Markdown の行、Canvas / PNG / JPEG / WebP は path のみ）

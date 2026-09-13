@@ -127,16 +127,17 @@ UI は `plugin.agentService.subscribe` と `plugin.subscribeSettings` で再描�
 
 ```text
 Composer
-  → AgentService.send(text)
+  → AgentService.send(text, attachments?)
       → 未作成なら AgentSession を作る（開いただけでは作らない）。クエリしたセッションを LRU 最大 3 件で保持
       → ContextService.snapshot()（現在ファイルの path。MarkdownView なら 1-based 行範囲。テキスト選択中なら列位置も。Canvas、PNG/JPEG/WebP、MarkdownView ではない .md（Excalidraw など）は path のみ。本文・画像バイトは入れない）
-      → ユーザー発言 + 空の assistant を PidianSession に追加して保存
-      → AgentSession.prompt({ text: formatAgentPrompt(...), context })
+      → ユーザー発言 + 空の assistant を PidianSession に追加して保存。貼り付け画像はユーザーメッセージの `attachments` に Base64 で残す
+      → AgentSession.prompt({ text: formatAgentPrompt(...), context, images })
           → PiAgentAdapter（Pi イベント）
               → PiEventMapper → AgentEvent
                   → AgentService が最新 assistant を更新して notify
                       → Chat がストリーム表示
   → 送信中は停止ボタン、または Pidian ペインがフォーカスかつ Composer が空なら Esc で abort。Composer のプレースホルダは「Esc で停止」
+  → クリップボードが画像なら Composer への貼り付けで添付する。Vision 非対応モデルでは送信ボタンを無効化し、警告アイコンとツールチップを出す
 ```
 
 ユーザーメッセージをクリックすると同じセッション内で編集再送信できる。確定すると `AgentService.editAndResend` が当該メッセージ以降を削除し（1つ前の会話まで保持）、Agent を作り直してから `send` する。Esc は編集キャンセル。送信キーは Composer と同じ（Enter または Ctrl+Enter）。
@@ -160,7 +161,7 @@ Composer
 - `compaction_start` / `compacted` / `compaction_failed`
 - `error`
 
-`AgentSession` の操作は `prompt` / `abort` / `subscribe` / `dispose` のみ。
+`AgentSession` の操作は `prompt` / `abort` / `subscribe` / `dispose` のみ。`prompt` の任意 `images` は当該ターンだけ Pi に渡す。
 
 プロンプト本文の形（`formatAgentPrompt`）:
 
@@ -173,6 +174,8 @@ User: <user text>
 時刻は `createdAt`（UTC）から、送信時のマシンローカルオフセット付き ISO 8601（秒まで。例 `2026-08-31T17:31:00+09:00`）。`LINE_RANGE` は Markdown エディタのカーソルなら `L12`、テキスト選択なら `L3:C4-L5:C3`（1-based。開始列は inclusive、終了列は exclusive でエディタの from/to に一致）。列が無い古い選択は `L13-L15`。Canvas、PNG/JPEG/WebP、Excalidraw などカーソルが取れないファイルは path のみ。ファイルが無いときは timestamp と `User: <user text>` のみ。
 
 ユーザー発言の `text` は本文だけ保存する。ヘッダ（時刻・path）は保存しない。送信時の `ContextSnapshot`（path と、Markdown エディタなら行範囲。テキスト選択なら列位置も。本文は入れない）はユーザーメッセージの任意フィールド `context` に残す。再開・モデル変更で Pi を作り直すとき、`toConversation` が `formatAgentPrompt` で当時のヘッダを復元する。`context` が無い古い保存は timestamp と `User: <user text>` のみ。
+
+クリップボードから貼った画像はユーザーメッセージの任意フィールド `attachments` に Base64 で保存する。チャット UI はサムネイルとして出す。再開・モデル変更で Pi を作り直すときは `read_image` と同様に image ブロックを付け直さない。そのターンの `prompt` にだけ `images` を渡す。
 
 ファイル本文はコンテキストに載せない。エージェントは `read_note` でノートを読む。構造・属性・リンクだけなら `get_note_metadata` / `get_vault_links`。Vision モデルでは `read_image` で PNG/JPEG/WebP を読む。システムプロンプトは `pidianSystemPrompt`（`src/infrastructure/pi/PiCredentials.ts`）。Vision でないときは `read_image` の説明を出さない。Vault の `pidian/AGENTS.md`（プラグインフォルダ設定に追随）は任意の追加指示。
 
@@ -308,7 +311,7 @@ interface PidianSession {
 
 - パースは `migratePidianSession`。`version !== 1` は throw。フィールド追加時は後方互換を崩さないか、version を上げて migration を足す。
 - ユーザーメッセージの任意 `context` は送信時のファイル位置。Markdown エディタなら行範囲、テキスト選択なら列位置も。Canvas・PNG/JPEG/WebP・MarkdownView ではない `.md` は path のみ。チャットのメッセージには出さず、コンポーザ上のコンテキスト表示と再開時の `formatAgentPrompt` 用。無い・不正なら無視する。時刻ヘッダは `createdAt` から組み立て、保存 `text` には含めない。
-- ツール結果の画像バイトはセッションに書かない。`PiEventMapper` が text だけを `toolCall.result` に残す。再開・モデル変更で Pi を作り直したあとは path の履歴だけ。もう一度見るときは `read_image` する。
+- ユーザーが貼り付けた画像は `attachments` に Base64 で保存し、チャット UI にサムネイルとして出す。再開・モデル変更で Pi を作り直すときは付け直さない。ツール結果の画像バイトはセッションに書かない。`PiEventMapper` が text だけを `toolCall.result` に残す。再開・モデル変更で Pi を作り直したあとは path の履歴だけ。もう一度見るときは `read_image` する。
 - アシスタントの `workedMs` は各 Work 区間が閉じるまでの時間。思考→ツール→思考は同じ Work に時系列の `items` として残し、`thinking_end` だけでは閉じない。本文が出たあと、思考 delta が途切れたとき、またはターン完了で閉じる。思考中の本文は Work の直下へ随時出す。空白だけの delta では区切らない。`blocks` が無い古い保存データは思考・ツールを1つの WorkLog にまとめる。
 - 再開は `PidianSession → AgentConversation → PiAgentAdapter`。ユーザー本文は `formatAgentPrompt` でヘッダ付きに戻す。Pi 固有オブジェクトは保存しない。会話は Pi の `SessionManager` に全文を載せ、`compaction` があればその境界で要約エントリを足してから `createAgentSession` する。LLM 入力は SessionManager が組み直した要約 + 残したメッセージ。画面と `messages` は全文のまま。
 - プロセス内の Pi `AgentSession`（`SessionManager.inMemory()`）は、クエリを投げたセッションだけ最大 3 件を LRU で保持する。開いただけ・新規チャットだけでは枠に入らない。4 件目のクエリで最も長くクエリしていない枠を `dispose` する。切替時は生成中なら abort し、枠にあれば Agent は残す。ディスク上のセッションファイルは消さない。
@@ -342,13 +345,13 @@ Pi を Obsidian の eval 環境で動かすための隔離が `src/infrastructur
 
 | ファイル | 役割 |
 | --- | --- |
-| `PiAgentAdapter.ts` | `AgentEngine` + `SubscriptionAuth` 実装。`SessionManager.inMemory()`、再開時は会話を SessionManager に載せる。`noTools: "builtin"` |
+| `PiAgentAdapter.ts` | `AgentEngine` + `SubscriptionAuth` 実装。`SessionManager.inMemory()`、再開時は会話を SessionManager に載せる（貼り付け画像は付け直さない）。当該ターンの `prompt` だけ `images` を渡す。`noTools: "builtin"` |
 | `registerBundledOAuth.ts` | Pi の OAuth を静的登録。Obsidian は `import("./openai-codex.js")` を `app://obsidian.md/` から取れない |
 | `piCodingAgentSdk.ts` | パッケージ barrel の代わり。CLI / self-update をバンドルに入れない |
 | `PiEventMapper.ts` | Pi イベント → `AgentEvent` |
 | `PiToolAdapter.ts` | `PidianTool` → `defineTool`。`read_image` のバイトは image ブロックにし、セッションへは出さない。非 Vision なら image ブロックを付けない |
 | `visionModel.ts` | `model.input` に `image` があるか。無いなら `read_image` をツール一覧から外す |
-| `prepareToolImage.ts` | インライン上限。Photon はスタブなので、超過分だけ Canvas で縮小 |
+| `prepareToolImage.ts` | インライン上限。Photon はスタブなので、超過分だけ Canvas で縮小。貼り付け画像の prompt 変換もここ |
 | `PidianResourceLoader.ts` | システムプロンプトと AGENTS.md だけ。拡張ローダは使わない |
 | `corsFreeFetch.ts` | Chromium `fetch` の CORS を避けるため Node `http`/`https` |
 | `customRequestBody.ts` | custom model の extra JSON body |
@@ -372,8 +375,8 @@ Pi のモジュール解決や stub を足すときは、バンドルゲート�
 | `PidianView.tsx` | `ItemView`。React root。`View.scope` でペインフォーカス時のホットキー |
 | `PidianApp.tsx` | ヘッダ、Chat、Composer、ModelSelector、SessionSelector |
 | `OpenActiveSessionButton.tsx` | 開いているファイルがセッションファイルなら「新しいチャット」の左に復元ボタン。不正形式はエラーツールチップ |
-| `Chat.tsx` / `Message.tsx` / `UserMessageEditor.tsx` / `WorkLog.tsx` / `ToolCall.tsx` / `Thinking.tsx` / `SelectionQuoteToolbar.tsx` | ストリーム表示。思考とツールは1つの WorkLog にまとめ、中は思考・ツールを時系列のまま出す。思考中でも本文は直下へ出せる。ユーザーメッセージのクリックで編集再送信。`.pidian-chat` 内の文字列選択で「引用」ツールバーを出し、Composer へ `> ` 引用を挿入 |
-| `Composer.tsx` | 入力。設定の編集モードがライブプレビューなら Obsidian Markdown Live Preview（内部 API が使えないときは textarea）、プレーンなら textarea。`subscribeComposerFocus` でフォーカス。送信中かつ空なら Esc で abort、プレースホルダに停止案内。`insertQuote` で選択引用を末尾挿入。Enter / Esc は入力欄 wrapper の capture で処理し、エディター実装に依存しない |
+| `Chat.tsx` / `Message.tsx` / `UserMessageEditor.tsx` / `WorkLog.tsx` / `ToolCall.tsx` / `Thinking.tsx` / `SelectionQuoteToolbar.tsx` / `AttachmentStrip.tsx` | ストリーム表示。思考とツールは1つの WorkLog にまとめ、中は思考・ツールを時系列のまま出す。思考中でも本文は直下へ出せる。ユーザーメッセージのクリックで編集再送信。`.pidian-chat` 内の文字列選択で「引用」ツールバーを出し、Composer へ `> ` 引用を挿入。貼り付け画像は履歴でもサムネイル。クリックで Obsidian ウィンドウ全体の中央に原寸表示（はみ出す場合は画面内に縮小）。右クリックで画像をコピー |
+| `Composer.tsx` | 入力。設定の編集モードがライブプレビューなら Obsidian Markdown Live Preview（内部 API が使えないときは textarea）、プレーンなら textarea。`subscribeComposerFocus` でフォーカス。送信中かつ空なら Esc で abort、プレースホルダに停止案内。`insertQuote` で選択引用を末尾挿入。Enter / Esc は入力欄 wrapper の capture で処理し、エディター実装に依存しない。クリップボード画像の貼り付けは入力欄上部のサムネイルにする。Vision 非対応モデルに画像があるときは送信を止める |
 | `Markdown.tsx` | チャット内 Markdown。ノートリンクはファイル名表示＋パスのツールチップ（`setTooltip` 上位置、OS の `title` は付けない）。クリックは既存エディタタブを優先して開く |
 | `PidianSettingTab.ts` | 設定 UI（React ではない） |
 
@@ -457,7 +460,7 @@ UI は `AgentService` と `plugin.settings` を読む。Pi 型を import しな�
 | メモリ上の Agent | `AgentService` の LRU（クエリ時、最大 3） | 開いただけで Pi セッションを作る。件数の設定項目 |
 | モデル一覧 | `PiModelCatalog`, Settings custom provider | UI での provider 特例 |
 | チャットのノートリンク | `Markdown.tsx`, `chatNoteLink.ts`, `ObsidianWorkspaceNavigator` | `openLinkText` のデフォルト、`instanceof MarkdownView` でのタブ検索 |
-| チャット入力欄 | `src/editor/`, `Composer.tsx` | UI から `embedRegistry` / `editMode` を直接触る。失敗時にチャット入力自体を止める |
+| チャット入力欄 | `src/editor/`, `Composer.tsx`, `AttachmentStrip.tsx` | UI から `embedRegistry` / `editMode` を直接触る。失敗時にチャット入力自体を止める |
 | 非フォーカス選択の表示 | `unfocusedSelectionHighlight.ts`, `styles.css` の `.pidian-unfocused-selection` | 本体が非フォーカス選択を描くようになったあとの残留。消すときは extension・CSS・`main.ts` の登録を一式で |
 | システム指示 | `pidianSystemPrompt`, Vault `AGENTS.md` | Pi のデフォルト AGENTS 探索（fs stub で止めてある） |
 | CORS / LLM HTTP | `corsFreeFetch`, `customRequestBody` | レンダラの `fetch` に戻す |

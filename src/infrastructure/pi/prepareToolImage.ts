@@ -71,6 +71,26 @@ export function bytesToBase64(bytes: Uint8Array): string {
   return Buffer.from(bytes).toString("base64");
 }
 
+export function base64ToBytes(data: string): Uint8Array {
+  return new Uint8Array(Buffer.from(data, "base64"));
+}
+
+export async function toPiPromptImages(
+  images: readonly { mimeType: string; data: string }[],
+): Promise<Array<{ type: "image"; data: string; mimeType: string }>> {
+  const result: Array<{ type: "image"; data: string; mimeType: string }> = [];
+  for (const image of images) {
+    const prepared = await prepareInlineImage({
+      mimeType: image.mimeType,
+      bytes: base64ToBytes(image.data),
+    });
+    if (prepared.ok) {
+      result.push({ type: "image", data: prepared.data, mimeType: prepared.mimeType });
+    }
+  }
+  return result;
+}
+
 async function downscaleWithCanvas(image: ToolImage): Promise<{ bytes: Uint8Array; mimeType: string } | undefined> {
   if (typeof createImageBitmap !== "function" || typeof document === "undefined") {
     return undefined;

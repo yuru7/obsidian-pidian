@@ -6,7 +6,7 @@ export function shouldStartMessageEdit(event: {
     return false;
   }
   const target = event.target;
-  if (isElementWithClosest(target) && target.closest("a, button, textarea, input")) {
+  if (isElementWithClosest(target) && target.closest("a, button, textarea, input, .pidian-attachment-strip, .pidian-image-lightbox")) {
     return false;
   }
   const selection = typeof window.getSelection === "function" ? window.getSelection() : null;

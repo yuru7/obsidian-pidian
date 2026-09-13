@@ -36,6 +36,7 @@ import { normalizeAgentsContent, pidianAgentsFiles } from "./pidianAgentsFiles";
 import { pidianSystemPrompt } from "./PiCredentials";
 import { mapPiCompactionEvent, mapPiEvent } from "./PiEventMapper";
 import { hydratePiSession } from "./piSessionHydration";
+import { toPiPromptImages } from "./prepareToolImage";
 import { toPiTools } from "./PiToolAdapter";
 import { toPiAuthInteraction } from "./subscriptionLogin";
 import { modelSupportsImages, toolsVisibleToModel } from "./visionModel";
@@ -243,7 +244,13 @@ class PiWrappedSession implements AgentSession {
   constructor(private readonly session: PiSession) {}
 
   async prompt(request: AgentPrompt): Promise<void> {
-    await withCorsFreeFetch(() => this.session.prompt(request.text, { expandPromptTemplates: false }));
+    const images = request.images?.length ? await toPiPromptImages(request.images) : [];
+    await withCorsFreeFetch(() =>
+      this.session.prompt(request.text, {
+        expandPromptTemplates: false,
+        ...(images.length > 0 ? { images } : {}),
+      }),
+    );
     const errorMessage = this.session.agent.state.errorMessage;
     if (errorMessage) {
       throw new Error(errorMessage);

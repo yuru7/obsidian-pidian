@@ -4,6 +4,7 @@ import type { ContextSnapshot } from "../domain/notes/ContextSnapshot";
 import {
   clipSessionQuery,
   type PidianContentBlock,
+  type PidianImageAttachment,
   type PidianMessage,
   type PidianSession,
   type PidianToolCall,
@@ -11,6 +12,9 @@ import {
   type SessionCompaction,
   type SessionSummary,
 } from "../domain/sessions/PidianSession";
+import { IMAGE_MIME_JPEG, IMAGE_MIME_PNG, IMAGE_MIME_WEBP } from "./imageFile";
+
+const IMAGE_ATTACHMENT_MIME = new Set([IMAGE_MIME_PNG, IMAGE_MIME_JPEG, IMAGE_MIME_WEBP]);
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
@@ -225,6 +229,36 @@ function parseContentBlocks(value: unknown): PidianContentBlock[] | undefined {
   });
 }
 
+function parseOptionalAttachments(value: unknown): PidianImageAttachment[] | undefined {
+  if (!Array.isArray(value)) {
+    return undefined;
+  }
+  const attachments: PidianImageAttachment[] = [];
+  for (const item of value) {
+    const attachment = parseImageAttachment(item);
+    if (attachment) {
+      attachments.push(attachment);
+    }
+  }
+  return attachments.length > 0 ? attachments : undefined;
+}
+
+function parseImageAttachment(value: unknown): PidianImageAttachment | undefined {
+  if (!isRecord(value)) {
+    return undefined;
+  }
+  if (typeof value.id !== "string" || value.id.length === 0) {
+    return undefined;
+  }
+  if (typeof value.data !== "string" || value.data.length === 0) {
+    return undefined;
+  }
+  if (typeof value.mimeType !== "string" || !IMAGE_ATTACHMENT_MIME.has(value.mimeType)) {
+    return undefined;
+  }
+  return { id: value.id, mimeType: value.mimeType, data: value.data };
+}
+
 function parseMessage(value: unknown): PidianMessage {
   if (!isRecord(value)) {
     throw new Error("Invalid session field: messages[]");
@@ -237,11 +271,13 @@ function parseMessage(value: unknown): PidianMessage {
   const workedMs = parseOptionalWorkedMs(value.workedMs);
   const blocks = parseContentBlocks(value.blocks);
   const context = role === "user" ? parseOptionalContext(value.context) : undefined;
+  const attachments = role === "user" ? parseOptionalAttachments(value.attachments) : undefined;
   return {
     id: expectString(value.id, "messages.id"),
     role,
     text: typeof value.text === "string" ? value.text : "",
     ...(context ? { context } : {}),
+    ...(attachments ? { attachments } : {}),
     thinking: typeof value.thinking === "string" ? value.thinking : undefined,
     toolCalls: parseToolCalls(value.toolCalls),
     ...(usage ? { usage } : {}),

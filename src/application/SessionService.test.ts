@@ -181,6 +181,26 @@ describe("SessionService.toConversation", () => {
     expect(conversation.messages[1]?.text).toBe("Brave");
   });
 
+  it("omits user image attachments from the restored conversation", () => {
+    const service = new SessionService(unused);
+    const conversation = service.toConversation(
+      session({
+        messages: [
+          {
+            id: "u1",
+            role: "user",
+            text: "look",
+            attachments: [{ id: "img1", mimeType: "image/png", data: "aaa" }],
+            createdAt: "2026-01-01T00:00:00.000Z",
+          },
+        ],
+      }),
+    );
+    expect(conversation.messages[0]).not.toHaveProperty("attachments");
+    expect(conversation.messages[0]).not.toHaveProperty("images");
+    expect(conversation.messages[0]?.text).toBe(formatAgentPrompt("look", undefined, "2026-01-01T00:00:00.000Z"));
+  });
+
   it("includes the compaction checkpoint for resume", () => {
     const service = new SessionService(unused);
     const conversation = service.toConversation(

@@ -212,6 +212,57 @@ describe("session serialization", () => {
     ).toEqual({ notePath: "notes/example.md", startLine: 3, endLine: 3 });
   });
 
+  it("round-trips user message image attachments", () => {
+    const withAttachments: PidianSession = {
+      ...sample,
+      messages: [
+        {
+          id: "m1",
+          role: "user",
+          text: "look",
+          attachments: [{ id: "img1", mimeType: "image/png", data: "aaa" }],
+          createdAt: "2026-01-01T00:00:00.000Z",
+        },
+      ],
+    };
+    expect(parseSessionFile(serializePidianSession(withAttachments))).toEqual(withAttachments);
+  });
+
+  it("omits invalid user message attachments", () => {
+    expect(
+      parsePidianSession({
+        ...sample,
+        messages: [
+          {
+            id: "m1",
+            role: "user",
+            text: "Hello",
+            attachments: [
+              { id: "ok", mimeType: "image/png", data: "aaa" },
+              { id: "bad", mimeType: "image/gif", data: "bbb" },
+              { mimeType: "image/png", data: "ccc" },
+            ],
+            createdAt: "2026-01-01T00:00:00.000Z",
+          },
+        ],
+      }).messages[0]?.attachments,
+    ).toEqual([{ id: "ok", mimeType: "image/png", data: "aaa" }]);
+    expect(
+      parsePidianSession({
+        ...sample,
+        messages: [
+          {
+            id: "m2",
+            role: "assistant",
+            text: "Hi",
+            attachments: [{ id: "img1", mimeType: "image/png", data: "aaa" }],
+            createdAt: "2026-01-01T00:00:01.000Z",
+          },
+        ],
+      }).messages[0]?.attachments,
+    ).toBeUndefined();
+  });
+
   it("round-trips thinkingLevel", () => {
     const withThinking: PidianSession = { ...sample, thinkingLevel: "high" };
     expect(parseSessionFile(serializePidianSession(withThinking))).toEqual(withThinking);

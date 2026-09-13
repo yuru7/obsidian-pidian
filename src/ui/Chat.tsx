@@ -1,7 +1,7 @@
 import { Fragment, useEffect, useImperativeHandle, useRef, useState, type JSX, type Ref } from "react";
 import type { App } from "obsidian";
 import { t } from "../i18n";
-import type { PidianMessage } from "../domain/sessions/PidianSession";
+import type { PidianImageAttachment, PidianMessage } from "../domain/sessions/PidianSession";
 import { Message } from "./Message";
 import { SelectionQuoteToolbar } from "./SelectionQuoteToolbar";
 
@@ -34,6 +34,7 @@ export function Chat({
   forkDisabled,
   streaming = false,
   sendWithCtrlEnter = false,
+  supportsImages = false,
   editDisabled = false,
   editToolbar,
   onResend,
@@ -50,9 +51,10 @@ export function Chat({
   forkDisabled?: boolean;
   streaming?: boolean;
   sendWithCtrlEnter?: boolean;
+  supportsImages?: boolean;
   editDisabled?: boolean;
   editToolbar?: JSX.Element;
-  onResend?: (messageId: string, text: string) => void;
+  onResend?: (messageId: string, text: string, attachments: PidianImageAttachment[]) => void;
   onNearBottomChange?: (nearBottom: boolean) => void;
   onQuote: (text: string) => void;
   ref?: Ref<ChatHandle>;
@@ -175,6 +177,7 @@ export function Chat({
                   editing={editingMessageId === message.id}
                   editDisabled={editDisabled}
                   sendWithCtrlEnter={sendWithCtrlEnter}
+                  supportsImages={supportsImages}
                   editToolbar={editingMessageId === message.id ? editToolbar : undefined}
                   onStartEdit={setEditingMessageId}
                   onCancelEdit={() => setEditingMessageId(null)}

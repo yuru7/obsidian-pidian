@@ -2,13 +2,14 @@ import { describe, expect, it, vi } from "vitest";
 import type { AgentConversation } from "../domain/agent/AgentConversation";
 import type { AgentEngine, AgentSessionOptions } from "../domain/agent/AgentEngine";
 import type { AgentEvent, AgentEventListener } from "../domain/agent/AgentEvent";
-import type { AgentSession } from "../domain/agent/AgentSession";
+import type { AgentPrompt, AgentSession } from "../domain/agent/AgentSession";
 import type { ContextSnapshot } from "../domain/notes/ContextSnapshot";
 import { toSessionSummary, type PidianSession, type SessionListSnapshot, type SessionRepository, type SessionSummary } from "../domain/sessions/PidianSession";
 import { FakeAgentEngine } from "../infrastructure/fake/FakeAgentEngine";
 import { AgentService, MAX_IN_MEMORY_SESSIONS } from "./AgentService";
 import { THINKING_IDLE_MS } from "./assistantContent";
 import { ContextService, formatAgentPrompt } from "./ContextService";
+import { PNG_1X1 } from "./imageFile.test";
 import { SessionService } from "./SessionService";
 
 class MemoryRepository implements SessionRepository {
@@ -75,6 +76,7 @@ class ScriptedAgentEngine implements AgentEngine {
 class CapturingEngine implements AgentEngine {
   lastConversation?: AgentConversation;
   lastPrompt?: string;
+  lastImages?: AgentPrompt["images"];
 
   constructor(private readonly inner = new FakeAgentEngine()) {}
 
@@ -88,6 +90,7 @@ class CapturingEngine implements AgentEngine {
     return {
       prompt: async (request) => {
         this.lastPrompt = request.text;
+        this.lastImages = request.images;
         return session.prompt(request);
       },
       abort: () => session.abort(),
@@ -268,6 +271,28 @@ describe("AgentService.editAndResend", () => {
     await expect(agent.editAndResend("missing", "nope")).rejects.toThrow(/Message not found/);
     expect(agent.getSession()?.messages.map((message) => message.id)).toEqual(ids);
   });
+
+  it("resends the original attachments when the edited text is submitted", async () => {
+    const store = new MemoryRepository();
+    const engine = new CapturingEngine();
+    const agent = createService(store, engine);
+    await agent.newChat("openai", "gpt-5");
+    const attachment = {
+      id: "img1",
+      mimeType: "image/png",
+      data: Buffer.from(PNG_1X1).toString("base64"),
+    };
+    await agent.send("look", [attachment]);
+    await agent.send("second");
+    const firstUser = agent.getSession()!.messages[0]!;
+
+    await agent.editAndResend(firstUser.id, "look again");
+
+    const current = agent.getSession();
+    expect(current?.messages[0]?.text).toBe("look again");
+    expect(current?.messages[0]?.attachments).toEqual([attachment]);
+    expect(engine.lastImages).toEqual([{ mimeType: attachment.mimeType, data: attachment.data }]);
+  });
 });
 
 describe("AgentService.send", () => {
@@ -322,6 +347,43 @@ describe("AgentService.send", () => {
     expect(engine.lastPrompt).toBe(formatAgentPrompt("rewrite this", snapshot, createdAt));
   });
 
+  it("stores pasted images on the user message and sends them for this turn", async () => {
+    const store = new MemoryRepository();
+    const engine = new CapturingEngine();
+    const agent = createService(store, engine);
+    await agent.newChat("openai", "gpt-5");
+    const attachment = {
+      id: "img1",
+      mimeType: "image/png",
+      data: Buffer.from(PNG_1X1).toString("base64"),
+    };
+    await agent.send("look", [attachment]);
+
+    expect(agent.getSession()?.messages[0]?.attachments).toEqual([attachment]);
+    expect(engine.lastImages).toEqual([{ mimeType: attachment.mimeType, data: attachment.data }]);
+    expect(store.sessions[0]?.messages[0]?.attachments).toEqual([attachment]);
+  });
+
+  it("allows an image-only user turn", async () => {
+    const store = new MemoryRepository();
+    const engine = new CapturingEngine();
+    const agent = createService(store, engine);
+    await agent.newChat("openai", "gpt-5");
+    const attachment = {
+      id: "img1",
+      mimeType: "image/png",
+      data: Buffer.from(PNG_1X1).toString("base64"),
+    };
+    await agent.send("   ", [attachment]);
+
+    expect(agent.getSession()?.messages[0]).toMatchObject({
+      role: "user",
+      text: "",
+      attachments: [attachment],
+    });
+    expect(engine.lastImages).toEqual([{ mimeType: attachment.mimeType, data: attachment.data }]);
+  });
+
   it("restores the prompt envelope when the agent session is recreated", async () => {
     const store = new MemoryRepository();
     const engine = new CapturingEngine();
@@ -341,6 +403,31 @@ describe("AgentService.send", () => {
     expect(engine.capturedConversation()?.messages[0]?.text).toBe(formatAgentPrompt("rewrite this", snapshot, createdAt));
     expect(engine.capturedConversation()?.messages[1]?.text).toContain("rewrite this");
     expect(agent.getSession()?.messages[0]?.text).toBe("rewrite this");
+  });
+
+  it("does not reattach stored images when the agent session is recreated", async () => {
+    const store = new MemoryRepository();
+    const engine = new CapturingEngine();
+    const agent = createService(store, engine);
+    await agent.newChat("openai", "gpt-5");
+    const attachment = {
+      id: "img1",
+      mimeType: "image/png",
+      data: Buffer.from(PNG_1X1).toString("base64"),
+    };
+    await agent.send("look", [attachment]);
+    const sessionId = agent.getSession()!.id;
+    await fillLive(agent);
+
+    engine.lastConversation = undefined;
+    engine.lastImages = undefined;
+    await agent.openChat(sessionId);
+    await agent.send("again");
+
+    expect(agent.getSession()?.messages[0]?.attachments).toEqual([attachment]);
+    expect(engine.capturedConversation()?.messages[0]).not.toHaveProperty("attachments");
+    expect(engine.capturedConversation()?.messages[0]).not.toHaveProperty("images");
+    expect(engine.lastImages).toBeUndefined();
   });
 
   it("restores a parsed session without loading it by id", async () => {
