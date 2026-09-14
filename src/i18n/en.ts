@@ -5,6 +5,7 @@ export const en = {
   noticeNotInitialized: "Pidian: agent is not initialized.",
   noticeError: "Pidian: {error}",
   noticeSidebarFailed: "Pidian: could not open the sidebar.",
+  noticeLoadTiming: "Pidian load: {total}ms (eval {eval}ms, onload {onload}ms)",
 
   settingsCatalogMissing:
     "Agent catalog is not initialized. Provider and model can still be typed from the lists above after reload.",
@@ -75,6 +76,19 @@ export const en = {
   settingsPluginDirectory: "Plugin folder",
   settingsPluginDirectoryDesc:
     "Vault-relative folder for sessions and AGENTS.md. Existing files are not moved. Default: pidian",
+  settingsDebugMode: "Debug mode",
+  settingsDebugModeDesc:
+    "Show startup timings in a notice, the developer console, and below this toggle.",
+  settingsDebugTimings: "Startup timings",
+  debugTimingEval: "Module eval",
+  debugTimingLoadSettings: "Load settings",
+  debugTimingInitServices: "Init services",
+  debugTimingRegisterUi: "Register UI",
+  debugTimingOnload: "onload",
+  debugTimingPluginLoad: "eval + onload",
+  debugTimingSearchIndex: "Search index",
+  debugTimingBootstrap: "bootstrap",
+  debugTimingViewOpen: "Sidebar view",
   settingsSessionFileFormat: "Session file format",
   settingsSessionFileFormatDesc:
     ".jsonl.md files appear in Obsidian's built-in file explorer.",

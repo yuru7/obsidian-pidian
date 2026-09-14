@@ -996,6 +996,34 @@ export class PidianSettingTab extends PluginSettingTab {
   private renderOther(containerEl: HTMLElement): void {
     new Setting(containerEl).setName(t("settingsOther")).setHeading();
     this.renderPluginDirectory(containerEl);
+    this.renderDebugMode(containerEl);
+  }
+
+  private renderDebugMode(containerEl: HTMLElement): void {
+    new Setting(containerEl)
+      .setName(t("settingsDebugMode"))
+      .setDesc(t("settingsDebugModeDesc"))
+      .addToggle((toggle) => {
+        toggle.setValue(this.plugin.settings.debugMode);
+        toggle.onChange(async (value) => {
+          this.plugin.settings.debugMode = value;
+          await this.plugin.saveSettings();
+          if (value) {
+            this.plugin.reportLoadTimings({ notice: true });
+          }
+          this.refreshSettings();
+        });
+      });
+    if (!this.plugin.settings.debugMode) {
+      return;
+    }
+    const text = this.plugin.formatLoadTimings();
+    if (!text) {
+      return;
+    }
+    const row = new Setting(containerEl).setName(t("settingsDebugTimings"));
+    row.descEl.empty();
+    row.descEl.createEl("pre", { cls: "pidian-debug-timings", text });
   }
 
   private renderPluginDirectory(containerEl: HTMLElement): void {

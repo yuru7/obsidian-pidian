@@ -28,6 +28,11 @@ describe("lookup", () => {
     expect(lookup("ja", "uiTotalTokens")).toBe("合計トークン量");
     expect(lookup("en", "uiTotalTokens")).toBe("Total tokens");
     expect(lookup("ja", "settingsTabGeneral")).toBe("全般");
+    expect(lookup("ja", "settingsDebugMode")).toBe("デバッグモード");
+    expect(lookup("en", "settingsDebugMode")).toBe("Debug mode");
+    expect(lookup("ja", "noticeLoadTiming", { total: 12, eval: 10, onload: 2 })).toBe(
+      "Pidian 読み込み: 12ms（eval 10ms、onload 2ms）",
+    );
     expect(lookup("ja", "settingsTabFavorites")).toBe("お気に入り");
     expect(lookup("ja", "settingsTabPermissions")).toBe("権限");
     expect(lookup("ja", "settingsTabApiAuth")).toBe("API認証");

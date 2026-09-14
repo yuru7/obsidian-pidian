@@ -1,5 +1,6 @@
 import { ItemView, Scope, WorkspaceLeaf } from "obsidian";
 import { createRoot, type Root } from "react-dom/client";
+import { nowMs } from "../application/loadTiming";
 import type PidianPlugin from "../main";
 import { PidianApp } from "./PidianApp";
 import { PIDIAN_ICON_ID } from "./pidianIcon";
@@ -31,11 +32,13 @@ export class PidianView extends ItemView {
   }
 
   async onOpen(): Promise<void> {
+    const startedAt = nowMs();
     const content = (this.containerEl.children[1] ?? this.contentEl) as HTMLElement;
     content.empty();
     content.addClass("pidian-view");
     this.root = createRoot(content);
     this.root.render(<PidianApp plugin={this.plugin} keymapScope={this.scope} />);
+    this.plugin.recordViewOpenMs(nowMs() - startedAt);
   }
 
   async onClose(): Promise<void> {

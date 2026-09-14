@@ -1,7 +1,16 @@
 import { Notice, Plugin, type ViewCreator } from "obsidian";
 import { AgentService } from "./application/AgentService";
-import { t } from "./i18n";
+import { t, type TranslationKey } from "./i18n";
 import { ContextService } from "./application/ContextService";
+import {
+  formatLoadTimingText,
+  nowMs,
+  readEvalStartedAt,
+  roundMs,
+  withDerivedTimings,
+  type LoadTimingField,
+  type LoadTimings,
+} from "./application/loadTiming";
 import type { CredentialResolver } from "./application/CredentialResolver";
 import { PermissionService } from "./application/PermissionService";
 import { ReadRevisionTracker } from "./application/ReadRevisionTracker";
@@ -47,6 +56,18 @@ import { createPidianTools } from "./tools/createPidianTools";
 import { PIDIAN_ICON_ID } from "./ui/pidianIcon";
 import { PidianView, VIEW_TYPE_PIDIAN } from "./ui/PidianView";
 
+const LOAD_TIMING_LABEL_KEYS: Record<LoadTimingField, TranslationKey> = {
+  evalMs: "debugTimingEval",
+  loadSettingsMs: "debugTimingLoadSettings",
+  initServicesMs: "debugTimingInitServices",
+  registerUiMs: "debugTimingRegisterUi",
+  onloadMs: "debugTimingOnload",
+  pluginLoadMs: "debugTimingPluginLoad",
+  searchIndexMs: "debugTimingSearchIndex",
+  bootstrapMs: "debugTimingBootstrap",
+  viewOpenMs: "debugTimingViewOpen",
+};
+
 export default class PidianPlugin extends Plugin {
   settings: PidianSettings = DEFAULT_SETTINGS;
   agentService?: AgentService;
@@ -60,57 +81,65 @@ export default class PidianPlugin extends Plugin {
   private readonly composerFocusListeners = new Set<() => boolean>();
   private composerFocusPending = false;
   private connectionFingerprint = "";
+  private readonly loadTimings: LoadTimings = {};
 
   async onload(): Promise<void> {
-    await this.loadSettings();
-    this.credentials = createCredentialResolver(() => this.settings);
-
-    // Settings first (Copilot does this), then services, then views/ribbon.
-    // Views are always registered even if agent init fails.
-    this.addSettingTab(new PidianSettingTab(this.app, this));
-
-    try {
-      this.initServices();
-    } catch (error) {
-      console.error("Pidian: failed to initialize agent services", error);
-      new Notice(t("noticeAgentFailed"));
+    const onloadStartedAt = nowMs();
+    const evalStartedAt = readEvalStartedAt();
+    if (evalStartedAt !== undefined) {
+      this.loadTimings.evalMs = roundMs(onloadStartedAt - evalStartedAt);
     }
 
-    this.safeRegisterView(VIEW_TYPE_PIDIAN, (leaf) => new PidianView(leaf, this));
     try {
-      this.addRibbonIcon(PIDIAN_ICON_ID, t("commandOpen"), () => {
-        void this.activateView({ focus: true });
+      await this.markTiming("loadSettingsMs", () => this.loadSettings());
+      this.credentials = createCredentialResolver(() => this.settings);
+
+      // Settings first (Copilot does this), then services, then views/ribbon.
+      // Views are always registered even if agent init fails.
+      this.addSettingTab(new PidianSettingTab(this.app, this));
+
+      try {
+        this.markTimingSync("initServicesMs", () => this.initServices());
+      } catch (error) {
+        console.error("Pidian: failed to initialize agent services", error);
+        new Notice(t("noticeAgentFailed"));
+      }
+
+      this.markTimingSync("registerUiMs", () => {
+        this.safeRegisterView(VIEW_TYPE_PIDIAN, (leaf) => new PidianView(leaf, this));
+        try {
+          this.addRibbonIcon(PIDIAN_ICON_ID, t("commandOpen"), () => {
+            void this.activateView({ focus: true });
+          });
+        } catch (error) {
+          console.warn("Pidian: failed to add ribbon icon", error);
+        }
+        this.addCommand({
+          id: "open",
+          name: t("commandOpen"),
+          icon: PIDIAN_ICON_ID,
+          callback: () => {
+            void this.activateView({ focus: true });
+          },
+        });
+        this.addCommand({
+          id: "new-chat",
+          name: t("commandNewChat"),
+          icon: PIDIAN_ICON_ID,
+          hotkeys: [{ modifiers: ["Alt"], key: "n" }],
+          callback: () => {
+            void this.activateView({ focus: true }).then(() => this.startNewChat());
+          },
+        });
       });
-    } catch (error) {
-      console.warn("Pidian: failed to add ribbon icon", error);
-    }
-    this.addCommand({
-      id: "open",
-      name: t("commandOpen"),
-      icon: PIDIAN_ICON_ID,
-      callback: () => {
-        void this.activateView({ focus: true });
-      },
-    });
-    this.addCommand({
-      id: "new-chat",
-      name: t("commandNewChat"),
-      icon: PIDIAN_ICON_ID,
-      hotkeys: [{ modifiers: ["Alt"], key: "n" }],
-      callback: () => {
-        void this.activateView({ focus: true }).then(() => this.startNewChat());
-      },
-    });
 
-    this.app.workspace.onLayoutReady(() => {
-      if (this.noteSearch) {
-        bindVaultSearchIndexEvents(this.app.vault, (ref) => this.registerEvent(ref), this.noteSearch);
-        void this.noteSearch.initialize();
-      }
-      if (this.agentService) {
-        void this.bootstrap();
-      }
-    });
+      this.app.workspace.onLayoutReady(() => {
+        void this.startBackgroundLoad();
+      });
+    } finally {
+      this.loadTimings.onloadMs = roundMs(nowMs() - onloadStartedAt);
+      this.reportLoadTimings({ notice: true });
+    }
   }
 
   /**
@@ -130,6 +159,72 @@ export default class PidianPlugin extends Plugin {
     this.composerFocusListeners.clear();
     void this.noteSearch?.dispose();
     void this.agentService?.dispose();
+  }
+
+  formatLoadTimings(): string {
+    return formatLoadTimingText(this.loadTimings, (field) => t(LOAD_TIMING_LABEL_KEYS[field]));
+  }
+
+  reportLoadTimings(options?: { notice?: boolean }): void {
+    if (!this.settings.debugMode) {
+      return;
+    }
+    const text = this.formatLoadTimings();
+    if (!text) {
+      return;
+    }
+    console.info(`Pidian load timings\n${text}`);
+    if (!options?.notice) {
+      return;
+    }
+    const report = withDerivedTimings(this.loadTimings);
+    new Notice(
+      t("noticeLoadTiming", {
+        total: report.pluginLoadMs ?? 0,
+        eval: report.evalMs ?? 0,
+        onload: report.onloadMs ?? 0,
+      }),
+      8000,
+    );
+  }
+
+  recordViewOpenMs(ms: number): void {
+    if (this.loadTimings.viewOpenMs !== undefined) {
+      return;
+    }
+    this.loadTimings.viewOpenMs = roundMs(ms);
+    this.reportLoadTimings();
+  }
+
+  private async startBackgroundLoad(): Promise<void> {
+    if (this.noteSearch) {
+      bindVaultSearchIndexEvents(this.app.vault, (ref) => this.registerEvent(ref), this.noteSearch);
+    }
+    const noteSearch = this.noteSearch;
+    const search = noteSearch
+      ? this.markTiming("searchIndexMs", () => noteSearch.initialize())
+      : Promise.resolve();
+    const boot = this.agentService ? this.markTiming("bootstrapMs", () => this.bootstrap()) : Promise.resolve();
+    await Promise.all([search, boot]);
+    this.reportLoadTimings();
+  }
+
+  private markTimingSync(field: LoadTimingField, work: () => void): void {
+    const startedAt = nowMs();
+    try {
+      work();
+    } finally {
+      this.loadTimings[field] = roundMs(nowMs() - startedAt);
+    }
+  }
+
+  private async markTiming(field: LoadTimingField, work: () => Promise<void>): Promise<void> {
+    const startedAt = nowMs();
+    try {
+      await work();
+    } finally {
+      this.loadTimings[field] = roundMs(nowMs() - startedAt);
+    }
   }
 
   subscribeEditorContext(listener: () => void): () => void {

@@ -73,6 +73,13 @@ describe("mergeSettings", () => {
     expect(mergeSettings({ sendWithCtrlEnter: "yes" } as Record<string, unknown>).sendWithCtrlEnter).toBe(false);
   });
 
+  it("defaults debugMode to false and keeps true", () => {
+    expect(mergeSettings({}).debugMode).toBe(false);
+    expect(mergeSettings({ debugMode: true }).debugMode).toBe(true);
+    expect(mergeSettings({ debugMode: false }).debugMode).toBe(false);
+    expect(mergeSettings({ debugMode: "yes" } as Record<string, unknown>).debugMode).toBe(false);
+  });
+
   it("defaults composerEditMode to livePreview and keeps plain", () => {
     expect(mergeSettings({}).composerEditMode).toBe("livePreview");
     expect(mergeSettings({ composerEditMode: "livePreview" }).composerEditMode).toBe("livePreview");

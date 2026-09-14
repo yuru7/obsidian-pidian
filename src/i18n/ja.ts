@@ -7,6 +7,7 @@ export const ja: { [K in keyof typeof en]: string } = {
   noticeNotInitialized: "Pidian: エージェントが初期化されていません。",
   noticeError: "Pidian: {error}",
   noticeSidebarFailed: "Pidian: サイドバーを開けませんでした。",
+  noticeLoadTiming: "Pidian 読み込み: {total}ms（eval {eval}ms、onload {onload}ms）",
 
   settingsCatalogMissing:
     "エージェントのカタログが初期化されていません。リロード後も、上のリストからプロバイダとモデルを選べます。",
@@ -77,6 +78,18 @@ export const ja: { [K in keyof typeof en]: string } = {
   settingsPluginDirectory: "プラグイン用フォルダ",
   settingsPluginDirectoryDesc:
     "セッションと AGENTS.md を置く Vault 相対フォルダです。既存ファイルは移動しません。既定は pidian です。",
+  settingsDebugMode: "デバッグモード",
+  settingsDebugModeDesc: "起動時間を通知・開発者コンソール・この下に表示します。",
+  settingsDebugTimings: "起動計測",
+  debugTimingEval: "モジュール評価",
+  debugTimingLoadSettings: "設定の読み込み",
+  debugTimingInitServices: "サービス初期化",
+  debugTimingRegisterUi: "UI 登録",
+  debugTimingOnload: "onload",
+  debugTimingPluginLoad: "eval + onload",
+  debugTimingSearchIndex: "検索インデックス",
+  debugTimingBootstrap: "bootstrap",
+  debugTimingViewOpen: "サイドバー",
   settingsSessionFileFormat: "セッションファイルの記録方式",
   settingsSessionFileFormatDesc:
     ".jsonl.md は Obsidian の内蔵エクスプローラーに表示されます。",

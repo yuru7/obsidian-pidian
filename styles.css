@@ -2018,6 +2018,13 @@ button.pidian-settings-model-menu-item.is-active {
   border-top: 1px solid var(--background-modifier-border);
 }
 
+.pidian-debug-timings {
+  margin: 0;
+  font-family: var(--font-monospace);
+  font-size: var(--font-ui-smaller);
+  white-space: pre-wrap;
+}
+
 .modal.pidian-login-modal {
   width: min(42rem, 92vw);
 }

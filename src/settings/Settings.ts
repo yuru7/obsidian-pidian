@@ -154,6 +154,7 @@ export interface PidianSettings {
   firecrawlApiKey: string;
   composerEditMode: ComposerEditMode;
   sendWithCtrlEnter: boolean;
+  debugMode: boolean;
 }
 
 export const DEFAULT_SETTINGS: PidianSettings = {
@@ -180,6 +181,7 @@ export const DEFAULT_SETTINGS: PidianSettings = {
   firecrawlApiKey: "",
   composerEditMode: "livePreview",
   sendWithCtrlEnter: false,
+  debugMode: false,
 };
 
 export function parseSessionFileFormat(value: unknown): SessionFileFormat {
@@ -337,6 +339,7 @@ export function mergeSettings(raw: unknown): PidianSettings {
     firecrawlApiKey: typeof input.firecrawlApiKey === "string" ? input.firecrawlApiKey : DEFAULT_SETTINGS.firecrawlApiKey,
     composerEditMode: parseComposerEditMode(input.composerEditMode),
     sendWithCtrlEnter: input.sendWithCtrlEnter === true,
+    debugMode: input.debugMode === true,
     autoDeleteSessions: input.autoDeleteSessions === true,
     limitSessionCount: input.limitSessionCount === true,
     maxSessionCount: parsePositiveInt(input.maxSessionCount, DEFAULT_SETTINGS.maxSessionCount),
