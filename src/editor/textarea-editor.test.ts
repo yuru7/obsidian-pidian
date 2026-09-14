@@ -14,6 +14,9 @@ type FakeEl = {
   selectionStart: number;
   selectionEnd: number;
   focused: boolean;
+  scrollTop: number;
+  scrollHeight: number;
+  clientHeight: number;
   createEl: (tag: string, opts?: { cls?: string; attr?: Record<string, string> }) => FakeEl;
   addClass: (name: string) => void;
   removeClass: (name: string) => void;
@@ -37,6 +40,9 @@ function createFakeEl(tag = "div"): FakeEl {
     selectionStart: 0,
     selectionEnd: 0,
     focused: false,
+    scrollTop: 0,
+    scrollHeight: 0,
+    clientHeight: 0,
     createEl(childTag, opts) {
       const child = createFakeEl(childTag);
       if (opts?.cls) {
@@ -114,6 +120,53 @@ describe("createTextareaEditor", () => {
     expect(editor.getValue()).toBe("abc\n");
     editor.clear();
     expect(editor.getValue()).toBe("");
+  });
+
+  it("scrolls the caret into view after a newline when the textarea overflows", () => {
+    const host = createFakeEl();
+    const editor = createTextareaEditor(host as unknown as HTMLElement);
+    const textarea = textareaOf(host);
+    textarea.value = "a\n".repeat(12);
+    textarea.selectionStart = textarea.value.length;
+    textarea.selectionEnd = textarea.value.length;
+    textarea.clientHeight = 160;
+    textarea.scrollHeight = 400;
+    textarea.scrollTop = 80;
+    editor.newline();
+    expect(textarea.scrollTop).toBe(240);
+  });
+
+  it("does not adjust scroll when inserting a character into an overflowing textarea", () => {
+    const host = createFakeEl();
+    const editor = createTextareaEditor(host as unknown as HTMLElement);
+    const textarea = textareaOf(host);
+    textarea.value = "a\n".repeat(12);
+    textarea.selectionStart = textarea.value.length;
+    textarea.selectionEnd = textarea.value.length;
+    textarea.clientHeight = 160;
+    textarea.scrollHeight = 400;
+    textarea.scrollTop = 80;
+    editor.insertText("x");
+    expect(textarea.scrollTop).toBe(80);
+  });
+
+  it("does not adjust scroll on arrow-key keyup", () => {
+    const host = createFakeEl();
+    const editor = createTextareaEditor(host as unknown as HTMLElement);
+    const textarea = textareaOf(host);
+    textarea.value = "a\n".repeat(12);
+    textarea.selectionStart = textarea.value.length;
+    textarea.selectionEnd = textarea.value.length;
+    textarea.clientHeight = 160;
+    textarea.scrollHeight = 400;
+    textarea.scrollTop = 80;
+    for (const listener of textarea.listeners.get("keyup") ?? []) {
+      if (typeof listener === "function") {
+        listener({ key: "ArrowDown" } as Event);
+      }
+    }
+    expect(textarea.scrollTop).toBe(80);
+    editor.destroy();
   });
 
   it("focuses unless disabled", () => {

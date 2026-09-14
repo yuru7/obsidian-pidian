@@ -25,10 +25,10 @@ function createFakeEl(): FakeEl {
   return el;
 }
 
-function emit(el: FakeEl, type: string): void {
+function emit(el: FakeEl, type: string, event: Event = new Event(type)): void {
   for (const listener of el.listeners.get(type) ?? []) {
     if (typeof listener === "function") {
-      listener(new Event(type));
+      listener(event);
     }
   }
 }
@@ -52,12 +52,22 @@ describe("listenClipboardContentChange", () => {
     expect(onChange).toHaveBeenCalledTimes(2);
   });
 
-  it("emits immediately on keyup so Backspace can restore an empty placeholder", () => {
+  it("emits immediately on Backspace or Delete keyup so an empty placeholder can restore", () => {
     const el = createFakeEl();
     const onChange = vi.fn();
     listenClipboardContentChange(el as unknown as HTMLElement, onChange);
-    emit(el, "keyup");
-    expect(onChange).toHaveBeenCalledTimes(1);
+    emit(el, "keyup", { key: "Backspace" } as Event);
+    emit(el, "keyup", { key: "Delete" } as Event);
+    expect(onChange).toHaveBeenCalledTimes(2);
+  });
+
+  it("does not emit on arrow-key keyup", () => {
+    const el = createFakeEl();
+    const onChange = vi.fn();
+    listenClipboardContentChange(el as unknown as HTMLElement, onChange);
+    emit(el, "keyup", { key: "ArrowDown" } as Event);
+    emit(el, "keyup", { key: "ArrowUp" } as Event);
+    expect(onChange).not.toHaveBeenCalled();
   });
 
   it("clears a pending emit and listeners on unsubscribe", () => {

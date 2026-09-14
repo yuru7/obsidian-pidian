@@ -7,7 +7,7 @@ import { clipboardHasPlainText, imageBlobsFromClipboard } from "./clipboardImage
 import { attachmentFromClipboardBlob } from "./clipboardImageConvert";
 import { shouldSendOnKeyDown } from "./composerSendKey";
 import { composerHasSendableContent, composerVisionBlocksSend } from "./composerSendState";
-import { fitTextarea } from "./fitTextarea";
+import { fitTextarea, isTextareaLineBreakInput, scrollTextareaCaretIntoView } from "./fitTextarea";
 import { useSendHotkeyScope } from "./useSendHotkeyScope";
 
 const MIN_ROWS = 1;
@@ -64,10 +64,10 @@ export function UserMessageEditor({
     if (!el) {
       return;
     }
-    fitTextarea(el, MIN_ROWS, MAX_ROWS);
-    el.focus();
     const end = el.value.length;
+    el.focus();
     el.setSelectionRange(end, end);
+    fitTextarea(el, MIN_ROWS, MAX_ROWS);
   }, []);
 
   useLayoutEffect(() => {
@@ -126,7 +126,14 @@ export function UserMessageEditor({
         value={text}
         rows={MIN_ROWS}
         onFocus={(event) => fitTextarea(event.currentTarget, MIN_ROWS, MAX_ROWS)}
-        onChange={(event) => setText(event.target.value)}
+        onChange={(event) => {
+          const el = event.currentTarget;
+          setText(event.target.value);
+          if (isTextareaLineBreakInput(event.nativeEvent)) {
+            fitTextarea(el, MIN_ROWS, MAX_ROWS);
+            scrollTextareaCaretIntoView(el);
+          }
+        }}
         onKeyDown={(event) => {
           if (shouldSendOnKeyDown(event, sendWithCtrlEnter)) {
             event.preventDefault();

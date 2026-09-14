@@ -1,4 +1,8 @@
-import { fitTextarea } from "../ui/fitTextarea";
+import {
+  fitTextarea,
+  isTextareaLineBreakInput,
+  scrollTextareaCaretIntoView,
+} from "../ui/fitTextarea";
 import type { ChatInputEditor, ChatInputEditorOptions } from "./chat-input-editor";
 import { listenClipboardContentChange } from "./clipboardContentChange";
 
@@ -22,8 +26,11 @@ export function createTextareaEditor(
   const emit = (): void => {
     options.onChange?.(textarea.value);
   };
-  const onInput = (): void => {
+  const onInput = (event?: Event): void => {
     tryFit(textarea);
+    if (event && isTextareaLineBreakInput(event)) {
+      scrollTextareaCaretIntoView(textarea);
+    }
     emit();
   };
   textarea.addEventListener("input", onInput);
@@ -57,6 +64,9 @@ export function createTextareaEditor(
       const cursor = start + text.length;
       textarea.setSelectionRange(cursor, cursor);
       tryFit(textarea);
+      if (text.includes("\n")) {
+        scrollTextareaCaretIntoView(textarea);
+      }
       emit();
     },
     newline() {
