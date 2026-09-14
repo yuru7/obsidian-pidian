@@ -1,7 +1,7 @@
-import { parseHTML } from "linkedom";
 import { SearchFailedError } from "../../domain/search/SearchErrors";
 import type { SearchOptions, SearchProvider, SearchResponse, SearchResult } from "../../domain/search/SearchProvider";
 import { DEFAULT_SEARCH_MAX_RESULTS } from "../../domain/search/SearchProvider";
+import { parseHtml } from "../http/parseHtml";
 import { WEB_ACCESS_USER_AGENT } from "../http/webAccess";
 
 export { WEB_ACCESS_USER_AGENT };
@@ -11,7 +11,7 @@ export const SEARCH_TIMEOUT_MS = 30_000;
 const MAX_REDIRECTS = 5;
 
 export function parseDuckDuckGoHtml(html: string): SearchResult[] {
-  const { document } = parseHTML(html);
+  const document = parseHtml(html);
   const results: SearchResult[] = [];
   const seen = new Set<string>();
 

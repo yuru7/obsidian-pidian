@@ -82,7 +82,7 @@ Application / Domain
     └── Search / Fetch ───────► Firecrawl / DuckDuckGo / FetchOrchestrator（StaticFetcher + 必要時 BrowserFetcher）
 ```
 
-**例外:** `application/fetch/FetchOrchestrator.ts` は HTML 抽出を infrastructure から直接 import している。新規でも、配線は `infrastructure/*/create*.ts` の工場に寄せ、Application が具象を増やさないようにする。
+配線は `infrastructure/*/create*.ts` の工場に寄せ、Application が具象を増やさない。`createFetchService` が HTML 抽出を遅延 import して `FetchOrchestrator` へ渡す。
 
 テストは対象の隣に `*.test.ts` を置く。Vitest。Obsidian `ItemView` と Pi SDK 内部はユニットテストしない。Agent のテストは `FakeAgentEngine` を使う。
 
@@ -361,7 +361,8 @@ esbuild:
 
 - `obsidian` / CodeMirror / `electron` / Node builtin は external
 - `fs` / `child_process` / `undici` は stub へ alias
-- production ビルド後に `assertBundleSurface()`。ZIP 展開、`child_process`、`os.hostname`、動的 `<script>` などが残っていたら失敗
+- production ビルド後に `assertBundleSurface()`。ZIP 展開、`child_process`、`os.hostname`、動的 `<script>`、`linkedom` などが残っていたら失敗
+- `pnpm analyze` は production と同じビルドに metafile を付け、入力サイズ上位を出す。成果物 `meta.json` は git に入れない
 - `import.meta.url` は仮想パス。Pi が Electron asar を walk しないようにする
 
 Pi のモジュール解決や stub を足すときは、バンドルゲートが通ることと、Vault へ `node:fs` が届かないことを確認する。
@@ -419,7 +420,7 @@ UI は `AgentService` と `plugin.settings` を読む。Pi 型を import しな�
 
 - 検索: `FirecrawlSearchProvider`（API キー任意。未設定なら Keyless）→ 失敗時 `DuckDuckGoSearchProvider` → `SearchService`。返却テキストに `Provider: <id>` を含める
 - 取得: `FetchOrchestrator`（既定 `auto`）
-  - `StaticFetcher`（`corsFreeFetch` + gzip/deflate/br 展開 + `SsrfGuard`）→ `ContentExtractor`（Readability / Defuddle / Turndown）
+  - `StaticFetcher`（`corsFreeFetch` + gzip/deflate/br 展開 + `SsrfGuard`）→ `ContentExtractor`（Electron の `DOMParser` + Readability / Defuddle 本体 + 共通 Turndown）
   - 静的 HTML が `javascript-required` のときだけ `BrowserFetcher`（Obsidian Desktop の Electron `BrowserWindow`、`show: false`）。描画後の HTML も同じ `ContentExtractor` に通す。HTTP エラーや 404 ではフォールバックしない
   - ページ本文を Firecrawl 等の外部サービスへ送らない
 - どちらも権限カテゴリは `webSearch`
@@ -444,7 +445,7 @@ UI は `AgentService` と `plugin.settings` を読む。Pi 型を import しな�
 - `imageFile`（PNG / JPEG / WebP）
 - 各 Tool の失敗系（未読 edit、非アクティブ edit、deny、SSRF）
 
-実行: `pnpm test`。環境は node。`vitest.setup.ts` が `window` を補う。
+実行: `pnpm test`。環境は node。`vitest.setup.ts` が `window` を補う。HTML を DOM として扱うテストだけ `@vitest-environment happy-dom`。
 
 ---
 

@@ -219,9 +219,6 @@ importers:
       defuddle:
         specifier: ^0.19.3
         version: 0.19.3
-      linkedom:
-        specifier: ^0.18.13
-        version: 0.18.13
       minisearch:
         specifier: ^7.2.0
         version: 7.2.0
@@ -268,6 +265,9 @@ importers:
       globals:
         specifier: ^17.12.0
         version: 17.12.0
+      happy-dom:
+        specifier: ^20.14.5
+        version: 20.14.5
       jiti:
         specifier: ^2.7.0
         version: 2.7.0
@@ -282,7 +282,7 @@ importers:
         version: 8.69.0(eslint@10.9.1(jiti@2.7.0))(typescript@7.0.2)
       vitest:
         specifier: ^4.1.11
-        version: 4.1.11(@types/node@26.4.1)(vite@8.2.2(@types/node@26.4.1)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.0))
+        version: 4.1.11(@types/node@26.4.1)(happy-dom@20.14.5)(vite@8.2.2(@types/node@26.4.1)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.0))
 
 packages:
 
@@ -1090,6 +1090,7 @@ packages:
   '@smithy/node-http-handler@4.12.0':
     resolution: {integrity: sha512-0mq1pHadfyXCYCqm2cNpbjNIT+fbaUpNxewZb/YNr2L0IrEVMOb8gM/Fl4K6XvHCW3uSNDFwPl/+iKm0bx9jYg==}
     engines: {node: '>=18.0.0'}
+    deprecated: Depreacted due to a memory leak issue https://github.com/smithy-lang/smithy-typescript/issues/2258
 
   '@smithy/node-http-handler@4.7.3':
     resolution: {integrity: sha512-/jPhevcTFPMVl6KNjbaI47iOg1zxC7IsnX4PQDGVZKMFceOXtB8IEYaB7a9VvkP/3oC60WzTeKocvSI7vLT0vA==}
@@ -1163,6 +1164,12 @@ packages:
 
   '@types/turndown@5.0.6':
     resolution: {integrity: sha512-ru00MoyeeouE5BX4gRL+6m/BsDfbRayOskWqUvh7CLGW+UXxHQItqALa38kKnOiZPqJrtzJUgAC2+F0rL1S4Pg==}
+
+  '@types/whatwg-mimetype@3.0.2':
+    resolution: {integrity: sha512-c2AKvDT8ToxLIOUlN51gTiHXflsfIFisS4pO7pDPoKouJCESkhZnEy623gwP9laCy5lnLDAw1vAzu2vM2YLOrA==}
+
+  '@types/ws@8.18.1':
+    resolution: {integrity: sha512-ThVF6DCVhA8kUGy+aazFQ4kXQ7E1Ty7A3ypFOe0IcJV8O/M511G99AW24irKrW56Wt44yG9+ij8FaqoBGkuBXg==}
 
   '@typescript-eslint/eslint-plugin@8.69.0':
     resolution: {integrity: sha512-t5jQTKPIgVW1PE6dR6H6Qz5gm8zjMlX5/2gRaOGd9eO6V7J+tQc6iWKukEe7dY8u9HyYasQ0yfF0/FSSTEO2gA==}
@@ -1472,6 +1479,10 @@ packages:
 
   buffer-equal-constant-time@1.0.1:
     resolution: {integrity: sha512-zRpUiDwd/xk6ADqPMATG8vc9VPrkck7T07OIx0gnjmJAnHnTVXNQG3vfvWNuiZIkwu9KrKdA1iJKfsfTVxE6NA==}
+
+  buffer-image-size@0.6.4:
+    resolution: {integrity: sha512-nEh+kZOPY1w+gcCMobZ6ETUp9WfibndnosbpwB1iJk/8Gt5ZF2bhS6+B6bPYz424KtwsR6Rflc3tCz1/ghX2dQ==}
+    engines: {node: '>=4.0'}
 
   call-bind-apply-helpers@1.0.2:
     resolution: {integrity: sha512-Sp1ablJ0ivDkSzjcaJdxEunN5/XvksFJ2sMBFfq6x0ryhQV/2b/KwFe21cMpmHtPOSij8K99/wSfoEuTObmuMQ==}
@@ -1977,6 +1988,10 @@ packages:
   grok-mermaid@0.2.2:
     resolution: {integrity: sha512-XcJEP5dDC8liHBh52mlLjU18fNvu1ckFsu0QpIG3+APZ270fsj9wxpiA6cOURmbUEuoMVgjbC2+UYgTdCqqgzA==}
     engines: {node: '>=18'}
+
+  happy-dom@20.14.5:
+    resolution: {integrity: sha512-x/RzkpWO40bTjIoT30iQtt64FLLmH/iRcUCN2X//bLx7H3ifkdfPXyqsro/OYtqzIAhiLMMA7mmiOR9C3NOKjQ==}
+    engines: {node: '>=20.0.0'}
 
   has-bigints@1.1.0:
     resolution: {integrity: sha512-R3pbpkcIqv2Pm3dUwgjclDRVmWpTJW2DcMzcIhEXEx1oh/CEMObMm3KLmRJOdvhM7o4uQBnwr8pzRK2sJWIqfg==}
@@ -2888,6 +2903,10 @@ packages:
     resolution: {integrity: sha512-d2JWLCivmZYTSIoge9MsgFCZrt571BikcWGYkjC1khllbTeDlGqZ2D8vD8E/lJa8WGWbb7Plm8/XJYV7IJHZZw==}
     engines: {node: '>= 8'}
 
+  whatwg-mimetype@3.0.0:
+    resolution: {integrity: sha512-nt+N2dzIutVRxARx1nghPKGv1xHikU7HKdfafKkLNLindmPU/ch3U31NOCGGA/dmPcmb1VlofO0vnKAcsm0o/Q==}
+    engines: {node: '>=12'}
+
   which-boxed-primitive@1.1.1:
     resolution: {integrity: sha512-TbX3mj8n0odCBFVlY8AxkqcHASw3L60jIuF8jFP78az3C2YhmGvqbHBpAjTRH2/xqYunrJ9g1jSyjCjpoWzIAA==}
     engines: {node: '>= 0.4'}
@@ -3756,6 +3775,12 @@ snapshots:
 
   '@types/turndown@5.0.6': {}
 
+  '@types/whatwg-mimetype@3.0.2': {}
+
+  '@types/ws@8.18.1':
+    dependencies:
+      '@types/node': 26.4.1
+
   '@typescript-eslint/eslint-plugin@8.69.0(@typescript-eslint/parser@8.69.0(eslint@10.9.1(jiti@2.7.0))(typescript@7.0.2))(eslint@10.9.1(jiti@2.7.0))(typescript@7.0.2)':
     dependencies:
       '@eslint-community/regexpp': 4.12.2
@@ -4095,7 +4120,8 @@ snapshots:
 
   bignumber.js@9.3.1: {}
 
-  boolbase@2.0.0: {}
+  boolbase@2.0.0:
+    optional: true
 
   bowser@2.14.1: {}
 
@@ -4113,6 +4139,10 @@ snapshots:
       balanced-match: 4.0.4
 
   buffer-equal-constant-time@1.0.1: {}
+
+  buffer-image-size@0.6.4:
+    dependencies:
+      '@types/node': 26.4.1
 
   call-bind-apply-helpers@1.0.2:
     dependencies:
@@ -4156,10 +4186,13 @@ snapshots:
       domhandler: 6.0.1
       domutils: 4.0.2
       nth-check: 3.0.1
+    optional: true
 
-  css-what@8.0.0: {}
+  css-what@8.0.0:
+    optional: true
 
-  cssom@0.5.0: {}
+  cssom@0.5.0:
+    optional: true
 
   csstype@3.2.3: {}
 
@@ -4229,36 +4262,44 @@ snapshots:
       domelementtype: 2.3.0
       domhandler: 5.0.3
       entities: 4.5.0
+    optional: true
 
   dom-serializer@3.1.1:
     dependencies:
       domelementtype: 3.0.0
       domhandler: 6.0.1
       entities: 8.0.0
+    optional: true
 
-  domelementtype@2.3.0: {}
+  domelementtype@2.3.0:
+    optional: true
 
-  domelementtype@3.0.0: {}
+  domelementtype@3.0.0:
+    optional: true
 
   domhandler@5.0.3:
     dependencies:
       domelementtype: 2.3.0
+    optional: true
 
   domhandler@6.0.1:
     dependencies:
       domelementtype: 3.0.0
+    optional: true
 
   domutils@3.2.2:
     dependencies:
       dom-serializer: 2.0.0
       domelementtype: 2.3.0
       domhandler: 5.0.3
+    optional: true
 
   domutils@4.0.2:
     dependencies:
       dom-serializer: 3.1.1
       domelementtype: 3.0.0
       domhandler: 6.0.1
+    optional: true
 
   dunder-proto@1.0.1:
     dependencies:
@@ -4277,11 +4318,13 @@ snapshots:
       graceful-fs: 4.2.11
       tapable: 2.3.3
 
-  entities@4.5.0: {}
+  entities@4.5.0:
+    optional: true
 
   entities@7.0.1: {}
 
-  entities@8.0.0: {}
+  entities@8.0.0:
+    optional: true
 
   es-abstract-get@1.0.0:
     dependencies:
@@ -4838,6 +4881,19 @@ snapshots:
 
   grok-mermaid@0.2.2: {}
 
+  happy-dom@20.14.5:
+    dependencies:
+      '@types/node': 26.4.1
+      '@types/whatwg-mimetype': 3.0.2
+      '@types/ws': 8.18.1
+      buffer-image-size: 0.6.4
+      entities: 7.0.1
+      whatwg-mimetype: 3.0.0
+      ws: 8.21.3
+    transitivePeerDependencies:
+      - bufferutil
+      - utf-8-validate
+
   has-bigints@1.1.0: {}
 
   has-property-descriptors@1.0.2:
@@ -4864,7 +4920,8 @@ snapshots:
     dependencies:
       lru-cache: 11.5.2
 
-  html-escaper@3.0.3: {}
+  html-escaper@3.0.3:
+    optional: true
 
   htmlparser2@10.1.0:
     dependencies:
@@ -4872,6 +4929,7 @@ snapshots:
       domhandler: 5.0.3
       domutils: 3.2.2
       entities: 7.0.1
+    optional: true
 
   http-proxy-agent@7.0.2:
     dependencies:
@@ -5143,6 +5201,7 @@ snapshots:
       html-escaper: 3.0.3
       htmlparser2: 10.1.0
       uhyphen: 0.2.0
+    optional: true
 
   locate-path@6.0.0:
     dependencies:
@@ -5221,6 +5280,7 @@ snapshots:
   nth-check@3.0.1:
     dependencies:
       boolbase: 2.0.0
+    optional: true
 
   object-assign@4.1.1: {}
 
@@ -5722,7 +5782,8 @@ snapshots:
       '@typescript/typescript-win32-arm64': 7.0.2
       '@typescript/typescript-win32-x64': 7.0.2
 
-  uhyphen@0.2.0: {}
+  uhyphen@0.2.0:
+    optional: true
 
   unbox-primitive@1.1.0:
     dependencies:
@@ -5755,7 +5816,7 @@ snapshots:
       jiti: 2.7.0
       yaml: 2.9.0
 
-  vitest@4.1.11(@types/node@26.4.1)(vite@8.2.2(@types/node@26.4.1)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.0)):
+  vitest@4.1.11(@types/node@26.4.1)(happy-dom@20.14.5)(vite@8.2.2(@types/node@26.4.1)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.0)):
     dependencies:
       '@vitest/expect': 4.1.11
       '@vitest/mocker': 4.1.11(vite@8.2.2(@types/node@26.4.1)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.0))
@@ -5779,12 +5840,15 @@ snapshots:
       why-is-node-running: 2.3.0
     optionalDependencies:
       '@types/node': 26.4.1
+      happy-dom: 20.14.5
     transitivePeerDependencies:
       - msw
 
   w3c-keyname@2.2.8: {}
 
   web-streams-polyfill@3.3.3: {}
+
+  whatwg-mimetype@3.0.0: {}
 
   which-boxed-primitive@1.1.1:
     dependencies:

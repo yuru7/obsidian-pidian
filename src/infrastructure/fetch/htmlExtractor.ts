@@ -1,14 +1,18 @@
 import { Readability } from "@mozilla/readability";
-import { Defuddle } from "defuddle/node";
-import { parseHTML } from "linkedom";
+import Defuddle from "defuddle";
 import TurndownService from "turndown";
 import type { ExtractionResult, FetchExtractor } from "../../domain/fetch/FetchResult";
 import { MIN_USEFUL_CONTENT_LENGTH } from "../../domain/fetch/FetchResult";
+import { parseHtml } from "../http/parseHtml";
 
-const turndown = new TurndownService({
-  headingStyle: "atx",
-  codeBlockStyle: "fenced",
-});
+let turndown: TurndownService | undefined;
+
+function getTurndown(): TurndownService {
+  return (turndown ??= new TurndownService({
+    headingStyle: "atx",
+    codeBlockStyle: "fenced",
+  }));
+}
 
 const SPA_ROOT_SELECTOR = "#root, #app, #__next, [data-reactroot]";
 
@@ -27,7 +31,7 @@ export async function extractHtml(
   const defuddle =
     readability && readability.content.length >= MIN_USEFUL_CONTENT_LENGTH
       ? undefined
-      : await extractDefuddle(html, url);
+      : extractDefuddle(html, url);
   return classifyExtractedHtml(
     readability,
     defuddle,
@@ -59,7 +63,7 @@ export function classifyExtractedHtml(
 }
 
 export function isJavascriptLikely(html: string): boolean {
-  const { document } = parseHTML(html);
+  const document = parseHtml(html);
   if (document.querySelectorAll("script").length >= 2) {
     return true;
   }
@@ -72,13 +76,13 @@ export function isJavascriptLikely(html: string): boolean {
 
 export function extractReadability(html: string): ExtractedHtml | undefined {
   try {
-    const { document } = parseHTML(html);
+    const document = parseHtml(html);
     const article = new Readability(document).parse();
     const contentHtml = article?.content?.trim();
     if (!contentHtml) {
       return undefined;
     }
-    const content = turndown.turndown(contentHtml).trim();
+    const content = getTurndown().turndown(contentHtml).trim();
     if (!content) {
       return undefined;
     }
@@ -89,14 +93,18 @@ export function extractReadability(html: string): ExtractedHtml | undefined {
   }
 }
 
-export async function extractDefuddle(html: string, url: string): Promise<ExtractedHtml | undefined> {
+export function extractDefuddle(html: string, url: string): ExtractedHtml | undefined {
   try {
-    const { document } = parseHTML(html);
-    const result = await Defuddle(document, url, {
-      markdown: true,
+    const document = parseHtml(html);
+    const result = new Defuddle(document, {
+      url,
       useAsync: false,
-    });
-    const content = result.content?.trim();
+    }).parse();
+    const contentHtml = result.content?.trim();
+    if (!contentHtml) {
+      return undefined;
+    }
+    const content = getTurndown().turndown(contentHtml).trim();
     if (!content) {
       return undefined;
     }

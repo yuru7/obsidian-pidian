@@ -1,5 +1,5 @@
+/** @vitest-environment happy-dom */
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { parseHTML } from "linkedom";
 import {
   bindChatFootnotes,
   elementByHashId,
@@ -87,7 +87,7 @@ describe("footnote lookup", () => {
   });
 
   it("does not treat a heading hash as a footnote link", () => {
-    const { document } = parseHTML(`<a href="#heading">x</a>`);
+    const document = new DOMParser().parseFromString(`<a href="#heading">x</a>`, "text/html");
     const anchor = document.querySelector("a");
     expect(anchor).toBeTruthy();
     expect(isFootnoteNavAnchor(anchor!)).toBe(false);
@@ -117,7 +117,7 @@ describe("footnote lookup", () => {
   });
 
   it("treats data-footnote-ref anchors as in-text sources even without footnote-link", () => {
-    const { document } = parseHTML(`
+    const document = new DOMParser().parseFromString(`
       <div class="pidian-markdown">
         <p>
           <sup class="footnote-ref" id="fnref-1-aaa">
@@ -126,7 +126,7 @@ describe("footnote lookup", () => {
         </p>
         <section class="footnotes"><ol><li id="fn-1-aaa">note</li></ol></section>
       </div>
-    `);
+    `, "text/html");
     const root = document.querySelector(".pidian-markdown") as HTMLElement;
     const sup = root.querySelector("sup.footnote-ref");
     expect(inTextFootnoteLinkFromTarget(sup, root)?.getAttribute("href")).toBe("#fn-1-aaa");
@@ -256,7 +256,7 @@ describe("bindChatFootnotes", () => {
 });
 
 function renderMarkdown(): { root: HTMLElement; document: Document } {
-  const { document } = parseHTML(`<body>${MARKDOWN_HTML}</body>`);
+  const document = new DOMParser().parseFromString(`<body>${MARKDOWN_HTML}</body>`, "text/html");
   const root = document.querySelector(".pidian-markdown") as HTMLElement;
   return { root, document };
 }

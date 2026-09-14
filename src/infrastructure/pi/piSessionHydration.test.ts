@@ -1,4 +1,6 @@
-import { SessionManager } from "@earendil-works/pi-coding-agent";
+// Same module as piCodingAgentSdk. The package barrel re-exports the CLI
+// and pulls optional @earendil-works/pi-server into Vitest.
+import { SessionManager } from "../../../node_modules/@earendil-works/pi-coding-agent/dist/core/session-manager.js";
 import type { Api, Model } from "@earendil-works/pi-ai";
 import { describe, expect, it } from "vitest";
 import type { AgentConversation } from "../../domain/agent/AgentConversation";

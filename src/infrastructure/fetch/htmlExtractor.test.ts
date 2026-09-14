@@ -1,5 +1,6 @@
+/** @vitest-environment happy-dom */
 import { describe, expect, it } from "vitest";
-import { classifyExtractedHtml, extractHtml, extractReadability, isJavascriptLikely } from "./htmlExtractor";
+import { classifyExtractedHtml, extractDefuddle, extractHtml, extractReadability, isJavascriptLikely } from "./htmlExtractor";
 
 const ARTICLE_PARAGRAPH = [
   "Pi coding agent is a CLI assistant that helps software engineers read,",
@@ -37,6 +38,18 @@ describe("extractReadability", () => {
   it("keeps article body as Markdown and drops navigation", () => {
     const extracted = extractReadability(ARTICLE_HTML);
     expect(extracted?.extractor).toBe("readability");
+    expect(extracted?.title).toBe("Example");
+    expect(extracted?.content).toContain("Pi coding agent");
+    expect(extracted?.content).not.toContain("Home");
+    expect(extracted?.content).not.toContain("<nav>");
+    expect(extracted?.content).not.toContain("<p>");
+  });
+});
+
+describe("extractDefuddle", () => {
+  it("keeps article body as Markdown and drops navigation", () => {
+    const extracted = extractDefuddle(ARTICLE_HTML, "https://example.com/article");
+    expect(extracted?.extractor).toBe("defuddle");
     expect(extracted?.title).toBe("Example");
     expect(extracted?.content).toContain("Pi coding agent");
     expect(extracted?.content).not.toContain("Home");

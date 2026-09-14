@@ -1,7 +1,10 @@
+/** @vitest-environment happy-dom */
 import { describe, expect, it, vi } from "vitest";
 import { FetchFailedError } from "../../domain/fetch/FetchErrors";
+import type { ExtractionResult } from "../../domain/fetch/FetchResult";
 import { FetchOrchestrator, formatFetchResult } from "./FetchOrchestrator";
 import { BrowserFetcher, type HiddenBrowserWindow } from "../../infrastructure/fetch/BrowserFetcher";
+import { extractHtml } from "../../infrastructure/fetch/htmlExtractor";
 import { StaticFetcher } from "../../infrastructure/fetch/StaticFetcher";
 import { SsrfGuard } from "../../infrastructure/fetch/ssrfGuard";
 
@@ -43,6 +46,10 @@ function renderedWindow(): HiddenBrowserWindow {
   };
 }
 
+function unusedExtract(): Promise<ExtractionResult> {
+  throw new Error("extract should not run");
+}
+
 describe("FetchOrchestrator", () => {
   it("extracts a static article without opening a browser", async () => {
     const service = new FetchOrchestrator(
@@ -51,6 +58,7 @@ describe("FetchOrchestrator", () => {
         publicGuard(),
       ),
       unusedBrowser(),
+      extractHtml,
     );
     const result = await service.fetch("https://example.com/article");
     expect(result.extractor).toBe("readability");
@@ -71,6 +79,7 @@ describe("FetchOrchestrator", () => {
         stabilityIntervalMs: 0,
         stabilityChecks: 1,
       }),
+      extractHtml,
     );
     const result = await service.fetch("https://example.com/app");
     expect(createWindow).toHaveBeenCalledOnce();
@@ -116,6 +125,7 @@ describe("FetchOrchestrator", () => {
     const service = new FetchOrchestrator(
       new StaticFetcher(async () => new Response("missing", { status: 404 }), publicGuard()),
       new BrowserFetcher(publicGuard(), createWindow),
+      unusedExtract,
     );
     await expect(service.fetch("https://example.com/missing")).rejects.toBeInstanceOf(FetchFailedError);
     expect(createWindow).not.toHaveBeenCalled();
@@ -128,6 +138,7 @@ describe("FetchOrchestrator", () => {
         publicGuard(),
       ),
       unusedBrowser(),
+      unusedExtract,
     );
     await expect(service.fetch("https://example.com/plain")).resolves.toMatchObject({
       content: "hello",

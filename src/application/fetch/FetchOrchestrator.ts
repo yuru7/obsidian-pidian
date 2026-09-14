@@ -9,7 +9,6 @@ import type {
   FetchResult,
 } from "../../domain/fetch/FetchResult";
 import { classifyMediaType } from "../../domain/fetch/mediaType";
-import { extractHtml } from "../../infrastructure/fetch/htmlExtractor";
 import type { BrowserFetcher } from "../../infrastructure/fetch/BrowserFetcher";
 import type { StaticFetcher } from "../../infrastructure/fetch/StaticFetcher";
 
@@ -32,7 +31,7 @@ export class FetchOrchestrator {
   constructor(
     private readonly staticFetcher: StaticFetcher,
     private readonly browserFetcher: BrowserFetcher,
-    private readonly extract: ContentExtractor = extractHtml,
+    private readonly extract: ContentExtractor,
   ) {}
 
   async fetch(url: string, signal?: AbortSignal, mode: FetchMode = "auto"): Promise<FetchResult> {

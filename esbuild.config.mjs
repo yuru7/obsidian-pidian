@@ -2,7 +2,7 @@ import esbuild from "esbuild";
 import process from "process";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { readFile } from "node:fs/promises";
+import { readFile, writeFile } from "node:fs/promises";
 import { builtinModules } from "node:module";
 
 const rootDir = path.dirname(fileURLToPath(import.meta.url));
@@ -197,7 +197,51 @@ const FORBIDDEN_BUNDLE_PATTERNS = [
   { pattern: /\bos\.userInfo\b/, label: "os.userInfo" },
   { pattern: /\bos\.networkInterfaces\b/, label: "os.networkInterfaces" },
   { pattern: /createElement\(\s*["'`]script["'`]\s*\)/i, label: "dynamic <script> element creation" },
+  { pattern: /linkedom/, label: "linkedom (use DOMParser)" },
 ];
+
+function groupMetafileInput(file) {
+  const normalized = file.replaceAll("\\", "/");
+  const pi = normalized.match(/@earendil-works\/pi-coding-agent\/(?:dist\/)?(.+)$/);
+  if (pi) {
+    const parts = pi[1].split("/");
+    const top = parts.slice(0, Math.min(2, parts.length)).join("/");
+    return `@earendil-works/pi-coding-agent/${top}`;
+  }
+  const pnpm = normalized.match(/node_modules\/\.pnpm\/[^/]+\/node_modules\/(@[^/]+\/[^/]+|[^/]+)/);
+  if (pnpm) {
+    return pnpm[1];
+  }
+  const nm = normalized.match(/node_modules\/(@[^/]+\/[^/]+|[^/]+)/);
+  if (nm) {
+    return nm[1];
+  }
+  if (normalized.includes("/src/")) {
+    return "src/";
+  }
+  return normalized;
+}
+
+function printMetafileSummary(metafile) {
+  const groups = new Map();
+  for (const [file, info] of Object.entries(metafile.inputs)) {
+    const group = groupMetafileInput(file);
+    groups.set(group, (groups.get(group) ?? 0) + info.bytes);
+  }
+  const ranked = [...groups.entries()].sort((a, b) => b[1] - a[1]);
+  const outputs = Object.entries(metafile.outputs);
+  for (const [file, info] of outputs) {
+    console.log(`bundle ${file}: ${formatKb(info.bytes)}`);
+  }
+  console.log("top inputs:");
+  for (const [group, bytes] of ranked.slice(0, 25)) {
+    console.log(`  ${formatKb(bytes).padStart(8)}  ${group}`);
+  }
+}
+
+function formatKb(bytes) {
+  return `${(bytes / 1024).toFixed(1)}kb`;
+}
 
 async function assertBundleSurface() {
   const bundle = await readFile(path.join(rootDir, "main.js"), "utf8");
@@ -210,6 +254,7 @@ async function assertBundleSurface() {
 }
 
 const prod = process.argv[2] === "production";
+const analyze = process.argv.includes("analyze");
 
 const nodeExternals = [
   ...builtinModules,
@@ -245,6 +290,7 @@ const context = await esbuild.context({
   treeShaking: true,
   outfile: "main.js",
   minify: prod,
+  metafile: analyze,
   jsx: "automatic",
   platform: "node",
   plugins: [obsidianCompatPlugin],
@@ -267,7 +313,14 @@ const context = await esbuild.context({
 });
 
 if (prod) {
-  await context.rebuild();
+  const result = await context.rebuild();
+  if (analyze) {
+    if (!result.metafile) {
+      throw new Error("analyze requested but esbuild did not produce a metafile");
+    }
+    await writeFile(path.join(rootDir, "meta.json"), JSON.stringify(result.metafile));
+    printMetafileSummary(result.metafile);
+  }
   await assertBundleSurface();
   process.exit(0);
 } else {

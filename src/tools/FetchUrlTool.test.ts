@@ -23,6 +23,9 @@ function toolWith(
     new BrowserFetcher(guard, () => {
       throw new Error("browser should not run");
     }),
+    async () => {
+      throw new Error("extract should not run");
+    },
   );
   return createFetchUrlTool({ permissions: permissions(webSearch), fetchService });
 }
