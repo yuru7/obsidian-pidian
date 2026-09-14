@@ -120,8 +120,8 @@ function resolveMarkdownEditorConstructor(app: App): MarkdownEditorConstructor |
       return null;
     }
     const host = createDiv();
-    const embed = asEmbed(createEmbed({ app, containerEl: host }, null, ""));
-    if (!embed) {
+    const embed = createEmbed({ app, containerEl: host }, null, "");
+    if (!isMarkdownEmbed(embed)) {
       return null;
     }
     try {
@@ -142,11 +142,8 @@ function resolveMarkdownEditorConstructor(app: App): MarkdownEditorConstructor |
   }
 }
 
-function asEmbed(value: unknown): MarkdownEmbed | null {
-  if (!value || typeof value !== "object") {
-    return null;
-  }
-  return value as MarkdownEmbed;
+function isMarkdownEmbed(value: unknown): value is MarkdownEmbed {
+  return typeof value === "object" && value !== null;
 }
 
 /**

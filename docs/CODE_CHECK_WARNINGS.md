@@ -21,3 +21,11 @@ Obsidian プラグイン審査と eslint-plugin-obsidianmd / typescript-eslint �
 ## TypeScript: `any` / `unknown`
 
 `JSON.parse` の結果は `unknown` で受ける（`const parsed: unknown = JSON.parse(text)`、または `as unknown` を返すヘルパ）。`unknown | T` は書かない。`unknown` が他型を飲み込む。
+
+## TypeScript: `no-unnecessary-type-assertion`
+
+戻り先が元の型を受け取れる `as T` は書かない。`unknown` をオブジェクトへ狭めるときは `as T` ではなく `value is T` の型ガード。
+
+## CSS: `:has`
+
+`:has` はセレクタ無効化が広く、審査で性能警告になる。子の有無で親を変えたいときは、子側の既存クラスへスタイルを置くか、条件時にクラスを付ける。

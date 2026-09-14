@@ -528,10 +528,6 @@ input.pidian-model-search-input:focus-visible {
   line-height: 1.65;
   min-height: calc(2lh + 12px + 2px);
   max-height: calc(8lh + 12px + 2px);
-  overflow: auto;
-}
-
-.pidian-view .pidian-composer-input:has(.has-textarea) {
   overflow: hidden;
 }
 
@@ -550,6 +546,11 @@ input.pidian-model-search-input:focus-visible {
 
 .pidian-view .pidian-composer-mount {
   min-height: inherit;
+}
+
+.pidian-view .pidian-composer-mount.has-live-editor {
+  max-height: inherit;
+  overflow: auto;
 }
 
 .pidian-view .pidian-composer-mount.has-live-editor .markdown-source-view,
