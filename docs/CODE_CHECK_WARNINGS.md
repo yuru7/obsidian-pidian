@@ -18,6 +18,10 @@ Obsidian プラグイン審査と eslint-plugin-obsidianmd / typescript-eslint �
 
 `setTimeout` / `clearTimeout` ではなく `window.setTimeout` / `window.clearTimeout`。
 
+## グローバル: popout 互換
+
+`globalThis` は使わない。`window` または `activeWindow`。
+
 ## TypeScript: `any` / `unknown`
 
 `JSON.parse` の結果は `unknown` で受ける（`const parsed: unknown = JSON.parse(text)`、または `as unknown` を返すヘルパ）。`unknown | T` は書かない。`unknown` が他型を飲み込む。

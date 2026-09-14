@@ -22,7 +22,7 @@ function readLanguage(): string {
     // Obsidian < 1.8.7, or getLanguage unavailable.
   }
   try {
-    const stored = globalThis.localStorage?.getItem("language");
+    const stored = window.localStorage?.getItem("language");
     if (stored) {
       return stored;
     }

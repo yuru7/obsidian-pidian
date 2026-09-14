@@ -33,7 +33,7 @@ export function roundMs(value: number): number {
   return Math.round(value);
 }
 
-export function readEvalStartedAt(store: object = globalThis): number | undefined {
+export function readEvalStartedAt(store: object = window): number | undefined {
   if (!(EVAL_STARTED_AT_KEY in store)) {
     return undefined;
   }

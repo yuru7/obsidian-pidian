@@ -16,8 +16,8 @@ if you want to view the source, please visit the github repository of this plugi
 var __pidianLoadStartedAt = (typeof performance !== "undefined" && typeof performance.now === "function")
   ? performance.now()
   : Date.now();
-if (typeof globalThis !== "undefined") {
-  globalThis.__pidianLoadStartedAt = __pidianLoadStartedAt;
+if (typeof window !== "undefined") {
+  window.__pidianLoadStartedAt = __pidianLoadStartedAt;
 }
 
 // Obsidian evals plugin code, so Node's __filename is Electron's asar — not this file.
