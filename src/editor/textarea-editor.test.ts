@@ -162,7 +162,7 @@ describe("createTextareaEditor", () => {
     textarea.scrollTop = 80;
     for (const listener of textarea.listeners.get("keyup") ?? []) {
       if (typeof listener === "function") {
-        listener({ key: "ArrowDown" } as Event);
+        listener(Object.assign(new Event("keyup"), { key: "ArrowDown" }));
       }
     }
     expect(textarea.scrollTop).toBe(80);

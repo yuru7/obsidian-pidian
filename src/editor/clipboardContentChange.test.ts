@@ -56,8 +56,8 @@ describe("listenClipboardContentChange", () => {
     const el = createFakeEl();
     const onChange = vi.fn();
     listenClipboardContentChange(el as unknown as HTMLElement, onChange);
-    emit(el, "keyup", { key: "Backspace" } as Event);
-    emit(el, "keyup", { key: "Delete" } as Event);
+    emit(el, "keyup", Object.assign(new Event("keyup"), { key: "Backspace" }));
+    emit(el, "keyup", Object.assign(new Event("keyup"), { key: "Delete" }));
     expect(onChange).toHaveBeenCalledTimes(2);
   });
 
@@ -65,8 +65,8 @@ describe("listenClipboardContentChange", () => {
     const el = createFakeEl();
     const onChange = vi.fn();
     listenClipboardContentChange(el as unknown as HTMLElement, onChange);
-    emit(el, "keyup", { key: "ArrowDown" } as Event);
-    emit(el, "keyup", { key: "ArrowUp" } as Event);
+    emit(el, "keyup", Object.assign(new Event("keyup"), { key: "ArrowDown" }));
+    emit(el, "keyup", Object.assign(new Event("keyup"), { key: "ArrowUp" }));
     expect(onChange).not.toHaveBeenCalled();
   });
 

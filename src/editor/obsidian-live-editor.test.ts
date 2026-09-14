@@ -210,7 +210,7 @@ describe("createObsidianLiveEditor", () => {
     instance!.value = "";
     for (const listener of host.listeners.get("keyup") ?? []) {
       if (typeof listener === "function") {
-        listener(new Event("keyup"));
+        listener(Object.assign(new Event("keyup"), { key: "Backspace" }));
       }
     }
     expect(onChange).toHaveBeenCalledWith("");

@@ -106,9 +106,9 @@ describe("scrollTextareaCaretIntoView", () => {
 
 describe("isTextareaLineBreakInput", () => {
   it("is true only for line-break input types", () => {
-    expect(isTextareaLineBreakInput({ inputType: "insertLineBreak" } as Event)).toBe(true);
-    expect(isTextareaLineBreakInput({ inputType: "insertParagraph" } as Event)).toBe(true);
-    expect(isTextareaLineBreakInput({ inputType: "insertText" } as Event)).toBe(false);
-    expect(isTextareaLineBreakInput({ key: "ArrowDown" } as Event)).toBe(false);
+    expect(isTextareaLineBreakInput(Object.assign(new Event("input"), { inputType: "insertLineBreak" }))).toBe(true);
+    expect(isTextareaLineBreakInput(Object.assign(new Event("input"), { inputType: "insertParagraph" }))).toBe(true);
+    expect(isTextareaLineBreakInput(Object.assign(new Event("input"), { inputType: "insertText" }))).toBe(false);
+    expect(isTextareaLineBreakInput(Object.assign(new Event("keyup"), { key: "ArrowDown" }))).toBe(false);
   });
 });
