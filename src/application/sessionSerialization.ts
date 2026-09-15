@@ -269,6 +269,7 @@ function parseMessage(value: unknown): PidianMessage {
   }
   const usage = parseUsage(value.usage, "messages.usage");
   const workedMs = parseOptionalWorkedMs(value.workedMs);
+  const durationMs = parseOptionalWorkedMs(value.durationMs);
   const blocks = parseContentBlocks(value.blocks);
   const context = role === "user" ? parseOptionalContext(value.context) : undefined;
   const attachments = role === "user" ? parseOptionalAttachments(value.attachments) : undefined;
@@ -282,6 +283,7 @@ function parseMessage(value: unknown): PidianMessage {
     toolCalls: parseToolCalls(value.toolCalls),
     ...(usage ? { usage } : {}),
     ...(workedMs !== undefined ? { workedMs } : {}),
+    ...(durationMs !== undefined ? { durationMs } : {}),
     ...(blocks ? { blocks } : {}),
     createdAt: expectString(value.createdAt, "messages.createdAt"),
   };

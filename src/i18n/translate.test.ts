@@ -72,6 +72,10 @@ describe("lookup", () => {
     );
     expect(lookup("en", "uiWorkedFor", { seconds: 8 })).toBe("Worked for 8s");
     expect(lookup("ja", "uiWorkedFor", { seconds: 8 })).toBe("Worked for 8s");
+    expect(lookup("en", "uiDoneIn", { minutes: 1, seconds: 23 })).toBe("Done in 1 min 23 sec");
+    expect(lookup("ja", "uiDoneIn", { minutes: 1, seconds: 23 })).toBe("Done in 1 min 23 sec");
+    expect(lookup("en", "uiDoneInSeconds", { seconds: 8 })).toBe("Done in 8 sec");
+    expect(lookup("ja", "uiDoneInSeconds", { seconds: 8 })).toBe("Done in 8 sec");
     expect(lookup("ja", "uiWorking")).toBe("Working");
     expect(lookup("ja", "uiThinking")).toBe("思考");
   });

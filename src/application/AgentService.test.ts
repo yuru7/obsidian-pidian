@@ -517,6 +517,28 @@ describe("AgentService.send", () => {
     expect(agent.getSession()?.messages[1]?.workedMs).toBe(workedMsAtFirstText);
   });
 
+  it("records durationMs when the turn completes", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-01-01T00:00:00.000Z"));
+    try {
+      const store = new MemoryRepository();
+      const agent = createService(
+        store,
+        new ScriptedAgentEngine(async (emit) => {
+          await vi.advanceTimersByTimeAsync(65_000);
+          emit({ type: "text_delta", text: "Hi" });
+          emit({ type: "turn_completed" });
+        }),
+      );
+      await agent.newChat("openai", "gpt-5");
+      await agent.send("hello");
+
+      expect(agent.getSession()?.messages[1]?.durationMs).toBe(65_000);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("records workedMs when the turn ends without text", async () => {
     const store = new MemoryRepository();
     const agent = createService(

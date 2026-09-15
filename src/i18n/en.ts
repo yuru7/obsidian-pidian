@@ -164,6 +164,8 @@ export const en = {
   uiScrollToLatest: "Scroll to the end of the chat",
   uiWorked: "Worked",
   uiWorkedFor: "Worked for {seconds}s",
+  uiDoneIn: "Done in {minutes} min {seconds} sec",
+  uiDoneInSeconds: "Done in {seconds} sec",
   uiCopy: "Copy",
   uiCopied: "Copied",
   uiQuote: "Quote",

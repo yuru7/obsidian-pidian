@@ -163,6 +163,8 @@ export const ja: { [K in keyof typeof en]: string } = {
   uiScrollToLatest: "チャット末尾へスクロール",
   uiWorked: "Worked",
   uiWorkedFor: "Worked for {seconds}s",
+  uiDoneIn: "Done in {minutes} min {seconds} sec",
+  uiDoneInSeconds: "Done in {seconds} sec",
   uiCopy: "コピー",
   uiCopied: "コピーしました",
   uiQuote: "引用",

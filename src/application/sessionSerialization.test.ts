@@ -340,6 +340,40 @@ describe("session serialization", () => {
     expect(parseSessionFile(serializePidianSession(withBlocks))).toEqual(withBlocks);
   });
 
+  it("round-trips assistant durationMs", () => {
+    const withDuration: PidianSession = {
+      ...sample,
+      messages: [
+        sample.messages[0]!,
+        {
+          id: "m2",
+          role: "assistant",
+          text: "Hi",
+          durationMs: 65000,
+          createdAt: "2026-01-01T00:00:01.000Z",
+        },
+      ],
+    };
+    expect(parseSessionFile(serializePidianSession(withDuration))).toEqual(withDuration);
+  });
+
+  it("omits invalid durationMs values", () => {
+    expect(
+      parsePidianSession({
+        ...sample,
+        messages: [
+          {
+            id: "m2",
+            role: "assistant",
+            text: "Hi",
+            durationMs: -1,
+            createdAt: "2026-01-01T00:00:01.000Z",
+          },
+        ],
+      }).messages[0]?.durationMs,
+    ).toBeUndefined();
+  });
+
   it("round-trips assistant workedMs", () => {
     const withWork: PidianSession = {
       ...sample,

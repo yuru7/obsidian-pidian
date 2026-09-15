@@ -52,6 +52,8 @@ export interface PidianMessage {
   usage?: TokenUsage;
   /** Milliseconds from assistant start until the first answer text. */
   workedMs?: number;
+  /** Milliseconds from assistant start until the turn completed. Missing on older saved sessions. */
+  durationMs?: number;
   /** Interleaved work and text. Missing on older saved sessions. */
   blocks?: PidianContentBlock[];
   createdAt: string;

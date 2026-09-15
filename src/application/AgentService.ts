@@ -254,6 +254,10 @@ export class AgentService {
       const assistant = this.latestAssistant(session);
       if (assistant) {
         closeOpenWork(assistant);
+        const started = Date.parse(assistant.createdAt);
+        if (Number.isFinite(started)) {
+          assistant.durationMs = Math.max(0, Date.now() - started);
+        }
       }
       await this.sessions.save(session);
       this.notify();

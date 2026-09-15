@@ -889,6 +889,13 @@ button.pidian-selection-quote:hover {
   margin-top: 4px;
 }
 
+.pidian-done-in {
+  color: var(--text-muted);
+  font-size: var(--font-ui-smaller);
+  line-height: 1;
+  margin-inline-start: 4px;
+}
+
 .pidian-view .pidian-copy-button,
 .pidian-view .pidian-fork-button,
 .pidian-view .pidian-token-button {

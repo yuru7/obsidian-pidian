@@ -3,6 +3,7 @@ import type { App } from "obsidian";
 import { t } from "../i18n";
 import { contentBlocks, workItems, type PidianImageAttachment, type PidianMessage } from "../domain/sessions/PidianSession";
 import { AttachmentStrip } from "./AttachmentStrip";
+import { doneDuration } from "./doneDuration";
 import { Markdown } from "./Markdown";
 import { shouldStartMessageEdit } from "./shouldStartMessageEdit";
 import { Thinking } from "./Thinking";
@@ -120,6 +121,9 @@ export function Message({
               onFork={() => onFork(message.id)}
             />
           ) : null}
+          {!streaming && message.durationMs !== undefined ? (
+            <span className="pidian-done-in">{doneInLabel(message.durationMs)}</span>
+          ) : null}
           {message.usage ? (
             <TokenUsageDisplay usage={message.usage} label={t("uiTokens")} variant="message" />
           ) : null}
@@ -127,6 +131,13 @@ export function Message({
       ) : null}
     </article>
   );
+}
+
+function doneInLabel(durationMs: number): string {
+  const duration = doneDuration(durationMs);
+  return duration.minutes > 0
+    ? t("uiDoneIn", duration)
+    : t("uiDoneInSeconds", duration);
 }
 
 function YouIcon(): JSX.Element {
