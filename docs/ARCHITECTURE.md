@@ -379,7 +379,7 @@ Pi のモジュール解決や stub を足すときは、バンドルゲート�
 | `OpenActiveSessionButton.tsx` | 開いているファイルがセッションファイルなら「新しいチャット」の左に復元ボタン。不正形式はエラーツールチップ |
 | `Chat.tsx` / `Message.tsx` / `UserMessageEditor.tsx` / `WorkLog.tsx` / `ToolCall.tsx` / `Thinking.tsx` / `SelectionQuoteToolbar.tsx` / `AttachmentStrip.tsx` | ストリーム表示。思考とツールは1つの WorkLog にまとめ、中は思考・ツールを時系列のまま出す。思考中でも本文は直下へ出せる。ユーザーメッセージのクリックで編集再送信。`.pidian-chat` 内の文字列選択で「引用」ツールバーを出し、Composer へ `> ` 引用を挿入。貼り付け画像は履歴でもサムネイル。クリックで Obsidian ウィンドウ全体の中央に原寸表示（はみ出す場合は画面内に縮小）。右クリックで画像をコピー |
 | `Composer.tsx` | 入力。設定の編集モードがライブプレビューなら Obsidian Markdown Live Preview（内部 API が使えないときは textarea）、プレーンなら textarea。`subscribeComposerFocus` でフォーカス。送信中かつ空なら Esc で abort、プレースホルダに停止案内。`insertQuote` で選択引用を末尾挿入。Enter / Esc は入力欄 wrapper の capture で処理し、エディター実装に依存しない。クリップボード画像の貼り付けは入力欄上部のサムネイルにする。Vision 非対応モデルに画像があるときは送信を止める |
-| `Markdown.tsx` / `chatFootnote.ts` | チャット内 Markdown。ノートリンクはファイル名表示＋パスのツールチップ（`setTooltip` 上位置、OS の `title` は付けない）。クリックは既存エディタタブを優先して開く。脚注の `[n]` は定義へスクロール＋3秒ハイライト、ホバーでソースのバルーン（中のリンクはクリック可）。定義末尾の `↵` は対応する番号へ戻る |
+| `Markdown.tsx` / `chatFootnote.ts` / `ensureTableBlankLines.ts` | チャット内 Markdown。ノートリンクはファイル名表示＋パスのツールチップ（`setTooltip` 上位置、OS の `title` は付けない）。クリックは既存エディタタブを優先して開く。脚注の `[n]` は定義へスクロール＋3秒ハイライト、ホバーでソースのバルーン（中のリンクはクリック可）。定義末尾の `↵` は対応する番号へ戻る。Obsidian の表は直前の空行が必要なので、描画とコピーのときだけ足す。保存は変えない。コードフェンス・`$$`・インデントコードは触らない |
 | `PidianSettingTab.ts` | 設定 UI（React ではない） |
 
 スタイルはルート `styles.css`。クラスは `pidian-` 接頭辞。アイコン ID は `PIDIAN_ICON_ID`。
@@ -465,6 +465,7 @@ UI は `AgentService` と `plugin.settings` を読む。Pi 型を import しな�
 | モデル一覧 | `PiModelCatalog`, Settings custom provider | UI での provider 特例 |
 | チャットのノートリンク | `Markdown.tsx`, `chatNoteLink.ts`, `ObsidianWorkspaceNavigator` | `openLinkText` のデフォルト、`instanceof MarkdownView` でのタブ検索 |
 | チャット回答のソース脚注 | `Markdown.tsx`, `chatFootnote.ts`, `pidianSystemPrompt` | 独自の引用 UI、脚注 HTML の再実装 |
+| チャットの表の空行 | `ensureTableBlankLines.ts`, `Markdown.tsx`, `Message.tsx` のコピー | セッション保存本文の書き換え、独自 Markdown パーサ |
 | チャット入力欄 | `src/editor/`, `Composer.tsx`, `AttachmentStrip.tsx` | UI から `embedRegistry` / `editMode` を直接触る。失敗時にチャット入力自体を止める |
 | 非フォーカス選択の表示 | `unfocusedSelectionHighlight.ts`, `styles.css` の `.pidian-unfocused-selection` | 本体が非フォーカス選択を描くようになったあとの残留。消すときは extension・CSS・`main.ts` の登録を一式で |
 | システム指示 | `pidianSystemPrompt`, Vault `AGENTS.md` | Pi のデフォルト AGENTS 探索（fs stub で止めてある） |

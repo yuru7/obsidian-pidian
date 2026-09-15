@@ -9,6 +9,7 @@ import {
   noteFilenameFromLinkpath,
   openChatNoteLink,
 } from "./chatNoteLink";
+import { ensureTableBlankLines } from "./ensureTableBlankLines";
 
 export function Markdown({ app, markdown }: { app: App; markdown: string }): JSX.Element {
   const ref = useRef<HTMLDivElement>(null);
@@ -38,7 +39,7 @@ export function Markdown({ app, markdown }: { app: App; markdown: string }): JSX
         return;
       }
       el.empty();
-      void MarkdownRenderer.render(app, markdown, el, "", component).then(() => {
+      void MarkdownRenderer.render(app, ensureTableBlankLines(markdown), el, "", component).then(() => {
         if (cancelled) {
           return;
         }

@@ -4,6 +4,7 @@ import { t } from "../i18n";
 import { contentBlocks, workItems, type PidianImageAttachment, type PidianMessage } from "../domain/sessions/PidianSession";
 import { AttachmentStrip } from "./AttachmentStrip";
 import { doneDuration } from "./doneDuration";
+import { ensureTableBlankLines } from "./ensureTableBlankLines";
 import { Markdown } from "./Markdown";
 import { shouldStartMessageEdit } from "./shouldStartMessageEdit";
 import { Thinking } from "./Thinking";
@@ -194,7 +195,7 @@ function CopyButton({ markdown }: { markdown: string }): JSX.Element {
       className="pidian-icon-button pidian-copy-button"
       aria-label={copied ? t("uiCopied") : t("uiCopy")}
       onClick={() => {
-        void navigator.clipboard.writeText(markdown).then(
+        void navigator.clipboard.writeText(ensureTableBlankLines(markdown)).then(
           () => setCopied(true),
           (error: unknown) => {
             console.error("Pidian: failed to copy response", error);
