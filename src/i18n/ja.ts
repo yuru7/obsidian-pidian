@@ -140,6 +140,8 @@ export const ja: { [K in keyof typeof en]: string } = {
   uiOpenActiveSession: "開いているセッションファイルからセッションを開く",
   uiSessionFileInvalid: "このセッションファイルは不正な形式のため読み取れません。",
   uiNoActiveNote: "アクティブなファイルがありません",
+  uiContextExclude: "次のメッセージからこのファイルを除外",
+  uiContextInclude: "次のメッセージにこのファイルを含める",
   uiNoModel: "モデル未選択",
   uiSearchModels: "モデルを検索...",
   uiVisionSupported: "Vision 対応",

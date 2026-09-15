@@ -167,6 +167,7 @@ export class AgentService {
     messageId: string,
     text: string,
     attachments?: readonly PidianImageAttachment[],
+    includeContext = true,
   ): Promise<void> {
     const trimmed = text.trim();
     if (this.streaming) {
@@ -182,10 +183,14 @@ export class AgentService {
     this.notify();
     await this.recreateAgent();
     await this.sessions.save(session);
-    await this.send(trimmed, images);
+    await this.send(trimmed, images, includeContext);
   }
 
-  async send(text: string, attachments?: readonly PidianImageAttachment[]): Promise<void> {
+  async send(
+    text: string,
+    attachments?: readonly PidianImageAttachment[],
+    includeContext = true,
+  ): Promise<void> {
     const trimmed = text.trim();
     const images = cloneAttachments(attachments);
     if (!trimmed && !images) {
@@ -207,7 +212,7 @@ export class AgentService {
     }
     await this.keepLive();
 
-    const snapshot = this.context.snapshot();
+    const snapshot = includeContext ? this.context.snapshot() : undefined;
     this.sessions.applyFirstUserTitle(session, trimmed);
     const userMessage: PidianMessage = {
       id: crypto.randomUUID(),

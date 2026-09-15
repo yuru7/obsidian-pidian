@@ -154,6 +154,11 @@
   white-space: nowrap;
 }
 
+.pidian-context-name-text,
+.pidian-context-line {
+  color: var(--text-muted);
+}
+
 .pidian-model-trigger-text,
 .pidian-context-name-text {
   display: inline-block;
@@ -1196,6 +1201,7 @@ button.pidian-selection-quote:hover {
 .pidian-context {
   display: flex;
   align-items: center;
+  justify-content: flex-start;
   gap: 4px;
   flex: 1 1 auto;
   min-width: 0;
@@ -1210,6 +1216,39 @@ button.pidian-selection-quote:hover {
 .pidian-context-line {
   flex: 0 0 auto;
   white-space: nowrap;
+}
+
+.pidian-view .pidian-context-toggle {
+  appearance: none;
+  background-color: transparent;
+  box-shadow: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  min-height: 0;
+  height: auto;
+  color: inherit;
+  font: inherit;
+  line-height: inherit;
+  text-align: start;
+  justify-content: flex-start;
+  cursor: pointer;
+  user-select: none;
+}
+
+.pidian-view .pidian-context-toggle.is-excluded,
+.pidian-view .pidian-context-toggle.is-excluded .pidian-context-name-text,
+.pidian-view .pidian-context-toggle.is-excluded .pidian-context-line {
+  text-decoration: line-through;
+  color: var(--text-faint);
+}
+
+.pidian-view .pidian-context-toggle:hover {
+  color: var(--text-normal);
+}
+
+.pidian-view .pidian-context-toggle.is-excluded:hover {
+  color: var(--text-muted);
 }
 
 .pidian-composer-actions {

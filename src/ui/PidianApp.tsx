@@ -1,5 +1,5 @@
-import { useEffect, useReducer, useRef, useState, type JSX } from "react";
-import type { Scope } from "obsidian";
+import { useEffect, useLayoutEffect, useReducer, useRef, useState, type JSX } from "react";
+import { setTooltip, type Scope } from "obsidian";
 import { formatLineRange } from "../application/activeMarkdown";
 import { hasContextLineRange } from "../domain/notes/ContextSnapshot";
 import { t } from "../i18n";
@@ -30,6 +30,7 @@ export function PidianApp({ plugin, keymapScope }: { plugin: PidianPlugin; keyma
   const sessionId = plugin.agentService?.getSession()?.id;
   const supportsImages = useModelSupportsImages(plugin);
   const tokenCostRates = useModelCost(plugin);
+  const [includeContext, setIncludeContext] = useState(true);
 
   useEffect(() => {
     const unsubAgent = plugin.agentService?.subscribe(() => rerender());
@@ -114,7 +115,7 @@ export function PidianApp({ plugin, keymapScope }: { plugin: PidianPlugin; keyma
           });
         }}
         onResend={(messageId, text, attachments) => {
-          void agent.editAndResend(messageId, text, attachments).catch((error: unknown) => {
+          void agent.editAndResend(messageId, text, attachments, includeContext).catch((error: unknown) => {
             console.error("Pidian: failed to resend message", error);
           });
         }}
@@ -160,7 +161,7 @@ export function PidianApp({ plugin, keymapScope }: { plugin: PidianPlugin; keyma
           </div>
         ) : null}
         <div className="pidian-footer-meta">
-          <ContextPreview plugin={plugin} />
+          <ContextPreview plugin={plugin} include={includeContext} onIncludeChange={setIncludeContext} />
           <TokenUsage messages={session?.messages ?? []} rates={tokenCostRates} />
         </div>
         <Composer
@@ -172,7 +173,7 @@ export function PidianApp({ plugin, keymapScope }: { plugin: PidianPlugin; keyma
           supportsImages={supportsImages}
           toolbar={<ModelSelector plugin={plugin} onChange={rerender} />}
           onSend={(text, attachments) => {
-            void agent.send(text, attachments);
+            void agent.send(text, attachments, includeContext);
           }}
           onAbort={() => {
             void agent.abort();
@@ -199,7 +200,15 @@ function TokenUsage({
   );
 }
 
-function ContextPreview({ plugin }: { plugin: PidianPlugin }): JSX.Element {
+function ContextPreview({
+  plugin,
+  include,
+  onIncludeChange,
+}: {
+  plugin: PidianPlugin;
+  include: boolean;
+  onIncludeChange: (include: boolean) => void;
+}): JSX.Element {
   const [, rerender] = useReducer((value: number) => value + 1, 0);
 
   useEffect(() => {
@@ -227,10 +236,49 @@ function ContextPreview({ plugin }: { plugin: PidianPlugin }): JSX.Element {
     ? `[${formatLineRange(context)}]`
     : undefined;
   return (
-    <div className="pidian-context">
+    <ContextToggle
+      fileName={fileName}
+      lineLabel={lineLabel}
+      excluded={!include}
+      onToggle={() => onIncludeChange(!include)}
+    />
+  );
+}
+
+function ContextToggle({
+  fileName,
+  lineLabel,
+  excluded,
+  onToggle,
+}: {
+  fileName: string;
+  lineLabel: string | undefined;
+  excluded: boolean;
+  onToggle: () => void;
+}): JSX.Element {
+  const ref = useRef<HTMLButtonElement>(null);
+  const label = excluded ? t("uiContextInclude") : t("uiContextExclude");
+
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (el) {
+      setTooltip(el, label, { placement: "top" });
+    }
+  }, [label]);
+
+  return (
+    <button
+      ref={ref}
+      type="button"
+      className={excluded ? "pidian-context pidian-context-toggle is-excluded" : "pidian-context pidian-context-toggle"}
+      aria-label={label}
+      aria-pressed={excluded}
+      onMouseDown={(event) => event.preventDefault()}
+      onClick={onToggle}
+    >
       <ContextFileName fileName={fileName} />
       {lineLabel ? <span className="pidian-context-line">{lineLabel}</span> : null}
-    </div>
+    </button>
   );
 }
 

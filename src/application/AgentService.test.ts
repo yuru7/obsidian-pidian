@@ -293,6 +293,23 @@ describe("AgentService.editAndResend", () => {
     expect(current?.messages[0]?.attachments).toEqual([attachment]);
     expect(engine.lastImages).toEqual([{ mimeType: attachment.mimeType, data: attachment.data }]);
   });
+
+  it("applies composer context excludes when resending", async () => {
+    const store = new MemoryRepository();
+    const engine = new CapturingEngine();
+    const snapshot: ContextSnapshot = { notePath: "notes/example.md", startLine: 12, endLine: 12 };
+    const agent = createService(store, engine, () => snapshot);
+    await agent.newChat("openai", "gpt-5");
+    await agent.send("hello");
+    const firstUser = agent.getSession()!.messages[0]!;
+
+    await agent.editAndResend(firstUser.id, "hello again", undefined, false);
+
+    expect(agent.getSession()?.messages[0]?.context).toBeUndefined();
+    expect(engine.lastPrompt).toBe(
+      formatAgentPrompt("hello again", undefined, agent.getSession()?.messages[0]?.createdAt),
+    );
+  });
 });
 
 describe("AgentService.send", () => {
@@ -318,6 +335,20 @@ describe("AgentService.send", () => {
 
     expect(agent.getSession()?.messages[0]?.context).toBeUndefined();
     expect(agent.getSession()?.messages[0]?.text).toBe("hello");
+  });
+
+  it("omits context when the composer excludes the note", async () => {
+    const store = new MemoryRepository();
+    const engine = new CapturingEngine();
+    const snapshot: ContextSnapshot = { notePath: "notes/example.md", startLine: 3, endLine: 5 };
+    const agent = createService(store, engine, () => snapshot);
+    await agent.newChat("openai", "gpt-5");
+    await agent.send("hello", undefined, false);
+
+    expect(agent.getSession()?.messages[0]?.context).toBeUndefined();
+    expect(engine.lastPrompt).toBe(
+      formatAgentPrompt("hello", undefined, agent.getSession()?.messages[0]?.createdAt),
+    );
   });
 
   it("stores a path-only snapshot when the active file has no cursor", async () => {

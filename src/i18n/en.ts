@@ -141,6 +141,8 @@ export const en = {
   uiOpenActiveSession: "Open session from the open session file",
   uiSessionFileInvalid: "This session file could not be read because it is not a valid session.",
   uiNoActiveNote: "No active file",
+  uiContextExclude: "Exclude this file from the next message",
+  uiContextInclude: "Include this file with the next message",
   uiNoModel: "No model selected",
   uiSearchModels: "Search models...",
   uiVisionSupported: "Vision compatible",

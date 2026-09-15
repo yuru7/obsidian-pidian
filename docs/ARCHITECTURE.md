@@ -127,9 +127,10 @@ UI は `plugin.agentService.subscribe` と `plugin.subscribeSettings` で再描�
 
 ```text
 Composer
-  → AgentService.send(text, attachments?)
+  → AgentService.send(text, attachments?, includeContext?)
       → 未作成なら AgentSession を作る（開いただけでは作らない）。クエリしたセッションを LRU 最大 3 件で保持
       → ContextService.snapshot()（現在ファイルの path。MarkdownView なら 1-based 行範囲。テキスト選択中なら列位置も。Canvas、PNG/JPEG/WebP、MarkdownView ではない .md（Excalidraw など）は path のみ。本文・画像バイトは入れない）
+      → `includeContext` が false なら snapshot を捨てる（Composer のコンテキスト表示が打ち消し線のとき。ファイル名とカーソルはまとめて外す）
       → ユーザー発言 + 空の assistant を PidianSession に追加して保存。貼り付け画像はユーザーメッセージの `attachments` に Base64 で残す
       → AgentSession.prompt({ text: formatAgentPrompt(...), context, images })
           → PiAgentAdapter（Pi イベント）
@@ -171,13 +172,15 @@ Composer
 User: <user text>
 ```
 
-時刻は `createdAt`（UTC）から、送信時のマシンローカルオフセット付き ISO 8601（秒まで。例 `2026-08-31T17:31:00+09:00`）。`LINE_RANGE` は Markdown エディタのカーソルなら `L12`、テキスト選択なら `L3:C4-L5:C3`（1-based。開始列は inclusive、終了列は exclusive でエディタの from/to に一致）。列が無い古い選択は `L13-L15`。Canvas、PNG/JPEG/WebP、Excalidraw などカーソルが取れないファイルは path のみ。ファイルが無いときは timestamp と `User: <user text>` のみ。
+時刻は `createdAt`（UTC）から、送信時のマシンローカルオフセット付き ISO 8601（秒まで。例 `2026-08-31T17:31:00+09:00`）。`LINE_RANGE` は Markdown エディタのカーソルなら `L12`、テキスト選択なら `L3:C4-L5:C3`（1-based。開始列は inclusive、終了列は exclusive でエディタの from/to に一致）。列が無い古い選択は `L13-L15`。Canvas、PNG/JPEG/WebP、Excalidraw などカーソルが取れないファイルは path のみ。ファイルが無いとき、または Composer でコンテキスト表示を打ち消したときは timestamp と `User: <user text>` のみ。
 
 ユーザー発言の `text` は本文だけ保存する。ヘッダ（時刻・path）は保存しない。送信時の `ContextSnapshot`（path と、Markdown エディタなら行範囲。テキスト選択なら列位置も。本文は入れない）はユーザーメッセージの任意フィールド `context` に残す。再開・モデル変更で Pi を作り直すとき、`toConversation` が `formatAgentPrompt` で当時のヘッダを復元する。`context` が無い古い保存は timestamp と `User: <user text>` のみ。
 
 クリップボードから貼った画像はユーザーメッセージの任意フィールド `attachments` に Base64 で保存する。チャット UI はサムネイルとして出す。再開・モデル変更で Pi を作り直すときは `read_image` と同様に image ブロックを付け直さない。そのターンの `prompt` にだけ `images` を渡す。
 
 ファイル本文はコンテキストに載せない。エージェントは `read_note` でノートを読む。構造・属性・リンクだけなら `get_note_metadata` / `get_vault_links`。Vision モデルでは `read_image` で PNG/JPEG/WebP を読む。システムプロンプトは `pidianSystemPrompt`（`src/infrastructure/pi/PiCredentials.ts`）。Vision でないときは `read_image` の説明を出さない。Vault の `pidian/AGENTS.md`（プラグインフォルダ設定に追随）は任意の追加指示。
+
+Composer 下のコンテキスト表示（ファイル名と、Markdown ならカーソル／選択の行範囲）はクリックで次の送信からまとめて外せる。外すと両方に打ち消し線。既定は載せる（現在と同じ表示）。編集再送信も同じ状態を使う。
 
 ---
 
@@ -375,7 +378,7 @@ Pi のモジュール解決や stub を足すときは、バンドルゲート�
 | ファイル | 役割 |
 | --- | --- |
 | `PidianView.tsx` | `ItemView`。React root。`View.scope` でペインフォーカス時のホットキー |
-| `PidianApp.tsx` | ヘッダ、Chat、Composer、ModelSelector、SessionSelector |
+| `PidianApp.tsx` | ヘッダ、Chat、Composer、ModelSelector、SessionSelector。Composer 上のファイル名／行範囲をクリックすると次のターンのコンテキスト（両方）から外し、打ち消し線で示す |
 | `OpenActiveSessionButton.tsx` | 開いているファイルがセッションファイルなら「新しいチャット」の左に復元ボタン。不正形式はエラーツールチップ |
 | `Chat.tsx` / `Message.tsx` / `UserMessageEditor.tsx` / `WorkLog.tsx` / `ToolCall.tsx` / `Thinking.tsx` / `SelectionQuoteToolbar.tsx` / `AttachmentStrip.tsx` / `TokenUsageDisplay.tsx` | ストリーム表示。思考とツールは1つの WorkLog にまとめ、中は思考・ツールを時系列のまま出す。思考中でも本文は直下へ出せる。ユーザーメッセージのクリックで編集再送信。`.pidian-chat` 内の文字列選択で「引用」ツールバーを出し、Composer へ `> ` 引用を挿入。貼り付け画像は履歴でもサムネイル。クリックで Obsidian ウィンドウ全体の中央に原寸表示（はみ出す場合は画面内に縮小）。右クリックで画像をコピー。トークン量ホバーはカタログ単価があれば USD を添える。セッション合計はメッセージごとの費用の和。カスタムモデルと単価不明は件数だけ |
 | `Composer.tsx` | 入力。設定の編集モードがライブプレビューなら Obsidian Markdown Live Preview（内部 API が使えないときは textarea）、プレーンなら textarea。`subscribeComposerFocus` でフォーカス。送信中かつ空なら Esc で abort、プレースホルダに停止案内。`insertQuote` で選択引用を末尾挿入。Enter / Esc は入力欄 wrapper の capture で処理し、エディター実装に依存しない。クリップボード画像の貼り付けは入力欄上部のサムネイルにする。Vision 非対応モデルに画像があるときは送信を止める |
@@ -459,7 +462,7 @@ UI は `AgentService` と `plugin.settings` を読む。Pi 型を import しな�
 | ノートメタデータ | `ObsidianNoteMetadata`, `GetNoteMetadataTool`, `GetVaultLinksTool` | ツールから `MetadataCache` を直接触る。Obsidian の cache 生データをそのまま返す |
 | 画像読み | `ReadImageTool`, `ImageRepository`, `prepareToolImage`, `visionModel` | Pi 標準 `read`、jsonl への base64 保存、復元時の再添付、非 Vision へのツール公開 |
 | 編集ルール | `EditMarkdownTool`, `replacements.ts`, `ObsidianNoteEditor` | editor を飛ばした `vault.modify` |
-| コンテキスト | `ContextService`, `contextTarget`, `ObsidianContextProvider` | プロンプトにノート全文を埋め込む。`activeEditor` を別タブへ流用 |
+| コンテキスト | `ContextService`, `contextTarget`, `ObsidianContextProvider`, `PidianApp` のコンテキスト表示 | プロンプトにノート全文を埋め込む。`activeEditor` を別タブへ流用 |
 | セッション形式 | `PidianSession`, `sessionSerialization` | Pi session JSON の保存 |
 | メモリ上の Agent | `AgentService` の LRU（クエリ時、最大 3） | 開いただけで Pi セッションを作る。件数の設定項目 |
 | モデル一覧 | `PiModelCatalog`, Settings custom provider | UI での provider 特例 |
