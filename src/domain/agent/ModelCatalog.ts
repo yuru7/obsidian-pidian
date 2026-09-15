@@ -5,6 +5,23 @@ export interface CatalogProvider {
   isCustom?: boolean;
 }
 
+export interface CatalogModelCostRates {
+  input: number;
+  output: number;
+  cacheRead: number;
+  cacheWrite: number;
+}
+
+export interface CatalogModelCostTier extends CatalogModelCostRates {
+  /** Apply this tier when input + cache tokens exceed this count. */
+  inputTokensAbove: number;
+}
+
+/** USD per million tokens from the model catalog. Missing on custom OpenAI Compatible models. */
+export interface CatalogModelCost extends CatalogModelCostRates {
+  tiers?: CatalogModelCostTier[];
+}
+
 export interface CatalogModel {
   id: string;
   name: string;
@@ -12,6 +29,8 @@ export interface CatalogModel {
   thinkingLevels: string[];
   /** True when the model accepts image input. */
   supportsImages?: boolean;
+  /** Catalog pricing. Omitted when unknown or for custom OpenAI Compatible models. */
+  cost?: CatalogModelCost;
 }
 
 export interface ModelCatalog {

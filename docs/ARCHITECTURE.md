@@ -333,7 +333,7 @@ interface PidianSession {
 - サブスク OAuth は `src/application/subscriptionProviders.ts` の `ENABLED_SUBSCRIPTION_PROVIDERS` が唯一の有効化リスト。いまは `openai-codex` だけ。足すときはこの配列に id と表示名を足す。ログイン実装は Pi の `ModelRuntime.login("oauth")` に任せ、プロバイダ専用フローを本体に書かない。`browser` 選択肢があればそれを選ぶ。Pi の OAuth 本体は `registerBundledOAuth.ts` で静的登録する（動的 `import("./openai-codex.js")` は Obsidian では失敗する）。
 - トークンは `Settings.oauthCredentials`（Plugin.saveData）。Pi の refresh は Store の `modify` 経由で同じ場所へ書き戻す。
 - 実行時キーは `setRuntimeApiKey`。OAuth だけのプロバイダには上書きをかけない（`credentialRuntimePlan`）。
-- Custom OpenAI Compatible は Settings の `customProviders`。`ModelRuntime.registerProvider`（api: `openai-completions`）。env は使わない。各モデルの `supportsImages`（既定オフ）が true のときだけ Pi の `input` を `["text", "image"]` にする。カタログモデルは Pi の `model.input` を使う。どちらも `CatalogModel.supportsImages` に載せ、UI のモデル選択が Vision 対応アイコンを出す。
+- Custom OpenAI Compatible は Settings の `customProviders`。`ModelRuntime.registerProvider`（api: `openai-completions`）。env は使わない。各モデルの `supportsImages`（既定オフ）が true のときだけ Pi の `input` を `["text", "image"]` にする。カタログモデルは Pi の `model.input` を使う。どちらも `CatalogModel.supportsImages` に載せ、UI のモデル選択が Vision 対応アイコンを出す。カタログの `model.cost`（USD / 百万トークン。tier あり）は `CatalogModel.cost` に載せる。カスタムモデルは単価不明として載せない。
 - モデル一覧は `PiModelCatalog`。動的カタログは `{plugin install dir}/dynamicModels.json`。無い、または 1 日以上古いときだけ `runtime.refresh({ allowNetwork: true, force: true })`。
 - 接続設定（キー・OAuth の有無・custom provider・Vision フラグ）が変わったら `AgentService.reloadModel()`。削除された provider は `reconcileModelSelection` で落とす。
 - thinking は `src/domain/agent/thinkingLevel.ts`。モデルが支持する集合へ clamp する。
@@ -377,14 +377,14 @@ Pi のモジュール解決や stub を足すときは、バンドルゲート�
 | `PidianView.tsx` | `ItemView`。React root。`View.scope` でペインフォーカス時のホットキー |
 | `PidianApp.tsx` | ヘッダ、Chat、Composer、ModelSelector、SessionSelector |
 | `OpenActiveSessionButton.tsx` | 開いているファイルがセッションファイルなら「新しいチャット」の左に復元ボタン。不正形式はエラーツールチップ |
-| `Chat.tsx` / `Message.tsx` / `UserMessageEditor.tsx` / `WorkLog.tsx` / `ToolCall.tsx` / `Thinking.tsx` / `SelectionQuoteToolbar.tsx` / `AttachmentStrip.tsx` | ストリーム表示。思考とツールは1つの WorkLog にまとめ、中は思考・ツールを時系列のまま出す。思考中でも本文は直下へ出せる。ユーザーメッセージのクリックで編集再送信。`.pidian-chat` 内の文字列選択で「引用」ツールバーを出し、Composer へ `> ` 引用を挿入。貼り付け画像は履歴でもサムネイル。クリックで Obsidian ウィンドウ全体の中央に原寸表示（はみ出す場合は画面内に縮小）。右クリックで画像をコピー |
+| `Chat.tsx` / `Message.tsx` / `UserMessageEditor.tsx` / `WorkLog.tsx` / `ToolCall.tsx` / `Thinking.tsx` / `SelectionQuoteToolbar.tsx` / `AttachmentStrip.tsx` / `TokenUsageDisplay.tsx` | ストリーム表示。思考とツールは1つの WorkLog にまとめ、中は思考・ツールを時系列のまま出す。思考中でも本文は直下へ出せる。ユーザーメッセージのクリックで編集再送信。`.pidian-chat` 内の文字列選択で「引用」ツールバーを出し、Composer へ `> ` 引用を挿入。貼り付け画像は履歴でもサムネイル。クリックで Obsidian ウィンドウ全体の中央に原寸表示（はみ出す場合は画面内に縮小）。右クリックで画像をコピー。トークン量ホバーはカタログ単価があれば USD を添える。セッション合計はメッセージごとの費用の和。カスタムモデルと単価不明は件数だけ |
 | `Composer.tsx` | 入力。設定の編集モードがライブプレビューなら Obsidian Markdown Live Preview（内部 API が使えないときは textarea）、プレーンなら textarea。`subscribeComposerFocus` でフォーカス。送信中かつ空なら Esc で abort、プレースホルダに停止案内。`insertQuote` で選択引用を末尾挿入。Enter / Esc は入力欄 wrapper の capture で処理し、エディター実装に依存しない。クリップボード画像の貼り付けは入力欄上部のサムネイルにする。Vision 非対応モデルに画像があるときは送信を止める |
 | `Markdown.tsx` / `chatFootnote.ts` / `ensureTableBlankLines.ts` | チャット内 Markdown。ノートリンクはファイル名表示＋パスのツールチップ（`setTooltip` 上位置、OS の `title` は付けない）。クリックは既存エディタタブを優先して開く。脚注の `[n]` は定義へスクロール＋3秒ハイライト、ホバーでソースのバルーン（中のリンクはクリック可）。定義末尾の `↵` は対応する番号へ戻る。Obsidian の表は直前の空行が必要なので、描画とコピーのときだけ足す。保存は変えない。コードフェンス・`$$`・インデントコードは触らない |
 | `PidianSettingTab.ts` | 設定 UI（React ではない） |
 
 スタイルはルート `styles.css`。クラスは `pidian-` 接頭辞。アイコン ID は `PIDIAN_ICON_ID`。
 
-UI は `AgentService` と `plugin.settings` を読む。Pi 型を import しない。モデル一覧は `plugin.modelCatalog`。
+UI は `AgentService` と `plugin.settings` を読む。Pi 型を import しない。モデル一覧は `plugin.modelCatalog`。トークン費用は `tokenCost.ts` がカタログ単価と `usage` から表示時に計算する。セッションへは保存しない。
 
 チャットの内部リンクは `MarkdownRenderer` が `a.internal-link` に描画するが、カスタム `ItemView` ではクリックが付かない。エージェントは `[Note.md](<folder/Note.md>)` 形式の Markdown リンクを書く（ターゲットは常に `<>` で囲む。スペース等を壊さないため）。`Markdown.tsx` がラベルをファイル名にし、パスを `setTooltip(..., { placement: "top" })` で出し、クリックは `WorkspaceNavigator.openFile` で開く。既存タブの検索は `leaf.getViewState().state.file`（非表示タブは `DeferredView` のため `instanceof MarkdownView` は使わない）。未オープンなら root split に新しいエディタタブを開く。`openLinkText` は使わない（アクティブなサイドバー leaf を置換しうる）。
 
@@ -463,6 +463,7 @@ UI は `AgentService` と `plugin.settings` を読む。Pi 型を import しな�
 | セッション形式 | `PidianSession`, `sessionSerialization` | Pi session JSON の保存 |
 | メモリ上の Agent | `AgentService` の LRU（クエリ時、最大 3） | 開いただけで Pi セッションを作る。件数の設定項目 |
 | モデル一覧 | `PiModelCatalog`, Settings custom provider | UI での provider 特例 |
+| トークン費用 | `CatalogModel.cost`, `tokenCost.ts`, `TokenUsageDisplay.tsx` | セッションへ費用を保存する。カスタムモデルへ架空の単価を足す |
 | チャットのノートリンク | `Markdown.tsx`, `chatNoteLink.ts`, `ObsidianWorkspaceNavigator` | `openLinkText` のデフォルト、`instanceof MarkdownView` でのタブ検索 |
 | チャット回答のソース脚注 | `Markdown.tsx`, `chatFootnote.ts`, `pidianSystemPrompt` | 独自の引用 UI、脚注 HTML の再実装 |
 | チャットの表の空行 | `ensureTableBlankLines.ts`, `Markdown.tsx`, `Message.tsx` のコピー | セッション保存本文の書き換え、独自 Markdown パーサ |

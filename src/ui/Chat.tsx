@@ -1,6 +1,7 @@
 import { Fragment, useEffect, useImperativeHandle, useRef, useState, type JSX, type Ref } from "react";
 import type { App } from "obsidian";
 import { t } from "../i18n";
+import type { CatalogModelCost } from "../domain/agent/ModelCatalog";
 import type { PidianImageAttachment, PidianMessage } from "../domain/sessions/PidianSession";
 import { Message } from "./Message";
 import { SelectionQuoteToolbar } from "./SelectionQuoteToolbar";
@@ -35,6 +36,7 @@ export function Chat({
   streaming = false,
   sendWithCtrlEnter = false,
   supportsImages = false,
+  tokenCostRates,
   editDisabled = false,
   editToolbar,
   onResend,
@@ -52,6 +54,7 @@ export function Chat({
   streaming?: boolean;
   sendWithCtrlEnter?: boolean;
   supportsImages?: boolean;
+  tokenCostRates?: CatalogModelCost;
   editDisabled?: boolean;
   editToolbar?: JSX.Element;
   onResend?: (messageId: string, text: string, attachments: PidianImageAttachment[]) => void;
@@ -178,6 +181,7 @@ export function Chat({
                   editDisabled={editDisabled}
                   sendWithCtrlEnter={sendWithCtrlEnter}
                   supportsImages={supportsImages}
+                  tokenCostRates={tokenCostRates}
                   editToolbar={editingMessageId === message.id ? editToolbar : undefined}
                   onStartEdit={setEditingMessageId}
                   onCancelEdit={() => setEditingMessageId(null)}

@@ -1,13 +1,24 @@
 import type { JSX } from "react";
 import { t } from "../i18n";
+import type { TokenUsageCost } from "../domain/agent/tokenCost";
 import type { TokenUsage } from "../domain/sessions/PidianSession";
+import { formatUsd } from "./formatUsd";
+
+function tokenValue(count: number, amount: number | undefined): string {
+  if (amount === undefined) {
+    return String(count);
+  }
+  return `${count} ($${formatUsd(amount)})`;
+}
 
 export function TokenUsageDisplay({
   usage,
+  cost,
   label,
   variant = "footer",
 }: {
   usage: TokenUsage;
+  cost?: TokenUsageCost;
   label: string;
   variant?: "footer" | "message";
 }): JSX.Element {
@@ -36,19 +47,19 @@ export function TokenUsageDisplay({
         <div className="pidian-token-balloon-title">{label}</div>
         <div className="pidian-model-row">
           <span>{t("uiTokenRead")}</span>
-          <span className="pidian-token-value">{usage.input}</span>
+          <span className="pidian-token-value">{tokenValue(usage.input, cost?.input)}</span>
         </div>
         <div className="pidian-model-row">
           <span>{t("uiTokenCacheRead")}</span>
-          <span className="pidian-token-value">{usage.cacheRead}</span>
+          <span className="pidian-token-value">{tokenValue(usage.cacheRead, cost?.cacheRead)}</span>
         </div>
         <div className="pidian-model-row">
           <span>{t("uiTokenWrite")}</span>
-          <span className="pidian-token-value">{usage.output}</span>
+          <span className="pidian-token-value">{tokenValue(usage.output, cost?.output)}</span>
         </div>
         <div className="pidian-model-row">
           <span>{t("uiTokenCacheWrite")}</span>
-          <span className="pidian-token-value">{usage.cacheWrite}</span>
+          <span className="pidian-token-value">{tokenValue(usage.cacheWrite, cost?.cacheWrite)}</span>
         </div>
       </div>
     </div>

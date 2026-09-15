@@ -2,6 +2,7 @@ import { getSupportedThinkingLevels } from "@earendil-works/pi-ai";
 import { ModelRuntime } from "@earendil-works/pi-coding-agent";
 import type { CredentialResolver } from "../../application/CredentialResolver";
 import { sortCatalogModels, type CatalogModel, type CatalogProvider, type ModelCatalog } from "../../domain/agent/ModelCatalog";
+import { usableCatalogModelCost } from "../../domain/agent/tokenCost";
 import { envVarNamesForProvider } from "./PiCredentials";
 import { modelSupportsImages } from "./visionModel";
 import {
@@ -62,13 +63,17 @@ export class PiModelCatalog implements ModelCatalog {
     }
     const runtime = await this.getRuntime();
     return sortCatalogModels(
-      runtime.getModels(providerId).map((model) => ({
-        id: model.id,
-        name: model.name ?? model.id,
-        providerId: model.provider,
-        thinkingLevels: [...getSupportedThinkingLevels(model)],
-        supportsImages: modelSupportsImages(model),
-      })),
+      runtime.getModels(providerId).map((model) => {
+        const cost = usableCatalogModelCost(model.cost);
+        return {
+          id: model.id,
+          name: model.name ?? model.id,
+          providerId: model.provider,
+          thinkingLevels: [...getSupportedThinkingLevels(model)],
+          supportsImages: modelSupportsImages(model),
+          ...(cost ? { cost } : {}),
+        };
+      }),
     );
   }
 }

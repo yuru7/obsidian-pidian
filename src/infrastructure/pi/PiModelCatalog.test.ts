@@ -43,6 +43,19 @@ function catalog(options: {
     reasoning?: boolean;
     thinkingLevelMap?: Record<string, string | null>;
     input?: string[];
+    cost?: {
+      input: number;
+      output: number;
+      cacheRead: number;
+      cacheWrite: number;
+      tiers?: Array<{
+        input: number;
+        output: number;
+        cacheRead: number;
+        cacheWrite: number;
+        inputTokensAbove: number;
+      }>;
+    };
   }>;
   custom?: CustomOpenAIProvider[];
   credentials: CredentialResolver;
@@ -304,5 +317,67 @@ describe("PiModelCatalog.listModels", () => {
     }).listModels("openai");
     expect(models.find((model) => model.id === "gpt-4.1")?.supportsImages).toBe(false);
     expect(models.find((model) => model.id === "gpt-4o")?.supportsImages).toBe(true);
+  });
+
+  it("exposes catalog cost rates and tiers", async () => {
+    const models = await catalog({
+      models: [
+        {
+          id: "gpt-4.1",
+          name: "GPT-4.1",
+          provider: "openai",
+          cost: { input: 2, output: 8, cacheRead: 0.5, cacheWrite: 2.5 },
+        },
+        {
+          id: "gpt-4.1-tiered",
+          name: "GPT-4.1 Tiered",
+          provider: "openai",
+          cost: {
+            input: 2,
+            output: 8,
+            cacheRead: 0.5,
+            cacheWrite: 2.5,
+            tiers: [{ input: 4, output: 16, cacheRead: 1, cacheWrite: 5, inputTokensAbove: 128000 }],
+          },
+        },
+      ],
+      credentials: createCredentialResolver(() => ({
+        ...DEFAULT_SETTINGS,
+        apiKeys: { openai: "sk-test" },
+      })),
+    }).listModels("openai");
+    expect(models.find((model) => model.id === "gpt-4.1")?.cost).toEqual({
+      input: 2,
+      output: 8,
+      cacheRead: 0.5,
+      cacheWrite: 2.5,
+    });
+    expect(models.find((model) => model.id === "gpt-4.1-tiered")?.cost?.tiers).toEqual([
+      { input: 4, output: 16, cacheRead: 1, cacheWrite: 5, inputTokensAbove: 128000 },
+    ]);
+  });
+
+  it("omits cost when the runtime model has none", async () => {
+    const models = await catalog({
+      models: [{ id: "gpt-x", name: "Zeta", provider: "openai" }],
+      credentials: createCredentialResolver(() => ({
+        ...DEFAULT_SETTINGS,
+        apiKeys: { openai: "sk-test" },
+      })),
+    }).listModels("openai");
+    expect(models[0]?.cost).toBeUndefined();
+  });
+
+  it("omits cost for custom OpenAI Compatible models", async () => {
+    const custom: CustomOpenAIProvider[] = [customProvider("ollama", "Ollama", ["llama"])];
+    const models = await catalog({
+      providerIds: [],
+      custom,
+      credentials: createCredentialResolver(() => ({
+        ...DEFAULT_SETTINGS,
+        customProviders: custom,
+      })),
+    }).listModels("ollama");
+    expect(models[0]?.cost).toBeUndefined();
   });
 });

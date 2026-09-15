@@ -4,6 +4,8 @@ import { formatLineRange } from "../application/activeMarkdown";
 import { hasContextLineRange } from "../domain/notes/ContextSnapshot";
 import { t } from "../i18n";
 import type PidianPlugin from "../main";
+import type { CatalogModelCost } from "../domain/agent/ModelCatalog";
+import { sumTokenUsageCost } from "../domain/agent/tokenCost";
 import { sumTokenUsage, type PidianMessage } from "../domain/sessions/PidianSession";
 import { Chat, type ChatHandle } from "./Chat";
 import { Composer, type ComposerHandle } from "./Composer";
@@ -12,6 +14,7 @@ import { OpenActiveSessionButton } from "./OpenActiveSessionButton";
 import { SessionSelector } from "./SessionSelector";
 import { Spinner } from "./Thinking";
 import { TokenUsageDisplay } from "./TokenUsageDisplay";
+import { useModelCost } from "./useModelCost";
 import { useModelSupportsImages } from "./useModelSupportsImages";
 import { useOverflowMarquee } from "./useOverflowMarquee";
 
@@ -26,6 +29,7 @@ export function PidianApp({ plugin, keymapScope }: { plugin: PidianPlugin; keyma
   const [nearBottom, setNearBottom] = useState(true);
   const sessionId = plugin.agentService?.getSession()?.id;
   const supportsImages = useModelSupportsImages(plugin);
+  const tokenCostRates = useModelCost(plugin);
 
   useEffect(() => {
     const unsubAgent = plugin.agentService?.subscribe(() => rerender());
@@ -100,6 +104,7 @@ export function PidianApp({ plugin, keymapScope }: { plugin: PidianPlugin; keyma
         streaming={streaming}
         sendWithCtrlEnter={plugin.settings.sendWithCtrlEnter}
         supportsImages={supportsImages}
+        tokenCostRates={tokenCostRates}
         editDisabled={streaming || agent.isCompacting() || !session?.provider || !session?.model}
         editToolbar={<ModelSelector plugin={plugin} onChange={rerender} />}
         onNearBottomChange={setNearBottom}
@@ -156,7 +161,7 @@ export function PidianApp({ plugin, keymapScope }: { plugin: PidianPlugin; keyma
         ) : null}
         <div className="pidian-footer-meta">
           <ContextPreview plugin={plugin} />
-          <TokenUsage messages={session?.messages ?? []} />
+          <TokenUsage messages={session?.messages ?? []} rates={tokenCostRates} />
         </div>
         <Composer
           ref={composerRef}
@@ -178,8 +183,20 @@ export function PidianApp({ plugin, keymapScope }: { plugin: PidianPlugin; keyma
   );
 }
 
-function TokenUsage({ messages }: { messages: PidianMessage[] }): JSX.Element {
-  return <TokenUsageDisplay usage={sumTokenUsage(messages)} label={t("uiTotalTokens")} />;
+function TokenUsage({
+  messages,
+  rates,
+}: {
+  messages: PidianMessage[];
+  rates: CatalogModelCost | undefined;
+}): JSX.Element {
+  return (
+    <TokenUsageDisplay
+      usage={sumTokenUsage(messages)}
+      cost={sumTokenUsageCost(messages, rates)}
+      label={t("uiTotalTokens")}
+    />
+  );
 }
 
 function ContextPreview({ plugin }: { plugin: PidianPlugin }): JSX.Element {

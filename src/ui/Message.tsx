@@ -1,6 +1,8 @@
 import { useEffect, useState, type JSX } from "react";
 import type { App } from "obsidian";
 import { t } from "../i18n";
+import type { CatalogModelCost } from "../domain/agent/ModelCatalog";
+import { tokenUsageCost } from "../domain/agent/tokenCost";
 import { contentBlocks, workItems, type PidianImageAttachment, type PidianMessage } from "../domain/sessions/PidianSession";
 import { AttachmentStrip } from "./AttachmentStrip";
 import { doneDuration } from "./doneDuration";
@@ -23,6 +25,7 @@ export function Message({
   editDisabled = false,
   sendWithCtrlEnter = false,
   supportsImages = false,
+  tokenCostRates,
   editToolbar,
   onStartEdit,
   onCancelEdit,
@@ -37,6 +40,7 @@ export function Message({
   editDisabled?: boolean;
   sendWithCtrlEnter?: boolean;
   supportsImages?: boolean;
+  tokenCostRates?: CatalogModelCost;
   editToolbar?: JSX.Element;
   onStartEdit?: (messageId: string) => void;
   onCancelEdit?: () => void;
@@ -126,7 +130,12 @@ export function Message({
             <span className="pidian-done-in">{doneInLabel(message.durationMs)}</span>
           ) : null}
           {message.usage ? (
-            <TokenUsageDisplay usage={message.usage} label={t("uiTokens")} variant="message" />
+            <TokenUsageDisplay
+              usage={message.usage}
+              cost={tokenUsageCost(message.usage, tokenCostRates)}
+              label={t("uiTokens")}
+              variant="message"
+            />
           ) : null}
         </div>
       ) : null}
