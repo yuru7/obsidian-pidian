@@ -17,6 +17,9 @@ export function ensureTableBlankLines(markdown: string): string {
   let changed = false;
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
+    if (line === undefined) {
+      continue;
+    }
     const body = markdownBody(line);
     if (fence) {
       if (isClosingFence(body, fence)) {
@@ -43,8 +46,9 @@ export function ensureTableBlankLines(markdown: string): string {
       out.push(line);
       continue;
     }
-    const nextBody = i + 1 < lines.length ? markdownBody(lines[i + 1]) : undefined;
-    if (nextBody !== undefined) {
+    const nextLine = i + 1 < lines.length ? lines[i + 1] : undefined;
+    if (nextLine !== undefined) {
+      const nextBody = markdownBody(nextLine);
       const headerCells = tableHeaderCells(body);
       if (headerCells && isTableDelimiter(nextBody, headerCells)) {
         const previous = i > 0 ? lines[i - 1] : undefined;
@@ -125,6 +129,9 @@ function openingFence(body: string): Fence | undefined {
   }
   const run = match[1];
   const info = match[2];
+  if (run === undefined || info === undefined) {
+    return undefined;
+  }
   const marker = run[0];
   if (marker !== "`" && marker !== "~") {
     return undefined;
@@ -145,7 +152,7 @@ function isClosingFence(body: string, open: Fence): boolean {
     return false;
   }
   const run = match[1];
-  return run[0] === open.marker && run.length >= open.length;
+  return run !== undefined && run[0] === open.marker && run.length >= open.length;
 }
 
 function splitUnescapedPipes(line: string): string[] {
@@ -178,10 +185,12 @@ function tableCells(body: string): string[] | undefined {
   if (raw.length < 2) {
     return undefined;
   }
-  if (raw[0].trim() === "") {
+  const first = raw[0];
+  if (first !== undefined && first.trim() === "") {
     raw.shift();
   }
-  if (raw.length > 0 && raw[raw.length - 1].trim() === "") {
+  const last = raw[raw.length - 1];
+  if (last !== undefined && last.trim() === "") {
     raw.pop();
   }
   return raw.length > 0 ? raw : undefined;
