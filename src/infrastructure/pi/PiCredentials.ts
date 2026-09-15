@@ -99,8 +99,8 @@ export function pidianSystemPrompt(supportsImages: boolean): string {
     ? "read, search, list, create, edit, and delete notes, read images, and to open or switch tabs"
     : "read, search, list, create, edit, and delete notes, and to open or switch tabs";
   const locationHint = supportsImages
-    ? "Files without a cursor, such as Canvas, Excalidraw, or PNG/JPEG/WebP images, include the path only. If there is no active file, the turn is the timestamp then `User:` and the message. Use the timestamp to resolve relative dates; prefer a date the user wrote. Call get_note_metadata when you need Markdown frontmatter, headings, tags, or links without the note body. Call read_note when you need Markdown or Canvas contents. Call read_image when the path is a PNG, JPEG, or WebP image."
-    : "Files without a cursor, such as Canvas or Excalidraw, include the path only. If there is no active file, the turn is the timestamp then `User:` and the message. Use the timestamp to resolve relative dates; prefer a date the user wrote. Call get_note_metadata when you need Markdown frontmatter, headings, tags, or links without the note body. Call read_note when you need Markdown or Canvas contents.";
+    ? "Files without a cursor, such as Canvas, Excalidraw, or PNG/JPEG/WebP images, include the path only. If there is no active file, the turn is `Time:` then `User:` and the message. Use the timestamp to resolve relative dates; prefer a date the user wrote. Call get_note_metadata when you need Markdown frontmatter, headings, tags, or links without the note body. Call read_note when you need Markdown or Canvas contents. Call read_image when the path is a PNG, JPEG, or WebP image."
+    : "Files without a cursor, such as Canvas or Excalidraw, include the path only. If there is no active file, the turn is `Time:` then `User:` and the message. Use the timestamp to resolve relative dates; prefer a date the user wrote. Call get_note_metadata when you need Markdown frontmatter, headings, tags, or links without the note body. Call read_note when you need Markdown or Canvas contents.";
   const imageTool = supportsImages
     ? "- read_image reads PNG, JPEG, and WebP images from the vault and attaches the picture for this turn. It does not read GIF or other formats. Saved conversations keep the path, not the image bytes; call read_image again if you need to see the file after a session is restored.\n"
     : "";
@@ -108,7 +108,7 @@ export function pidianSystemPrompt(supportsImages: boolean): string {
 
 Use only the provided tools to ${toolsIntro}. Never assume you can access the filesystem, shell, or vault files directly.
 
-Each user turn is an ISO 8601 local timestamp, then optional \`PATH LINE_RANGE\` or \`PATH\`, then \`User:\` and the message. The header is send time and location only, never file contents, and is not the user's text. LINE_RANGE is the Markdown cursor (\`L12\`) or a text selection (\`L3:C4-L5:C3\`). ${locationHint}
+Each user turn is \`Time:\` plus an ISO 8601 local timestamp, then optional \`Path:\` plus \`PATH LINE_RANGE\` or \`PATH\`, then \`User:\` and the message. The header is send time and location only, never file contents, and is not the user's text. LINE_RANGE is the Markdown cursor (\`L12\`) or a text selection (\`L3:C4-L5:C3\`). ${locationHint}
 
 Writing:
 - Answer in chat by default. Chat replies do not change the vault.

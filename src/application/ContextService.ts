@@ -29,13 +29,13 @@ export function formatAgentPrompt(text: string, context?: ContextSnapshot, creat
   const lines: string[] = [];
   const sentAt = createdAt ? formatLocalIso8601(createdAt) : undefined;
   if (sentAt) {
-    lines.push(sentAt);
+    lines.push(`Time: ${sentAt}`);
   }
   if (context) {
     lines.push(
       hasContextLineRange(context)
-        ? `${context.notePath} ${formatLineRange(context)}`
-        : context.notePath,
+        ? `Path: ${context.notePath} ${formatLineRange(context)}`
+        : `Path: ${context.notePath}`,
     );
   }
   lines.push(`User: ${text}`);

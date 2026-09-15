@@ -167,14 +167,14 @@ Composer
 プロンプト本文の形（`formatAgentPrompt`）:
 
 ```text
-<ISO 8601 local timestamp>
-<path> <LINE_RANGE>
+Time: <ISO 8601 local timestamp>
+Path: <path> <LINE_RANGE>
 User: <user text>
 ```
 
-時刻は `createdAt`（UTC）から、送信時のマシンローカルオフセット付き ISO 8601（秒まで。例 `2026-08-31T17:31:00+09:00`）。`LINE_RANGE` は Markdown エディタのカーソルなら `L12`、テキスト選択なら `L3:C4-L5:C3`（1-based。開始列は inclusive、終了列は exclusive でエディタの from/to に一致）。列が無い古い選択は `L13-L15`。Canvas、PNG/JPEG/WebP、Excalidraw などカーソルが取れないファイルは path のみ。ファイルが無いとき、または Composer でコンテキスト表示を打ち消したときは timestamp と `User: <user text>` のみ。
+時刻は `createdAt`（UTC）から、送信時のマシンローカルオフセット付き ISO 8601（秒まで。例 `2026-08-31T17:31:00+09:00`）。`LINE_RANGE` は Markdown エディタのカーソルなら `L12`、テキスト選択なら `L3:C4-L5:C3`（1-based。開始列は inclusive、終了列は exclusive でエディタの from/to に一致）。列が無い古い選択は `L13-L15`。Canvas、PNG/JPEG/WebP、Excalidraw などカーソルが取れないファイルは path のみ。ファイルが無いとき、または Composer でコンテキスト表示を打ち消したときは `Time:` と `User: <user text>` のみ。
 
-ユーザー発言の `text` は本文だけ保存する。ヘッダ（時刻・path）は保存しない。送信時の `ContextSnapshot`（path と、Markdown エディタなら行範囲。テキスト選択なら列位置も。本文は入れない）はユーザーメッセージの任意フィールド `context` に残す。再開・モデル変更で Pi を作り直すとき、`toConversation` が `formatAgentPrompt` で当時のヘッダを復元する。`context` が無い古い保存は timestamp と `User: <user text>` のみ。
+ユーザー発言の `text` は本文だけ保存する。ヘッダ（時刻・path）は保存しない。送信時の `ContextSnapshot`（path と、Markdown エディタなら行範囲。テキスト選択なら列位置も。本文は入れない）はユーザーメッセージの任意フィールド `context` に残す。再開・モデル変更で Pi を作り直すとき、`toConversation` が `formatAgentPrompt` で当時のヘッダを復元する。`context` が無い古い保存は `Time:` と `User: <user text>` のみ。
 
 クリップボードから貼った画像はユーザーメッセージの任意フィールド `attachments` に Base64 で保存する。チャット UI はサムネイルとして出す。再開・モデル変更で Pi を作り直すときは `read_image` と同様に image ブロックを付け直さない。そのターンの `prompt` にだけ `images` を渡す。
 

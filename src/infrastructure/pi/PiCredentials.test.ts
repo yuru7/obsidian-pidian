@@ -93,7 +93,7 @@ describe("pidianSystemPrompt", () => {
   it("describes the compact user-turn header without treating it as note contents", () => {
     const prompt = pidianSystemPrompt(false);
     expect(prompt).toContain(
-      "Each user turn is an ISO 8601 local timestamp, then optional `PATH LINE_RANGE` or `PATH`, then `User:` and the message",
+      "Each user turn is `Time:` plus an ISO 8601 local timestamp, then optional `Path:` plus `PATH LINE_RANGE` or `PATH`, then `User:` and the message",
     );
     expect(prompt).toContain(
       "The header is send time and location only, never file contents, and is not the user's text",

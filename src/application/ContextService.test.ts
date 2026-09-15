@@ -47,7 +47,7 @@ describe("formatLocalIso8601", () => {
 describe("formatAgentPrompt", () => {
   it("sends the local timestamp, note path, and cursor line without the note body", () => {
     expect(formatAgentPrompt("rewrite this", snapshot, SENT_AT)).toBe(
-      `${formatLocalIso8601(SENT_AT)}\nnotes/example.md L12\nUser: rewrite this`,
+      `Time: ${formatLocalIso8601(SENT_AT)}\nPath: notes/example.md L12\nUser: rewrite this`,
     );
   });
 
@@ -62,7 +62,7 @@ describe("formatAgentPrompt", () => {
         },
         SENT_AT,
       ),
-    ).toBe(`${formatLocalIso8601(SENT_AT)}\nnotes/example.md L13-L15\nUser: rewrite this`);
+    ).toBe(`Time: ${formatLocalIso8601(SENT_AT)}\nPath: notes/example.md L13-L15\nUser: rewrite this`);
   });
 
   it("sends column positions when the snapshot has a text selection", () => {
@@ -78,26 +78,26 @@ describe("formatAgentPrompt", () => {
         },
         SENT_AT,
       ),
-    ).toBe(`${formatLocalIso8601(SENT_AT)}\nnotes/example.md L3:C4-L5:C3\nUser: rewrite this`);
+    ).toBe(`Time: ${formatLocalIso8601(SENT_AT)}\nPath: notes/example.md L3:C4-L5:C3\nUser: rewrite this`);
   });
 
   it("labels the user text when there is no active note", () => {
     expect(formatAgentPrompt("hello", undefined, SENT_AT)).toBe(
-      `${formatLocalIso8601(SENT_AT)}\nUser: hello`,
+      `Time: ${formatLocalIso8601(SENT_AT)}\nUser: hello`,
     );
   });
 
   it("omits the timestamp when createdAt is missing or invalid", () => {
     expect(formatAgentPrompt("hello")).toBe("User: hello");
-    expect(formatAgentPrompt("hello", snapshot, "nope")).toBe("notes/example.md L12\nUser: hello");
+    expect(formatAgentPrompt("hello", snapshot, "nope")).toBe("Path: notes/example.md L12\nUser: hello");
   });
 
   it("sends the path without a line range when the file has no cursor", () => {
     expect(
       formatAgentPrompt("hello", { notePath: "maps/board.canvas" }, SENT_AT),
-    ).toBe(`${formatLocalIso8601(SENT_AT)}\nmaps/board.canvas\nUser: hello`);
+    ).toBe(`Time: ${formatLocalIso8601(SENT_AT)}\nPath: maps/board.canvas\nUser: hello`);
     expect(
       formatAgentPrompt("what is this", { notePath: "img/photo.png" }, SENT_AT),
-    ).toBe(`${formatLocalIso8601(SENT_AT)}\nimg/photo.png\nUser: what is this`);
+    ).toBe(`Time: ${formatLocalIso8601(SENT_AT)}\nPath: img/photo.png\nUser: what is this`);
   });
 });
