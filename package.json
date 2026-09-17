@@ -1,6 +1,6 @@
 {
   "name": "obsidian-pidian",
-  "version": "0.17.0",
+  "version": "0.18.0",
   "description": "Use a Pi coding agent from the Obsidian sidebar.",
   "main": "main.js",
   "type": "module",
