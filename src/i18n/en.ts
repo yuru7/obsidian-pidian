@@ -162,6 +162,7 @@ export const en = {
   uiEmptyChat: "Ask Pidian about the current note, or search the vault.",
   uiYou: "You",
   uiThinking: "Thinking",
+  uiFootnote: "Footnote",
   uiWorking: "Working",
   uiScrollToLatest: "Scroll to the end of the chat",
   uiWorked: "Worked",

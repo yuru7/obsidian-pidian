@@ -812,6 +812,14 @@ button.pidian-selection-quote:hover {
   border-radius: var(--radius-s);
 }
 
+.pidian-view .pidian-markdown .pidian-footnotes {
+  margin-block-start: 0.5em;
+}
+
+.pidian-view .pidian-markdown .pidian-footnotes.is-collapsed .footnotes {
+  display: none;
+}
+
 .pidian-footnote-balloon {
   position: fixed;
   inset: auto;

@@ -78,6 +78,8 @@ describe("lookup", () => {
     expect(lookup("ja", "uiDoneInSeconds", { seconds: 8 })).toBe("Done in 8 sec");
     expect(lookup("ja", "uiWorking")).toBe("Working");
     expect(lookup("ja", "uiThinking")).toBe("思考");
+    expect(lookup("en", "uiFootnote")).toBe("Footnote");
+    expect(lookup("ja", "uiFootnote")).toBe("脚注");
   });
 
   it("leaves the template unchanged when vars are omitted", () => {

@@ -382,7 +382,7 @@ Pi のモジュール解決や stub を足すときは、バンドルゲート�
 | `OpenActiveSessionButton.tsx` | 開いているファイルがセッションファイルなら「新しいチャット」の左に復元ボタン。不正形式はエラーツールチップ |
 | `Chat.tsx` / `Message.tsx` / `UserMessageEditor.tsx` / `WorkLog.tsx` / `ToolCall.tsx` / `Thinking.tsx` / `SelectionQuoteToolbar.tsx` / `AttachmentStrip.tsx` / `TokenUsageDisplay.tsx` | ストリーム表示。思考とツールは1つの WorkLog にまとめ、中は思考・ツールを時系列のまま出す。思考中でも本文は直下へ出せる。ユーザーメッセージのクリックで編集再送信。`.pidian-chat` 内の文字列選択で「引用」ツールバーを出し、Composer へ `> ` 引用を挿入。貼り付け画像は履歴でもサムネイル。クリックで Obsidian ウィンドウ全体の中央に原寸表示（はみ出す場合は画面内に縮小）。右クリックで画像をコピー。トークン量ホバーはカタログ単価があれば USD を添える。セッション合計はメッセージごとの費用の和。カスタムモデルと単価不明は件数だけ |
 | `Composer.tsx` | 入力。設定の編集モードがライブプレビューなら Obsidian Markdown Live Preview（内部 API が使えないときは textarea）、プレーンなら textarea。`subscribeComposerFocus` でフォーカス。送信中かつ空なら Esc で abort、プレースホルダに停止案内。`insertQuote` で選択引用を末尾挿入。Enter / Esc は入力欄 wrapper の capture で処理し、エディター実装に依存しない。クリップボード画像の貼り付けは入力欄上部のサムネイルにする。Vision 非対応モデルに画像があるときは送信を止める |
-| `Markdown.tsx` / `chatFootnote.ts` / `ensureTableBlankLines.ts` | チャット内 Markdown。ノートリンクはファイル名表示＋パスのツールチップ（`setTooltip` 上位置、OS の `title` は付けない）。クリックは既存エディタタブを優先して開く。脚注の `[n]` は定義へスクロール＋3秒ハイライト、ホバーでソースのバルーン（中のリンクはクリック可）。定義末尾の `↵` は対応する番号へ戻る。Obsidian の表は直前の空行が必要なので、描画とコピーのときだけ足す。保存は変えない。コードフェンス・`$$`・インデントコードは触らない |
+| `Markdown.tsx` / `chatFootnote.ts` / `ensureTableBlankLines.ts` | チャット内 Markdown。ノートリンクはファイル名表示＋パスのツールチップ（`setTooltip` 上位置、OS の `title` は付けない）。クリックは既存エディタタブを優先して開く。脚注定義は「Footnote」/「脚注」の折りたたみ（既定は閉じる。`▸` / `▾`。レンダラが出す先頭の `hr` は外す）。`[n]` は定義を展開してスクロール＋3秒ハイライト、ホバーでソースのバルーン（中のリンクはクリック可）。定義末尾の `↵` は対応する番号へ戻る。Obsidian の表は直前の空行が必要なので、描画とコピーのときだけ足す。保存は変えない。コードフェンス・`$$`・インデントコードは触らない |
 | `PidianSettingTab.ts` | 設定 UI（React ではない） |
 
 スタイルはルート `styles.css`。クラスは `pidian-` 接頭辞。アイコン ID は `PIDIAN_ICON_ID`。
@@ -391,7 +391,7 @@ UI は `AgentService` と `plugin.settings` を読む。Pi 型を import しな�
 
 チャットの内部リンクは `MarkdownRenderer` が `a.internal-link` に描画するが、カスタム `ItemView` ではクリックが付かない。エージェントは `[Note.md](<folder/Note.md>)` 形式の Markdown リンクを書く（ターゲットは常に `<>` で囲む。スペース等を壊さないため）。`Markdown.tsx` がラベルをファイル名にし、パスを `setTooltip(..., { placement: "top" })` で出し、クリックは `WorkspaceNavigator.openFile` で開く。既存タブの検索は `leaf.getViewState().state.file`（非表示タブは `DeferredView` のため `instanceof MarkdownView` は使わない）。未オープンなら root split に新しいエディタタブを開く。`openLinkText` は使わない（アクティブなサイドバー leaf を置換しうる）。
 
-ノートや Web 検索を根拠にした回答は Markdown 脚注でソースを出す（`[^1]` と末尾の `[^1]: [Note.md](<path>) — …` / `[title](url)`）。ターンヘッダの現在ファイルだけがソースなら脚注は出さない。他ノートや Web もあるときはそれらだけ脚注にし、現在ファイルは省略する。`MarkdownRenderer` は `a.footnote-link` / `a.footnote-backref` を描くが、カスタム `ItemView` ではハッシュジャンプが付かない。`chatFootnote.ts` が同一メッセージ内で定義・参照を解決し、スクロールと 3 秒ハイライト、文中番号ホバー時のバルーンを付ける。バルーンは独自描画で、中のノートリンクも同じクリック経路で開く。
+ノートや Web 検索を根拠にした回答は Markdown 脚注でソースを出す（`[^1]` と末尾の `[^1]: [Note.md](<path>) — …` / `[title](url)`）。ターンヘッダの現在ファイルだけがソースなら脚注は出さない。他ノートや Web もあるときはそれらだけ脚注にし、現在ファイルは省略する。`MarkdownRenderer` は `a.footnote-link` / `a.footnote-backref` を描くが、カスタム `ItemView` ではハッシュジャンプが付かない。`chatFootnote.ts` が同一メッセージ内で定義・参照を解決し、定義一覧を折りたたみ、スクロールと 3 秒ハイライト、文中番号ホバー時のバルーンを付ける。文中の `[n]` をクリックしたときは折りたたみを開いてから定義へスクロールする。バルーンは独自描画で、中のノートリンクも同じクリック経路で開く。
 
 ---
 

@@ -7,12 +7,16 @@ import {
   flashFootnoteTarget,
   FOOTNOTE_FLASH_CLASS,
   FOOTNOTE_FLASH_MS,
+  FOOTNOTES_COLLAPSED_CLASS,
+  FOOTNOTES_WRAP_CLASS,
   footnoteAnchorFromTarget,
   footnoteHighlightTarget,
   footnoteHrefKind,
   hashIdFromHref,
   inTextFootnoteLinkFromTarget,
+  isChatFootnotesOpen,
   isFootnoteNavAnchor,
+  wrapChatFootnotes,
 } from "./chatFootnote";
 
 const MARKDOWN_HTML = `
@@ -32,6 +36,7 @@ const MARKDOWN_HTML = `
     </sup>
   </p>
   <section class="footnotes">
+    <hr>
     <ol>
       <li id="fn-1-aaa">
         <p>
@@ -174,6 +179,7 @@ describe("flashFootnoteTarget", () => {
 describe("bindChatFootnotes", () => {
   afterEach(() => {
     vi.useRealTimers();
+    vi.unstubAllGlobals();
   });
 
   it("scrolls to and flashes the footnote row when [1] is clicked", () => {
@@ -253,12 +259,150 @@ describe("bindChatFootnotes", () => {
     expect(document.body.querySelector(".pidian-footnote-balloon")).toBeTruthy();
     unbind();
   });
+
+  it("expands collapsed footnotes before scrolling to the definition", () => {
+    const { root, document } = renderMarkdown();
+    wrapFootnotes(root, document);
+    expect(isChatFootnotesOpen(root)).toBe(false);
+    const row = elementByHashId(root, "#fn-1-aaa")!;
+    const scrolled: HTMLElement[] = [];
+    row.scrollIntoView = () => {
+      scrolled.push(row);
+    };
+    const unbind = bindChatFootnotes(root, {
+      createBalloon: () => createTestBalloon(document),
+      decorateBalloon: () => undefined,
+      onBalloonClick: () => undefined,
+      host: document.body,
+    });
+    const link = root.querySelector("#fnref-1-aaa a.footnote-link")!;
+    link.dispatchEvent(clickEvent(document));
+    expect(isChatFootnotesOpen(root)).toBe(true);
+    expect(scrolled).toEqual([row]);
+    expect(row.classList.contains(FOOTNOTE_FLASH_CLASS)).toBe(true);
+    unbind();
+  });
+
+  it("still shows a hover balloon when the footnote list is collapsed", () => {
+    const { root, document } = renderMarkdown();
+    wrapFootnotes(root, document);
+    stubBox(root.querySelector("#fnref-1-aaa a.footnote-link") as HTMLElement);
+    const unbind = bindChatFootnotes(root, {
+      createBalloon: () => createTestBalloon(document),
+      decorateBalloon: () => undefined,
+      onBalloonClick: () => undefined,
+      host: document.body,
+    });
+    const link = root.querySelector("#fnref-1-aaa a.footnote-link")!;
+    link.dispatchEvent(pointerEvent(document, "pointerover"));
+    const balloon = document.body.querySelector(".pidian-footnote-balloon");
+    expect(isChatFootnotesOpen(root)).toBe(false);
+    expect(balloon?.textContent).toContain("帰り道の信号待ちのあたり");
+    unbind();
+  });
+});
+
+describe("wrapChatFootnotes", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("wraps the footnote list behind a collapsed disclosure", () => {
+    const { root, document } = renderMarkdown();
+    wrapFootnotes(root, document, { label: "Footnote" });
+    const wrap = root.querySelector(`.${FOOTNOTES_WRAP_CLASS}`);
+    const button = wrap?.querySelector(".pidian-disclosure");
+    expect(wrap?.classList.contains(FOOTNOTES_COLLAPSED_CLASS)).toBe(true);
+    expect(button?.getAttribute("aria-expanded")).toBe("false");
+    expect(wrap?.querySelector(".pidian-footnotes-chevron")?.textContent).toBe("▸");
+    expect(button?.textContent).toContain("Footnote");
+    expect(wrap?.querySelector(".footnotes")).toBeTruthy();
+    expect(wrap?.querySelector("hr")).toBeNull();
+    expect(isChatFootnotesOpen(root)).toBe(false);
+  });
+
+  it("toggles open and closed from the disclosure button", () => {
+    const { root, document } = renderMarkdown();
+    const toggled: boolean[] = [];
+    wrapFootnotes(root, document, {
+      onToggle: (open) => {
+        toggled.push(open);
+      },
+    });
+    const button = root.querySelector(".pidian-footnotes .pidian-disclosure")!;
+    button.dispatchEvent(clickEvent(document));
+    expect(isChatFootnotesOpen(root)).toBe(true);
+    expect(button.getAttribute("aria-expanded")).toBe("true");
+    expect(root.querySelector(".pidian-footnotes-chevron")?.textContent).toBe("▾");
+    expect(toggled).toEqual([true]);
+    button.dispatchEvent(clickEvent(document));
+    expect(isChatFootnotesOpen(root)).toBe(false);
+    expect(button.getAttribute("aria-expanded")).toBe("false");
+    expect(root.querySelector(".pidian-footnotes-chevron")?.textContent).toBe("▸");
+    expect(toggled).toEqual([true, false]);
+  });
+
+  it("can start expanded", () => {
+    const { root, document } = renderMarkdown();
+    wrapFootnotes(root, document, { open: true });
+    expect(isChatFootnotesOpen(root)).toBe(true);
+    expect(root.querySelector(`.${FOOTNOTES_WRAP_CLASS}`)?.classList.contains(FOOTNOTES_COLLAPSED_CLASS)).toBe(false);
+  });
+
+  it("does not wrap the same footnote list twice", () => {
+    const { root, document } = renderMarkdown();
+    wrapFootnotes(root, document);
+    wrapFootnotes(root, document);
+    expect(root.querySelectorAll(`.${FOOTNOTES_WRAP_CLASS}`)).toHaveLength(1);
+  });
 });
 
 function renderMarkdown(): { root: HTMLElement; document: Document } {
   const document = new DOMParser().parseFromString(`<body>${MARKDOWN_HTML}</body>`, "text/html");
   const root = document.querySelector(".pidian-markdown") as HTMLElement;
   return { root, document };
+}
+
+function wrapFootnotes(
+  root: HTMLElement,
+  document: Document,
+  options?: { label?: string; open?: boolean; onToggle?: (open: boolean) => void },
+): void {
+  stubCreateHelpers(document);
+  wrapChatFootnotes(root, {
+    label: options?.label ?? "Footnote",
+    open: options?.open,
+    onToggle: options?.onToggle,
+  });
+}
+
+function stubCreateHelpers(doc: Document): void {
+  const apply = (el: HTMLElement, opts?: { cls?: string; attr?: Record<string, string>; text?: string }) => {
+    if (opts?.cls) {
+      el.className = opts.cls;
+    }
+    if (opts?.text) {
+      el.textContent = opts.text;
+    }
+    if (opts?.attr) {
+      for (const [key, value] of Object.entries(opts.attr)) {
+        el.setAttribute(key, value);
+      }
+    }
+    el.setText = (value: string) => {
+      el.textContent = value;
+    };
+    return el;
+  };
+  vi.stubGlobal("createDiv", (opts?: { cls?: string }) => apply(doc.createElement("div"), opts));
+  vi.stubGlobal("createSpan", (opts?: { cls?: string; text?: string; attr?: Record<string, string> }) =>
+    apply(doc.createElement("span"), opts),
+  );
+  vi.stubGlobal(
+    "createEl",
+    (tag: string, opts?: { cls?: string; attr?: Record<string, string>; text?: string }) =>
+      apply(doc.createElement(tag), opts),
+  );
 }
 
 function createTestBalloon(document: Document): HTMLElement {

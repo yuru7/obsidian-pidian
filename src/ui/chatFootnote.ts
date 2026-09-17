@@ -7,10 +7,15 @@
 export const FOOTNOTE_FLASH_CLASS = "pidian-footnote-flash";
 export const FOOTNOTE_FLASH_MS = 3000;
 export const FOOTNOTE_BALLOON_CLASS = "pidian-footnote-balloon";
+export const FOOTNOTES_WRAP_CLASS = "pidian-footnotes";
+export const FOOTNOTES_COLLAPSED_CLASS = "is-collapsed";
 const FOOTNOTE_BALLOON_HIDE_MS = 150;
 const FOOTNOTE_BALLOON_GAP_PX = 8;
+const FOOTNOTE_CHEVRON_COLLAPSED = "▸";
+const FOOTNOTE_CHEVRON_EXPANDED = "▾";
 
 const flashTimers = new WeakMap<HTMLElement, number>();
+const footnoteToggleListeners = new WeakMap<HTMLElement, (open: boolean) => void>();
 
 export function hashIdFromHref(href: string): string | undefined {
   const trimmed = href.trim();
@@ -135,6 +140,93 @@ export function scrollFootnoteTarget(target: HTMLElement): void {
   }
 }
 
+export function wrapChatFootnotes(
+  root: HTMLElement,
+  options: {
+    label: string;
+    open?: boolean;
+    onToggle?: (open: boolean) => void;
+  },
+): void {
+  const open = options.open ?? false;
+  for (const node of Array.from(root.querySelectorAll(".footnotes"))) {
+    const section = asHtmlElement(node);
+    if (!section || section.closest(`.${FOOTNOTES_WRAP_CLASS}`)) {
+      continue;
+    }
+    const parent = section.parentElement;
+    if (!parent) {
+      continue;
+    }
+    const wrap = createDiv({ cls: FOOTNOTES_WRAP_CLASS });
+    const button = createEl("button", {
+      cls: "pidian-disclosure",
+      attr: { type: "button" },
+    });
+    button.appendChild(
+      createSpan({
+        cls: "pidian-footnotes-chevron",
+        attr: { "aria-hidden": "true" },
+      }),
+    );
+    button.appendChild(createSpan({ text: options.label }));
+    wrap.appendChild(button);
+    parent.insertBefore(wrap, section);
+    wrap.appendChild(section);
+    stripFootnoteSeparator(section);
+    applyFootnotesOpen(wrap, open);
+    if (options.onToggle) {
+      footnoteToggleListeners.set(wrap, options.onToggle);
+    }
+    button.addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      const next = wrap.classList.contains(FOOTNOTES_COLLAPSED_CLASS);
+      applyFootnotesOpen(wrap, next);
+      footnoteToggleListeners.get(wrap)?.(next);
+    });
+  }
+}
+
+export function expandChatFootnotes(root: HTMLElement): void {
+  for (const node of Array.from(root.querySelectorAll(`.${FOOTNOTES_WRAP_CLASS}`))) {
+    const wrap = asHtmlElement(node);
+    if (!wrap) {
+      continue;
+    }
+    applyFootnotesOpen(wrap, true);
+    footnoteToggleListeners.get(wrap)?.(true);
+  }
+}
+
+export function isChatFootnotesOpen(root: HTMLElement): boolean {
+  const wrap = asHtmlElement(root.querySelector(`.${FOOTNOTES_WRAP_CLASS}`));
+  if (!wrap) {
+    return true;
+  }
+  return !wrap.classList.contains(FOOTNOTES_COLLAPSED_CLASS);
+}
+
+function applyFootnotesOpen(wrap: HTMLElement, open: boolean): void {
+  wrap.classList.toggle(FOOTNOTES_COLLAPSED_CLASS, !open);
+  const button = asHtmlElement(wrap.querySelector(".pidian-disclosure"));
+  if (button) {
+    button.setAttribute("aria-expanded", open ? "true" : "false");
+  }
+  const chevron = asHtmlElement(wrap.querySelector(".pidian-footnotes-chevron"));
+  if (chevron) {
+    chevron.setText(open ? FOOTNOTE_CHEVRON_EXPANDED : FOOTNOTE_CHEVRON_COLLAPSED);
+  }
+}
+
+function stripFootnoteSeparator(section: HTMLElement): void {
+  for (const child of Array.from(section.children)) {
+    if (child.tagName === "HR") {
+      child.remove();
+    }
+  }
+}
+
 export function bindChatFootnotes(
   root: HTMLElement,
   options: {
@@ -235,6 +327,9 @@ export function bindChatFootnotes(
       return;
     }
     hideBalloon();
+    if (!isFootnoteBackref(anchor)) {
+      expandChatFootnotes(root);
+    }
     const highlight = footnoteHighlightTarget(anchor, destination);
     scrollFootnoteTarget(highlight);
     flashFootnoteTarget(highlight, win);

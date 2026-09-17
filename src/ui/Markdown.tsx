@@ -2,7 +2,7 @@ import { useEffect, useRef, type JSX } from "react";
 import { Component, MarkdownRenderer, Notice, setIcon, setTooltip, type App } from "obsidian";
 import { t } from "../i18n";
 import { ObsidianWorkspaceNavigator } from "../infrastructure/obsidian/ObsidianWorkspaceNavigator";
-import { bindChatFootnotes } from "./chatFootnote";
+import { bindChatFootnotes, wrapChatFootnotes } from "./chatFootnote";
 import {
   internalLinktextFromAttributes,
   linkpathFromLinktext,
@@ -13,6 +13,7 @@ import { ensureTableBlankLines } from "./ensureTableBlankLines";
 
 export function Markdown({ app, markdown }: { app: App; markdown: string }): JSX.Element {
   const ref = useRef<HTMLDivElement>(null);
+  const footnotesOpenRef = useRef(false);
 
   useEffect(() => {
     const el = ref.current;
@@ -44,6 +45,13 @@ export function Markdown({ app, markdown }: { app: App; markdown: string }): JSX
           return;
         }
         decorateInternalNoteLinks(el);
+        wrapChatFootnotes(el, {
+          label: t("uiFootnote"),
+          open: footnotesOpenRef.current,
+          onToggle: (open) => {
+            footnotesOpenRef.current = open;
+          },
+        });
       });
     });
     return () => {
