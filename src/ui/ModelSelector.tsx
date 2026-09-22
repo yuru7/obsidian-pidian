@@ -336,7 +336,6 @@ function MarqueeMenuItem({
   active = false,
   supportsImages,
   onSelect,
-  onActivate,
 }: {
   id: string;
   name: string;
@@ -344,7 +343,6 @@ function MarqueeMenuItem({
   active?: boolean;
   supportsImages?: boolean;
   onSelect: (id: string) => void;
-  onActivate?: () => void;
 }): JSX.Element {
   const marquee = useOverflowMarquee(name);
   return (
@@ -354,10 +352,7 @@ function MarqueeMenuItem({
       className={`pidian-model-menu-item${selected ? " is-selected" : ""}${active ? " is-active" : ""}`}
       title={name}
       onClick={() => onSelect(id)}
-      onPointerEnter={() => {
-        onActivate?.();
-        marquee.onPointerEnter();
-      }}
+      onPointerEnter={marquee.onPointerEnter}
       onPointerLeave={marquee.onPointerLeave}
     >
       <span ref={marquee.viewportRef} className="pidian-model-trigger-label">
@@ -603,7 +598,6 @@ function ChoiceDropdown({
                 active={searchable && index === safeActive}
                 supportsImages={item.supportsImages}
                 onSelect={onSelect}
-                onActivate={() => setActiveIndex(index)}
               />
             ))}
           </div>
