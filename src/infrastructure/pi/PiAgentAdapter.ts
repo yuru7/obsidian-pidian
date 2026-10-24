@@ -163,6 +163,9 @@ export class PiAgentAdapter implements AgentEngine, SubscriptionAuth {
       : undefined;
     const agentsContent = normalizeAgentsContent(await this.options.readAgentsFile());
     const settingsManager = SettingsManager.inMemory();
+    // Pi resizes prompt images with Photon. The package is stubbed, and a failed
+    // resize drops the image. Pidian already caps size in prepareInlineImage.
+    settingsManager.setImageAutoResize(false);
     const supportsImages = modelSupportsImages(model);
     const loader = new PidianResourceLoader({
       systemPrompt: pidianSystemPrompt(supportsImages),

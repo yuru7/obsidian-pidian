@@ -349,7 +349,7 @@ Pi を Obsidian の eval 環境で動かすための隔離が `src/infrastructur
 
 | ファイル | 役割 |
 | --- | --- |
-| `PiAgentAdapter.ts` | `AgentEngine` + `SubscriptionAuth` 実装。`SessionManager.inMemory()`、再開時は会話を SessionManager に載せる（貼り付け画像は付け直さない）。当該ターンの `prompt` だけ `images` を渡す。`noTools: "builtin"` |
+| `PiAgentAdapter.ts` | `AgentEngine` + `SubscriptionAuth` 実装。`SessionManager.inMemory()`、再開時は会話を SessionManager に載せる（貼り付け画像は付け直さない）。当該ターンの `prompt` だけ `images` を渡す。`noTools: "builtin"`。画像の自動縮小はオフ（Photon スタブだと失敗した画像が落ちる。縮小は `prepareToolImage`） |
 | `registerBundledOAuth.ts` | Pi の OAuth を静的登録。Obsidian は `import("./openai-codex.js")` を `app://obsidian.md/` から取れない |
 | `piCodingAgentSdk.ts` | パッケージ barrel の代わり。CLI / self-update をバンドルに入れない |
 | `PiEventMapper.ts` | Pi イベント → `AgentEvent` |
@@ -359,7 +359,7 @@ Pi を Obsidian の eval 環境で動かすための隔離が `src/infrastructur
 | `PidianResourceLoader.ts` | システムプロンプトと AGENTS.md だけ。拡張ローダは使わない |
 | `corsFreeFetch.ts` | Chromium `fetch` の CORS を避けるため Node `http`/`https` |
 | `customRequestBody.ts` | custom model の extra JSON body |
-| `stubs/` | jiti, TUI, bash, child_process, fs などを空実装に置換 |
+| `stubs/` | jiti, TUI, theme, bash, child_process, fs などを空実装に置換 |
 
 esbuild:
 

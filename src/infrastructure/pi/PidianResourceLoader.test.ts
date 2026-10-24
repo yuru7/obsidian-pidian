@@ -26,6 +26,9 @@ describe("PidianResourceLoader", () => {
     expect(extensions.extensions).toEqual([]);
     expect(extensions.errors).toEqual([]);
     expect(extensions.runtime.flagValues).toBeInstanceOf(Map);
+    expect(extensions.runtime.pendingVirtualModelRegistrations).toEqual([]);
+    expect(extensions.runtime.mcpServers.list()).toEqual([]);
+    extensions.runtime.mcpServers.setChangeListener(() => {});
 
     await expect(loader.reload()).resolves.toBeUndefined();
   });

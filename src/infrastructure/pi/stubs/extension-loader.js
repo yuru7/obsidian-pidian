@@ -5,11 +5,27 @@
  */
 export function clearExtensionCache() {}
 
+function emptyMcpServers() {
+  return {
+    setChangeListener() {},
+    list() {
+      return [];
+    },
+    register() {},
+    unregister() {},
+    get() {
+      return undefined;
+    },
+  };
+}
+
 export function createExtensionRuntime() {
   return {
     flagValues: new Map(),
     pendingProviderRegistrations: [],
     pendingNativeProviderRegistrations: [],
+    pendingVirtualModelRegistrations: [],
+    mcpServers: emptyMcpServers(),
     refreshTools() {},
     sendMessage() {},
     sendUserMessage() {},

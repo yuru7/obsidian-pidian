@@ -85,6 +85,7 @@ const stubPaths = {
   shell: path.join(stubDir, "shell.js"),
   resolveConfigValue: path.join(stubDir, "resolve-config-value.ts"),
   exec: path.join(stubDir, "exec.js"),
+  theme: path.join(stubDir, "theme.js"),
 };
 
 function fromPiCodingAgent(args) {
@@ -137,6 +138,8 @@ const obsidianCompatPlugin = {
       ["utils/shell.js", stubPaths.shell],
       ["core/resolve-config-value.js", stubPaths.resolveConfigValue],
       ["core/exec.js", stubPaths.exec],
+      // AgentSession imports the TUI theme. The real module watches theme files.
+      ["modes/interactive/theme/theme.js", stubPaths.theme],
     ];
     for (const [relative, stubPath] of piFileStubs) {
       const escaped = relative.replaceAll(".", "\\.").replaceAll("/", "[/\\\\]");

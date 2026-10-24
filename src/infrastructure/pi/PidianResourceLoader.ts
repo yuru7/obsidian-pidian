@@ -12,11 +12,23 @@ function emptyDiagnostics() {
   return { diagnostics: [] as Array<{ path: string; message: string }> };
 }
 
+function emptyMcpServers() {
+  return {
+    setChangeListener: (_listener: () => void) => {},
+    list: () => [] as Array<unknown>,
+    register: () => {},
+    unregister: () => {},
+    get: () => undefined,
+  };
+}
+
 function emptyRuntime() {
   return {
     flagValues: new Map<string, string | boolean>(),
     pendingProviderRegistrations: [] as Array<unknown>,
     pendingNativeProviderRegistrations: [] as Array<unknown>,
+    pendingVirtualModelRegistrations: [] as Array<unknown>,
+    mcpServers: emptyMcpServers(),
     refreshTools: () => {},
     sendMessage: () => {},
     sendUserMessage: () => {},

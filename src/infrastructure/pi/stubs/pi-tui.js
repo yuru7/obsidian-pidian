@@ -42,6 +42,8 @@ export function getCapabilities() {
   return { trueColor: false, images: false, hyperlinks: false };
 }
 
+export function setImageTranscoder() {}
+
 export function getKeybindings() {
   return {
     getKeys: () => [],
