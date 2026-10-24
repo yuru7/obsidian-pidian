@@ -15,7 +15,7 @@
     "forceConsistentCasingInFileNames": true,
     "allowSyntheticDefaultImports": true,
     "esModuleInterop": true,
-    "lib": ["ES2021", "ES2022.Array", "DOM"]
+    "lib": ["ES2021", "ES2022.Array", "ES2022.Error", "DOM"]
   },
   "include": ["src/**/*.ts", "src/**/*.tsx"]
 }

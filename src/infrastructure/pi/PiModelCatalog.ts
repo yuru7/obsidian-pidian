@@ -20,7 +20,7 @@ export class PiModelCatalog implements ModelCatalog {
   ) {}
 
   async listProviders(): Promise<CatalogProvider[]> {
-    let providers: CatalogProvider[] = [];
+    let providers: CatalogProvider[];
     try {
       const runtime = await this.getRuntime();
       providers = runtime.getProviders().map((provider) => ({

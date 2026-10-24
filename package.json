@@ -48,6 +48,7 @@
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.7",
     "@types/turndown": "^5.0.6",
+    "@typescript/native": "npm:typescript@^7.0.2",
     "esbuild": "0.28.2",
     "eslint": "^10.9.1",
     "eslint-plugin-obsidianmd": "^0.4.2",
@@ -55,7 +56,7 @@
     "happy-dom": "^20.14.5",
     "jiti": "^2.7.0",
     "obsidian": "latest",
-    "typescript": "^7.0.2",
+    "typescript": "npm:@typescript/typescript6@^6.0.2",
     "typescript-eslint": "^8.69.0",
     "vitest": "^4.1.11"
   }

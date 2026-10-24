@@ -513,9 +513,8 @@ describe("AgentService.send", () => {
 
   it("records workedMs when thinking ends before text", async () => {
     const store = new MemoryRepository();
-    let agent!: AgentService;
     let workedMsAtFirstText: number | undefined;
-    agent = createService(
+    const agent = createService(
       store,
       new ScriptedAgentEngine(async (emit) => {
         emit({ type: "thinking_delta", text: "plan" });
@@ -587,9 +586,8 @@ describe("AgentService.send", () => {
 
   it("starts a new work segment after text when tools continue", async () => {
     const store = new MemoryRepository();
-    let agent!: AgentService;
     let blocksAfterPreamble: unknown;
-    agent = createService(
+    const agent = createService(
       store,
       new ScriptedAgentEngine(async (emit) => {
         emit({ type: "thinking_delta", text: "plan" });
@@ -638,9 +636,8 @@ describe("AgentService.send", () => {
 
   it("keeps Working through think-then-tool-then-think until reply text", async () => {
     const store = new MemoryRepository();
-    let agent!: AgentService;
     let workedMsAfterSecondThink: unknown;
-    agent = createService(
+    const agent = createService(
       store,
       new ScriptedAgentEngine(async (emit) => {
         emit({ type: "thinking_delta", text: "plan" });
@@ -682,8 +679,7 @@ describe("AgentService.send", () => {
 
   it("keeps overlapping thinking and text in one work then one reply", async () => {
     const store = new MemoryRepository();
-    let agent!: AgentService;
-    agent = createService(
+    const agent = createService(
       store,
       new ScriptedAgentEngine(async (emit) => {
         emit({ type: "thinking_start" });

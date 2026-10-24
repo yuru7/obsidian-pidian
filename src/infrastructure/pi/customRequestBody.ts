@@ -17,7 +17,7 @@ export function parseExtraRequestBody(raw: string): Record<string, unknown> | un
     parsed = JSON.parse(trimmed);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    throw new Error(`Invalid additional JSON parameters: ${message}`);
+    throw new Error(`Invalid additional JSON parameters: ${message}`, { cause: error });
   }
   if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) {
     throw new Error("Additional JSON parameters must be a JSON object");

@@ -53,9 +53,6 @@ const { createFakeEl } = vi.hoisted(() => {
         if (opts?.cls) {
           child.className = opts.cls;
         }
-        if (opts?.attr?.rows) {
-          child.value = child.value;
-        }
         child.parent = el;
         el.children.push(child);
         return child;
