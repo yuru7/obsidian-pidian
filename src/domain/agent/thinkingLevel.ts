@@ -20,6 +20,13 @@ export function hasSelectableThinkingLevels(levels: readonly string[]): boolean 
   return levels.some((level) => level !== "off");
 }
 
+export function thinkingLevelForModelSelection(
+  requested: string | undefined,
+  available: readonly string[],
+): ThinkingLevel | undefined {
+  return hasSelectableThinkingLevels(available) ? clampThinkingLevel(requested, available) : undefined;
+}
+
 /** Same clamp as Pi's getSupportedThinkingLevels / clampThinkingLevel, against a catalog level list. */
 export function clampThinkingLevel(requested: string | undefined, available: readonly string[]): ThinkingLevel | undefined {
   if (available.length === 0) {

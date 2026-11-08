@@ -8,6 +8,7 @@ import {
   DEFAULT_THINKING_LEVEL,
   formatModelSelectionLabel,
   hasSelectableThinkingLevels,
+  thinkingLevelForModelSelection,
 } from "../domain/agent/thinkingLevel";
 import { favoriteSelectionKey, isFavoriteSelection, toggleFavorite, type ModelFavorite } from "../settings/modelFavorites";
 import { filterModelsByQuery, MODEL_SEARCH_DEBOUNCE_MS, clampMenuActiveIndex } from "./filterModelsByQuery";
@@ -138,7 +139,10 @@ export function ModelSelector({
     void catalog.listModels(nextProvider).then((nextModels) => {
       const sorted = sortCatalogModels(nextModels);
       const first = sorted[0];
-      const nextThinking = clampThinkingLevel(thinkingLevel ?? plugin.settings.thinkingLevel, first?.thinkingLevels ?? []);
+      const nextThinking = thinkingLevelForModelSelection(
+        thinkingLevel ?? plugin.settings.thinkingLevel,
+        first?.thinkingLevels ?? [],
+      );
       applySelection(nextProvider, first?.id ?? "", nextThinking);
     });
   };
@@ -148,7 +152,7 @@ export function ModelSelector({
     if (nextModel === model) {
       return;
     }
-    const nextThinking = clampThinkingLevel(
+    const nextThinking = thinkingLevelForModelSelection(
       thinkingLevel ?? plugin.settings.thinkingLevel,
       models.find((item) => item.id === nextModel)?.thinkingLevels ?? [],
     );

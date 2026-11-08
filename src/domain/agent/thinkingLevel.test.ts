@@ -5,6 +5,7 @@ import {
   hasSelectableThinkingLevels,
   parseOptionalThinkingLevel,
   parseThinkingLevel,
+  thinkingLevelForModelSelection,
 } from "./thinkingLevel";
 
 describe("parseThinkingLevel", () => {
@@ -47,6 +48,28 @@ describe("clampThinkingLevel", () => {
 
   it("returns undefined when the catalog has no levels", () => {
     expect(clampThinkingLevel("high", [])).toBeUndefined();
+  });
+});
+
+describe("thinkingLevelForModelSelection", () => {
+  it("preserves the saved level through models without selectable thinking", () => {
+    let saved = "high";
+    for (const levels of [["off"], [], ["off", "low", "medium", "high"]]) {
+      saved = thinkingLevelForModelSelection(saved, levels) ?? saved;
+      expect(saved).toBe("high");
+    }
+  });
+
+  it("adjusts a preserved level when the next model does not support it", () => {
+    const saved = thinkingLevelForModelSelection("medium", ["off"]) ?? "medium";
+    expect(thinkingLevelForModelSelection(saved, ["off", "low", "high"])).toBe("high");
+    expect(thinkingLevelForModelSelection("max", ["off", "low"])).toBe("low");
+  });
+
+  it("retains an explicitly selected off level when it is supported", () => {
+    const saved = thinkingLevelForModelSelection("off", ["off"]) ?? "off";
+    expect(thinkingLevelForModelSelection(saved, ["off", "low", "high"])).toBe("off");
+    expect(thinkingLevelForModelSelection(saved, ["low", "high"])).toBe("low");
   });
 });
 

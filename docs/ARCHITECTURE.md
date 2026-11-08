@@ -339,7 +339,7 @@ interface PidianSession {
 - Custom OpenAI Compatible は Settings の `customProviders`。`ModelRuntime.registerProvider`（api: `openai-completions`）。env は使わない。各モデルの `supportsImages`（既定オフ）が true のときだけ Pi の `input` を `["text", "image"]` にする。カタログモデルは Pi の `model.input` を使う。どちらも `CatalogModel.supportsImages` に載せ、UI のモデル選択が Vision 対応アイコンを出す。カタログの `model.cost`（USD / 百万トークン。tier あり）は `CatalogModel.cost` に載せる。カスタムモデルは単価不明として載せない。
 - モデル一覧は `PiModelCatalog`。動的カタログは `{plugin install dir}/dynamicModels.json`。無い、または 1 日以上古いときだけ `runtime.refresh({ allowNetwork: true, force: true })`。
 - 接続設定（キー・OAuth の有無・custom provider・Vision フラグ）が変わったら `AgentService.reloadModel()`。削除された provider は `reconcileModelSelection` で落とす。
-- thinking は `src/domain/agent/thinkingLevel.ts`。モデルが支持する集合へ clamp する。
+- thinking は `src/domain/agent/thinkingLevel.ts`。モデルが支持する集合へ clamp する。選択肢が空、または `off` のみのモデルへの切替では設定値を維持し、Pi 実行時に対応する値へ clamp する。
 
 ---
 

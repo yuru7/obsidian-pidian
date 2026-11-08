@@ -2,7 +2,7 @@ import { Notice, PluginSettingTab, Setting, setIcon, setTooltip, displayTooltip,
 import { t } from "../i18n";
 import type PidianPlugin from "../main";
 import type { CatalogModel, CatalogProvider } from "../domain/agent/ModelCatalog";
-import { clampThinkingLevel, formatModelSelectionLabel, hasSelectableThinkingLevels, parseOptionalThinkingLevel } from "../domain/agent/thinkingLevel";
+import { clampThinkingLevel, formatModelSelectionLabel, hasSelectableThinkingLevels, parseOptionalThinkingLevel, thinkingLevelForModelSelection } from "../domain/agent/thinkingLevel";
 import type { Permission } from "../domain/permissions/Permission";
 import { DEFAULT_PLUGIN_DIRECTORY, agentsFilePath, isValidPluginDirectory, normalizeNotePath } from "../application/notePath";
 import { listKnownCredentialProviders } from "../infrastructure/pi/PiCredentials";
@@ -876,7 +876,7 @@ export class PidianSettingTab extends PluginSettingTab {
     model: string,
     thinkingLevels: readonly string[],
   ): Promise<void> {
-    const thinking = clampThinkingLevel(this.plugin.settings.thinkingLevel, thinkingLevels);
+    const thinking = thinkingLevelForModelSelection(this.plugin.settings.thinkingLevel, thinkingLevels);
     await this.plugin.changeModel(provider, model, thinking);
   }
 
